@@ -36,6 +36,13 @@
         this.iterable = iterable;
         this.body = body;
     }
+
+    function WhileLoop(expression, body) {
+        this.nodeType = 'WhileLoop';
+        this.expression = expression;
+        this.body = body;
+    }
+
 }
 
 program
@@ -60,6 +67,9 @@ statement
 
     / SAMEDENT 'for ' item:ident ' in ' iterable:expr EOL INDENT body:statement+ DEDENT
       { return new ForLoop(null, item, iterable, body); } 
+
+    / SAMEDENT 'while ' e:expr EOL INDENT body:statement+ DEDENT
+      { return new WhileLoop(e, body); } 
 
 EOL
     = '\r\n' / '\n' / '\r'

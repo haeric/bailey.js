@@ -8,10 +8,11 @@ if 4
         8
     if 9
         10
-        
 else
     111
 for i, a in data
     666
 for a in data
     777
+while 1
+    88
