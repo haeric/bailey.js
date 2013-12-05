@@ -16,8 +16,8 @@
         this.children = children;
     }
 
-    function Declaration (name, value) {
-        this.nodeType = 'Declaration';
+    function Assignment (name, value) {
+        this.nodeType = 'Assignment';
         this.name = name;
         this.value = value;
     }
@@ -55,6 +55,16 @@
         this.items = items;
     }
 
+    function ObjectLiteral () {
+        this.nodeType = 'Object';
+        this.keys = [];
+        this.values = [];
+        this.add = function (key, value) {
+            this.keys.push(key);
+            this.values.push(value)
+        }
+    }
+
 }
 
 program
@@ -62,64 +72,87 @@ program
 
 statement 
     = SAMEDENT? EOL
-      { return new Noop(); }
+        { return new Noop(); }
 
-    / SAMEDENT a:decl EOL
-      { return a; }
+    / SAMEDENT a:assign EOL
+        { return a; }
 
     / SAMEDENT a:expr EOL
-      { return a; }
+        { return a; }
 
     / SAMEDENT 'if ' a:expr EOL INDENT ifBody:statement+ DEDENT
       SAMEDENT 'else' EOL INDENT elseBody:statement+ DEDENT 
-      { return new Condition(a, ifBody, elseBody); }
+        { return new Condition(a, ifBody, elseBody); }
 
     / SAMEDENT 'if ' a:expr EOL INDENT ifBody:statement+ DEDENT
-      { return new Condition(a, ifBody); }
+        { return new Condition(a, ifBody); }
 
     / SAMEDENT 'for ' iterator:ident ', ' item:ident ' in ' iterable:expr EOL INDENT body:statement+ DEDENT
-      { return new ForLoop(iterator, item, iterable, body); } 
+        { return new ForLoop(iterator, item, iterable, body); } 
 
     / SAMEDENT 'for ' item:ident ' in ' iterable:expr EOL INDENT body:statement+ DEDENT
-      { return new ForLoop(null, item, iterable, body); } 
+        { return new ForLoop(null, item, iterable, body); } 
 
     / SAMEDENT 'while ' e:expr EOL INDENT body:statement+ DEDENT
-      { return new WhileLoop(e, body); } 
+        { return new WhileLoop(e, body); } 
 
 EOL
     = '\r\n' / '\n' / '\r'
 
 SAMEDENT
-    = i:[ \t]* &{ return i.join("") === indent; }
+    = i:[ \t]* 
+        &{ return i.join("") === indent; }
 
 INDENT
     = i:[ \t]+ &{ return i.length > indent.length; }
-    { indentStack.push(indent); indent = i.join(""); pos = offset; }
+        { indentStack.push(indent); indent = i.join(""); pos = offset; }
 
 DEDENT
-    = { indent = indentStack.pop(); }
+    = 
+        { indent = indentStack.pop(); }
 
-decl 
-    = a:ident _ '=' _ b:expr { return new Declaration(a, b) }
+assign 
+    = name:ident _ '=' _ value:expr 
+        { return new Assignment(name, value) }
 
 expr 
-    = left:term _ op:[+-] _ right:expr { return new Operator(op, left, right); }
+    = left:term _ op:[+-] _ right:expr 
+        { return new Operator(op, left, right); }
+    
     / term
 
 term
-    = left:value _ op:[*/] _ right:term { return new Operator(op, left, right); }
+    = left:value _ op:[*/] _ right:term 
+        { return new Operator(op, left, right); }
+    
     / value
 
 value
     = number
-    / a:ident { return new Expression([a]); }
-    / '(' _ a:expr _ ')' { return a; }
+    
+    / a:ident 
+        { return new Expression([a]); }
+
+    / '(' _ a:expr _ ')' 
+        { return a; }
+
     / '[' _ head:expr? tail:(_ ',' _ expr)* _ ']'
-      { 
-        var list = tail.map(function(item) { return item[3]; }); 
-        if (head !== '') list.push(head);
-        return new ListLiteral(list);
-      }
+        { 
+            var list = tail.map(function(item) { return item[3]; }); 
+            if (head !== '') list.push(head);
+            return new ListLiteral(list);
+        }
+
+    / '{' 
+            head:(_ ident _ ':' _ expr)? 
+            tail:(_ ',' _ ident _ ':' _ expr)* _  
+      '}'
+        {
+            var obj = new ObjectLiteral();
+            if (head !== '') obj.add(head[1], head[5]);
+            for (var i = 0; i < tail.length; i++) obj.add(tail[i][3], tail[i][7])
+            return obj;
+        }
 
 number 
     = digits:[0-9]+ { return new Number(digits); }
