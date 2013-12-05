@@ -65,6 +65,11 @@
         }
     }
 
+    function LoopControl (type) {
+        this.nodeType = 'LoopControl';
+        this.type = type;
+    }
+
 }
 
 program
@@ -95,6 +100,9 @@ statement
 
     / SAMEDENT 'while ' e:expr EOL INDENT body:statement+ DEDENT
         { return new WhileLoop(e, body); } 
+
+    / SAMEDENT type:('break' / 'continue')
+        { return new LoopControl(type) }
 
 EOL
     = '\r\n' / '\n' / '\r'
@@ -155,16 +163,23 @@ value
         }
 
 number 
-    = digits:[0-9]+ { return new Number(digits); }
+    = digits:[0-9]+ 
+        { return new Number(digits); }
 
 ident
-    = a:(digits / letters / '_')+ { return a.join(''); }
+    = !RESERVED a:(digits / letters / '_')+ 
+        { return a.join(''); }
 
 digits
-    = a:[0-9]+ { return a.join(''); }
+    = a:[0-9]+ 
+        { return a.join(''); }
 
 letters
-    = a:[a-zA-Z]+ { return a.join(''); }
+    = a:[a-zA-Z]+ 
+        { return a.join(''); }
 
 _
     = [ \t]*
+
+RESERVED
+    = 'if' / 'for' / 'while' / 'break' / 'continue' / 'import' / 'function'
