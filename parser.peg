@@ -37,10 +37,17 @@
         this.body = body;
     }
 
-    function WhileLoop(expression, body) {
+    function WhileLoop (expression, body) {
         this.nodeType = 'WhileLoop';
         this.expression = expression;
         this.body = body;
+    }
+
+    function Operator (op, left, right) {
+        this.nodeType = 'Operator';
+        this.operator = op;
+        this.left = left;
+        this.right = right;
     }
 
 }
@@ -88,11 +95,20 @@ DEDENT
     = { indent = indentStack.pop(); }
 
 decl 
-    = a:ident ' = ' b:expr { return new Declaration(a, b) }
+    = a:ident _ '=' _ b:expr { return new Declaration(a, b) }
 
 expr 
-    = a:number { return new Expression([a]); }
+    = left:term _ op:[+-] _ right:expr { return new Operator(op, left, right); }
+    / term
+
+term
+    = left:value _ op:[*/] _ right:term { return new Operator(op, left, right); }
+    / value
+
+value
+    = number
     / a:ident { return new Expression([a]); }
+    / '(' _ a:expr _ ')' { return a; }
 
 number 
     = digits:[0-9]+ { return new Number(digits); }
@@ -105,3 +121,6 @@ digits
 
 letters
     = a:[a-zA-Z]+ { return a.join(''); }
+
+_
+    = [ \t]*
