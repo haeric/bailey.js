@@ -50,6 +50,11 @@
         this.right = right;
     }
 
+    function ListLiteral (items) {
+        this.nodeType = 'List';
+        this.items = items;
+    }
+
 }
 
 program
@@ -109,6 +114,12 @@ value
     = number
     / a:ident { return new Expression([a]); }
     / '(' _ a:expr _ ')' { return a; }
+    / '[' _ head:expr? tail:(_ ',' _ expr)* _ ']'
+      { 
+        var list = tail.map(function(item) { return item[3]; }); 
+        if (head !== '') list.push(head);
+        return new ListLiteral(list);
+      }
 
 number 
     = digits:[0-9]+ { return new Number(digits); }
