@@ -2,6 +2,10 @@
 {
     var indentStack = [], indent = "";
 
+    function Noop() {
+        this.nodeType = 'Noop';
+    }
+
     function Number(digits) {
         this.nodeType = 'Number';
         this.value = parseInt(digits.join(''));
@@ -10,42 +14,52 @@
     function Expression (children) {
         this.nodeType = 'Expression'
         this.children = children;
-
-        this.toString = function () {
-            return this.children.toString();
-        }
     }
 
     function Declaration (name, value) {
         this.nodeType = 'Declaration';
         this.name = name;
         this.value = value;
-
-        this.toString = function () {
-            return this.name + " set to " + this.value;
-        }
     }
 
-    function Condition (expr) {
+    function Condition (expr, ifBody, elseBody) {
         this.nodeType = 'Condition';
         this.expression = expr;
+        this.ifBody = ifBody;
+        this.elseBody = elseBody;
+    }
 
-        this.toString = function () {
-            return "if " + this.children[0].toString();
-        }
+    function ForLoop (iterator, item, iterable, body) {
+        this.nodeType = 'For';
+        this.iterator = iterator;
+        this.item = item;
+        this.iterable = iterable;
+        this.body = body;
     }
 }
 
-start
-    = line*
+program
+    = statement*
 
-line 
-    = SAMEDENT a:expr EOL { return a; }
-    / SAMEDENT a:control INDENT children:line* DEDENT { a.children.push(children); return a; }
+statement 
+    = SAMEDENT EOL
+      { return new Noop(); }
 
-control
-    = 'if ' a:expr EOL INDENT block:line* DEDENT SAMEDENT 'else' EOL { var c = new Condition(a); c.children.push(block); return c; }
-    / 'if ' a:expr EOL { return new Condition(a); }
+    / SAMEDENT a:expr EOL
+      { return a; }
+
+    / SAMEDENT 'if ' a:expr EOL INDENT ifBody:statement+ DEDENT
+      SAMEDENT 'else' EOL INDENT elseBody:statement+ DEDENT 
+      { return new Condition(a, ifBody, elseBody); }
+
+    / SAMEDENT 'if ' a:expr EOL INDENT ifBody:statement+ DEDENT
+      { return new Condition(a, ifBody); }
+
+    / SAMEDENT 'for ' iterator:ident ', ' item:ident ' in ' iterable:expr EOL INDENT body:statement+ DEDENT
+      { return new ForLoop(iterator, item, iterable, body); } 
+
+    / SAMEDENT 'for ' item:ident ' in ' iterable:expr EOL INDENT body:statement+ DEDENT
+      { return new ForLoop(null, item, iterable, body); } 
 
 EOL
     = '\r\n' / '\n' / '\r'
@@ -62,7 +76,7 @@ DEDENT
 
 expr 
     = a:decl { return new Expression([a]); }
-    / a:digits { return new Expression([a]); }
+    / a:number { return new Expression([a]); }
     / a:ident { return new Expression([a]); }
 
 number 
@@ -72,10 +86,10 @@ decl
     = a:ident ' = ' b:digits { return new Declaration(a, b) }
 
 ident
-    = (digits / letters / '_')+
+    = a:(digits / letters / '_')+ { return a.join(''); }
 
 digits
-    = [0-9]+
+    = a:[0-9]+ { return a.join(''); }
 
 letters
-    = [a-zA-Z]+
+    = a:[a-zA-Z]+ { return a.join(''); }
