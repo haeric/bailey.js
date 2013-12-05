@@ -1,0 +1,81 @@
+
+{
+    var indentStack = [], indent = "";
+
+    function Number(digits) {
+        this.nodeType = 'Number';
+        this.value = parseInt(digits.join(''));
+    }
+
+    function Expression (children) {
+        this.nodeType = 'Expression'
+        this.children = children;
+
+        this.toString = function () {
+            return this.children.toString();
+        }
+    }
+
+    function Declaration (name, value) {
+        this.nodeType = 'Declaration';
+        this.name = name;
+        this.value = value;
+
+        this.toString = function () {
+            return this.name + " set to " + this.value;
+        }
+    }
+
+    function Condition (expr) {
+        this.nodeType = 'Condition';
+        this.expression = expr;
+
+        this.toString = function () {
+            return "if " + this.children[0].toString();
+        }
+    }
+}
+
+start
+    = line*
+
+line 
+    = SAMEDENT a:expr EOL { return a; }
+    / SAMEDENT a:control INDENT children:line* DEDENT { a.children.push(children); return a; }
+
+control
+    = 'if ' a:expr EOL INDENT block:line* DEDENT SAMEDENT 'else' EOL { var c = new Condition(a); c.children.push(block); return c; }
+    / 'if ' a:expr EOL { return new Condition(a); }
+
+EOL
+    = '\r\n' / '\n' / '\r'
+
+SAMEDENT
+    = i:[ \t]* &{ return i.join("") === indent; }
+
+INDENT
+    = i:[ \t]+ &{ return i.length > indent.length; }
+    { indentStack.push(indent); indent = i.join(""); pos = offset; }
+
+DEDENT
+    = { indent = indentStack.pop(); }
+
+expr 
+    = a:decl { return new Expression([a]); }
+    / a:digits { return new Expression([a]); }
+    / a:ident { return new Expression([a]); }
+
+number 
+    = digits:[0-9]+ { return new Number(digits); }
+
+decl 
+    = a:ident ' = ' b:digits { return new Declaration(a, b) }
+
+ident
+    = (digits / letters / '_')+
+
+digits
+    = [0-9]+
+
+letters
+    = [a-zA-Z]+
