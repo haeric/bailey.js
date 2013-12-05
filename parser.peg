@@ -49,7 +49,7 @@ program
     = statement*
 
 statement 
-    = SAMEDENT EOL
+    = SAMEDENT? EOL
       { return new Noop(); }
 
     / SAMEDENT a:expr EOL
