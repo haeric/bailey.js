@@ -1,6 +1,6 @@
 a = 1
 b = 2
-if 4
+if a
     c = 3
     if 6
         7
@@ -8,7 +8,7 @@ if 4
         8
     if 9
         10
-        
+
 else
     111
 for i, a in data

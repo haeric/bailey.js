@@ -52,6 +52,9 @@ statement
     = SAMEDENT? EOL
       { return new Noop(); }
 
+    / SAMEDENT a:decl EOL
+      { return a; }
+
     / SAMEDENT a:expr EOL
       { return a; }
 
@@ -84,16 +87,15 @@ INDENT
 DEDENT
     = { indent = indentStack.pop(); }
 
+decl 
+    = a:ident ' = ' b:expr { return new Declaration(a, b) }
+
 expr 
-    = a:decl { return new Expression([a]); }
-    / a:number { return new Expression([a]); }
+    = a:number { return new Expression([a]); }
     / a:ident { return new Expression([a]); }
 
 number 
     = digits:[0-9]+ { return new Number(digits); }
-
-decl 
-    = a:ident ' = ' b:digits { return new Declaration(a, b) }
 
 ident
     = a:(digits / letters / '_')+ { return a.join(''); }
