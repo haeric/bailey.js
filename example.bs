@@ -25,3 +25,8 @@ for a in data
     777
 while 1
     88
+
+a = "hi!"
+b = "this is a 
+multine string.. wonder how that works!"
+s = 'single quoted... with \' escaping as well'

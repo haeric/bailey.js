@@ -155,6 +155,7 @@ Term
 Value
     = Number
     / Literal
+    / StringLiteral
     / a:Identifier 
         { return new Expression([a]); }
 
@@ -240,3 +241,33 @@ Keyword
 Literal
     = type:('null' / 'true' / 'false')
         { return new Literal(type); }
+
+
+StringLiteral "string"
+  = parts:('"' DoubleStringCharacters? '"' / "'" SingleStringCharacters? "'") {
+      return parts[1];
+    }
+
+DoubleStringCharacters
+  = chars:DoubleStringCharacter+ { return chars.join(""); }
+
+SingleStringCharacters
+  = chars:SingleStringCharacter+ { return chars.join(""); }
+
+DoubleStringCharacter
+  = !('"' / "\\") char_:.        { return char_;     }
+  / "\\" sequence:EscapeSequence { return sequence;  }
+
+SingleStringCharacter
+  = !("'" / "\\") char_:.        { return char_;     }
+  / "\\" sequence:EscapeSequence { return sequence;  }
+
+EscapeSequence
+  = SingleEscapeCharacter
+  / NonEscapeCharacter
+
+SingleEscapeCharacter
+  = ['"]
+
+NonEscapeCharacter
+  = (!SingleEscapeCharacter / EOL) char_:. { return char_; }
