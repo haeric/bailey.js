@@ -1,0 +1,20 @@
+{
+  "name": "karsk",
+  "version": "0.0.0",
+  "description": "A coffeescript without that bitter after-taste.",
+  "main": "karsk.js",
+  "dependencies": {
+    "pegjs": "~0.7.0",
+    "optimist": "*"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/haeric/karsk.git"
+  },
+  "author": "haeric",
+  "license": "MIT"
+}
