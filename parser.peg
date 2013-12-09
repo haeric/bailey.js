@@ -224,12 +224,6 @@ Statement
     / Indent? Comment EOL
         { return new type.Noop(); }
 
-    / Indent a:Assign EOL
-        { return a; }
-
-    / Indent a:Expression EOL
-        { return a; }
-
     / Indent 'if ' a:Expression EOL IndentAdd ifBody:Block IndentRemove
       Indent 'else' EOL IndentAdd elseBody:Block IndentRemove 
         { return new type.Condition(a, ifBody, elseBody); }
@@ -254,6 +248,12 @@ Statement
 
     / Indent 'import ' path:[a-zA-Z.]+ ' as ' name:Identifier EOL
         { return new type.ImportStatement(path.join(''), name); }
+
+    / Indent a:Assign EOL
+        { return a; }
+
+    / Indent a:Expression EOL
+        { return a; }
 
 EOL
     = '\r\n' / '\n' / '\r'
@@ -306,6 +306,8 @@ BinaryOperator
     / '>='
     / '<'
     / '>'
+
+    / 'instanceof'
 
 //
 // Cheat alert: This completely ignores operator presedence for simplicity,

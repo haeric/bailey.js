@@ -1,19 +1,38 @@
+#!/usr/bin/env node
 
 var PEG = require('pegjs');
+var argv = require('optimist').argv;
 var fs = require('fs');
 
-if (process.argv.length !== 3) {
-    console.error('karsk.js takes one argument: the karsk file to process');
+var source = argv._[0];
+var target = argv._[1];
+
+if (!source) {
+    console.error('Arguments: node karsk.js sourcefile [targetfile]')
     process.exit(1);
 }
 
+function write (text) {
+
+    if (target) {
+        fs.writeFile(target, text, function(err) {
+            if (err) { console.error(err); }
+        });
+    }
+    else {
+        console.log(text);
+    }
+}
+
 fs.readFile('parser.peg', 'utf8', function(err, parserData) {
-    fs.readFile(process.argv[2], 'utf8', function (err, input) {
+    fs.readFile(source, 'utf8', function (err, input) {
         var parser = PEG.buildParser(parserData);
         var ast = parser.parse(input);
 
-        for ( var i = 0; i < ast.length; i++ ) {
-            console.log(ast[i].toJS());
-        }
+        var out = ast.map(function(item){
+            return item.toJS();
+        }).join('\n');
+
+        write(out);
     });
 });
