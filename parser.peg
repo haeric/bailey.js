@@ -47,12 +47,13 @@
     });
 
     type('Assignment', {
-        init: function(name, value) {
+        init: function(operator, name, value) {
+            this.operator = operator;
             this.name = name;
             this.value = value;
         },
         toJS: function () {
-            return this.name + ' = ' + this.value.toJS() + ';';
+            return this.name + ' ' + this.operator + ' ' + this.value.toJS() + ';';
         }
     });
 
@@ -264,8 +265,22 @@ Comment
     = '#' (!EOL .)*
 
 Assign 
-    = name:Identifier _ '=' _ value:Expression 
-        { return new type.Assignment(name, value) }
+    = name:Identifier _ op:AssignmentOperator _ value:Expression 
+        { return new type.Assignment(op, name, value) }
+
+AssignmentOperator
+  = "=" (!"=") { return "="; }
+  / "*="
+  / "/="
+  / "%="
+  / "+="
+  / "-="
+  / "<<="
+  / ">>="
+  / ">>>="
+  / "&="
+  / "^="
+  / "|="
 
 Expression 
     = left:Term _ op:[+-] _ right:Expression 
