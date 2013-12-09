@@ -10,9 +10,7 @@ fs.readFile('parser.peg', 'utf8', function(err, parserData) {
         console.log(JSON.stringify(ast));
 
         for ( var i = 0; i < ast.length; i++ ) {
-            if (ast[i].toJS) {
-                console.log(ast[i].toJS());
-            }
+            console.log(ast[i].toJS());
         }
     });
 });

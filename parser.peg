@@ -52,7 +52,7 @@
             this.value = value;
         },
         toJS: function () {
-            return this.name + ' = ' + (this.value.toJS ? this.value.toJS() : this.value.nodeType);
+            return this.name + ' = ' + this.value.toJS() + ';';
         }
     });
 
@@ -61,15 +61,35 @@
             this.expression = expr;
             this.ifBody = ifBody;
             this.elseBody = elseBody;
+        },
+        toJS: function () {
+            var out = 'if (' + this.expression.toJS() + ') {\n';
+            out += '    ' + this.ifBody.toJS() + '\n';
+            out += '}';
+
+            if (this.elseBody) {
+                out += ' else {\n';
+                out += this.elseBody.toJS() + '\n';
+                out += '}';
+            }
+
+            return out;
         }
     })
 
     type('ForLoop', {
         init: function (iterator, item, iterable, body) {
-            this.iterator = iterator;
+            this.iterator = iterator || 'i';
             this.item = item;
             this.iterable = iterable;
             this.body = body;
+        },
+        toJS: function () {
+            return 'for (var ' + this.iterator + ' = 0; ' + 
+                this.iterator + ' < ' + this.iterable.toJS() + '.length; ' + this.iterator + '++) { ' +
+                'var ' + this.item + ' = ' + this.iterable.toJS() + '[' + this.iterator + '];\n' +
+                this.body.toJS() + '\n' +
+                '}';
         }
     });
 
@@ -77,6 +97,11 @@
         init: function (expression, body) {
             this.expression = expression;
             this.body = body;
+        },
+        toJS: function () {
+            return 'while (' + this.expression.toJS() + ') {\n' +
+                   this.body.toJS() + '\n' +
+                   '}';
         }
     });
 
@@ -85,6 +110,9 @@
             this.operator = op;
             this.left = left;
             this.right = right;
+        },
+        toJS: function () {
+            return '(' + this.left.toJS() + ' ' + this.operator + ' ' + this.right.toJS() + ')';
         }
     });
 
@@ -93,7 +121,10 @@
             this.items = items;
         },
         toJS: function () {
-            return '[' + this.items.join(', ') + ']';
+            var items = this.items.map(function(item) {
+                return item.toJS();
+            });
+            return '[' + items.join(', ') + ']';
         }
     });
 
@@ -109,9 +140,9 @@
         toJS: function () {
             var out = '{';
             for (var i = 0; i < this.keys.length; i++) {
-                out += this.keys[i] + ': ' + this.values[i];
+                out += this.keys[i] + ': ' + this.values[i].toJS();
                 if (i < this.keys.length - 1) {
-                    out += ',';
+                    out += ', ';
                 }
             }
             return out + '}';
@@ -121,6 +152,9 @@
     type('LoopControl', {
         init: function (type) {
             this.type = type;
+        },
+        toJS: function () {
+            return this.type + ';';
         }
     });
 
@@ -128,6 +162,9 @@
         init: function (path, name) {
             this.path = path;
             this.name = name || path.split('.')[path.split('.').length-1];
+        },
+        toJS: function () {
+            return ''; // Ignored for now
         }
     });
 
@@ -146,10 +183,25 @@
         }
     });
 
+    type('Block', {
+        init: function(statements) {
+            this.statements = statements;
+        },
+        toJS: function () {
+            return this.statements.map(function (s) {
+                return s.toJS();
+            }).join('\n');
+        }
+    });
+
 }
 
 Program
     = Statement*
+
+Block
+    = statements:Statement+
+        { return new type.Block(statements) }
 
 Statement 
     = Indent? EOL
@@ -161,20 +213,20 @@ Statement
     / Indent a:Expression EOL
         { return a; }
 
-    / Indent 'if ' a:Expression EOL IndentAdd ifBody:Statement+ IndentRemove
-      Indent 'else' EOL IndentAdd elseBody:Statement+ IndentRemove 
+    / Indent 'if ' a:Expression EOL IndentAdd ifBody:Block IndentRemove
+      Indent 'else' EOL IndentAdd elseBody:Block IndentRemove 
         { return new type.Condition(a, ifBody, elseBody); }
 
-    / Indent 'if ' a:Expression EOL IndentAdd ifBody:Statement+ IndentRemove
+    / Indent 'if ' a:Expression EOL IndentAdd ifBody:Block IndentRemove
         { return new type.Condition(a, ifBody); }
 
-    / Indent 'for ' iterator:Identifier ', ' item:Identifier ' in ' iterable:Expression EOL IndentAdd body:Statement+ IndentRemove
+    / Indent 'for ' iterator:Identifier ', ' item:Identifier ' in ' iterable:Expression EOL IndentAdd body:Block IndentRemove
         { return new type.ForLoop(iterator, item, iterable, body); } 
 
-    / Indent 'for ' item:Identifier ' in ' iterable:Expression EOL IndentAdd body:Statement+ IndentRemove
+    / Indent 'for ' item:Identifier ' in ' iterable:Expression EOL IndentAdd body:Block IndentRemove
         { return new type.ForLoop(null, item, iterable, body); } 
 
-    / Indent 'while ' e:Expression EOL IndentAdd body:Statement+ IndentRemove
+    / Indent 'while ' e:Expression EOL IndentAdd body:Block IndentRemove
         { return new type.WhileLoop(e, body); } 
 
     / Indent word:('break' / 'continue')
