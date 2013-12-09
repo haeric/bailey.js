@@ -211,6 +211,9 @@ Statement
     = Indent? EOL
         { return new type.Noop(); }
 
+    / Indent? Comment EOL
+        { return new type.Noop(); }
+
     / Indent a:Assign EOL
         { return a; }
 
@@ -256,6 +259,9 @@ IndentAdd
 IndentRemove
     = 
         { indent = indentStack.pop(); }
+
+Comment
+    = '#' (!EOL .)*
 
 Assign 
     = name:Identifier _ '=' _ value:Expression 

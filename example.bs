@@ -21,6 +21,8 @@ for i, a in data
         break
     else
         continue
+        
+# This is a comment
 for a in data
     777
 while 1
