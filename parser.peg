@@ -178,8 +178,12 @@
     });
 
     type('StringLiteral', {
-        init: function (string) {
-            this.string = string;
+        init: function (token, string) {
+            this.token = token;
+            this.string = string.replace(token, '\\' + token);
+        },
+        toJS: function () {
+            return this.token + this.string.split('\n').join('') + this.token;
         }
     });
 
@@ -362,7 +366,7 @@ Literal
 
 StringLiteral "string"
   = parts:('"' DoubleStringCharacters? '"' / "'" SingleStringCharacters? "'") {
-      return new type.StringLiteral(parts[1]);
+      return new type.StringLiteral(parts[0], parts[1]);
     }
 
 DoubleStringCharacters
