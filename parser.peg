@@ -108,12 +108,12 @@
 
     type('Operator', {
         init: function (op, left, right) {
-            this.operator = op;
+            this.operator = op === '==' ? '===' : op;
             this.left = left;
             this.right = right;
         },
         toJS: function () {
-            return '(' + this.left.toJS() + ' ' + this.operator + ' ' + this.right.toJS() + ')';
+            return this.left.toJS() + ' ' + this.operator + ' ' + this.right.toJS();
         }
     });
 
@@ -199,6 +199,15 @@
         }
     });
 
+    type('Group', {
+        init: function(expr) {
+            this.expr = expr;
+        },
+        toJS: function () {
+            return '(' + this.expr.toJS() + ')';
+        }
+    })
+
 }
 
 Program
@@ -269,40 +278,58 @@ Assign
         { return new type.Assignment(op, name, value) }
 
 AssignmentOperator
-  = "=" (!"=") { return "="; }
-  / "*="
-  / "/="
-  / "%="
-  / "+="
-  / "-="
-  / "<<="
-  / ">>="
-  / ">>>="
-  / "&="
-  / "^="
-  / "|="
+    = '=' (!'=') { return '='; }
+    / '*='
+    / '/='
+    / '%='
+    / '+='
+    / '-='
+    / '<<='
+    / '>>='
+    / '>>>='
+    / '&='
+    / '^='
+    / '|='
 
-Expression 
-    = left:Term _ op:[+-] _ right:Expression 
-        { return new type.Operator(op, left, right); }
+BinaryOperator
+    = '+'
+    / '-'
+    / '*'
+    / '/'
     
-    / Term
+    / '>>'
+    / '>>>'
+    / '<<'
 
-Term
-    = left:Value _ op:[*/] _ right:Term 
+    / '=='
+    / '<='
+    / '>='
+    / '<'
+    / '>'
+
+//
+// Cheat alert: This completely ignores operator presedence for simplicity,
+// and will create a wrong ast. However, as long as we do not really
+// fiddle with operators, it'll output correct javascript.
+//
+Expression 
+    = left:Value _ op:BinaryOperator _ right:Expression 
         { return new type.Operator(op, left, right); }
     
     / Value
 
 Value
     = Number
+    
     / Literal
+    
     / StringLiteral
+
     / a:Identifier 
         { return new type.Variable([a]); }
 
     / '(' _ a:Expression _ ')' 
-        { return a; }
+        { return new type.Group(a); }
 
     / '[' _ head:Expression? tail:(_ ',' _ Expression)* _ ']'
         { 
