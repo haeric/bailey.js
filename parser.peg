@@ -2,84 +2,149 @@
 {
     var indentStack = [], indent = "";
 
-    function Noop() {
-        this.nodeType = 'Noop';
+    function type (name, options) {
+
+        options = options || {};
+
+        var functions = {
+            init: options.init || function () {},
+            toJS: options.toJS || function () { return '<' + name + '>'; },
+        }
+
+        for ( key in options ) {
+            functions[key] = options[key];
+        }
+
+        type[name] = function () {
+            this.nodeType = name;
+            functions.init.apply(this, arguments);
+        }
+        type[name].prototype = functions;
     }
 
-    function Number(digits) {
-        this.nodeType = 'Number';
-        this.value = parseInt(digits.join(''));
-    }
+    type('Noop', {
+        toJS: function () {
+            return '';
+        }
+    });
 
-    function Expression (children) {
-        this.nodeType = 'Expression'
-        this.children = children;
-    }
+    type('Number', {
+        init: function (digits) {
+            this.value = parseInt(digits.join(''));
+        },
+        toJS: function () {
+            return this.value;
+        }
+    })
 
-    function Assignment (name, value) {
-        this.nodeType = 'Assignment';
-        this.name = name;
-        this.value = value;
-    }
+    type('Variable', {
+        init: function (name) {
+            this.name = name;
+        },
+        toJS: function () {
+            return this.name;
+        }
+    });
 
-    function Condition (expr, ifBody, elseBody) {
-        this.nodeType = 'Condition';
-        this.expression = expr;
-        this.ifBody = ifBody;
-        this.elseBody = elseBody;
-    }
+    type('Assignment', {
+        init: function(name, value) {
+            this.name = name;
+            this.value = value;
+        },
+        toJS: function () {
+            return this.name + ' = ' + (this.value.toJS ? this.value.toJS() : this.value.nodeType);
+        }
+    });
 
-    function ForLoop (iterator, item, iterable, body) {
-        this.nodeType = 'For';
-        this.iterator = iterator;
-        this.item = item;
-        this.iterable = iterable;
-        this.body = body;
-    }
+    type('Condition', {
+        init: function (expr, ifBody, elseBody) {
+            this.expression = expr;
+            this.ifBody = ifBody;
+            this.elseBody = elseBody;
+        }
+    })
 
-    function WhileLoop (expression, body) {
-        this.nodeType = 'WhileLoop';
-        this.expression = expression;
-        this.body = body;
-    }
+    type('ForLoop', {
+        init: function (iterator, item, iterable, body) {
+            this.iterator = iterator;
+            this.item = item;
+            this.iterable = iterable;
+            this.body = body;
+        }
+    });
 
-    function Operator (op, left, right) {
-        this.nodeType = 'Operator';
-        this.operator = op;
-        this.left = left;
-        this.right = right;
-    }
+    type('WhileLoop', {
+        init: function (expression, body) {
+            this.expression = expression;
+            this.body = body;
+        }
+    });
 
-    function ListLiteral (items) {
-        this.nodeType = 'List';
-        this.items = items;
-    }
+    type('Operator', {
+        init: function (op, left, right) {
+            this.operator = op;
+            this.left = left;
+            this.right = right;
+        }
+    });
 
-    function ObjectLiteral () {
-        this.nodeType = 'Object';
-        this.keys = [];
-        this.values = [];
-        this.add = function (key, value) {
+    type('ListLiteral', {
+        init: function (items) {
+            this.items = items;
+        },
+        toJS: function () {
+            return '[' + this.items.join(', ') + ']';
+        }
+    });
+
+    type('ObjectLiteral', {
+        init: function () {
+            this.keys = [];
+            this.values = [];
+        },
+        add: function (key, value) {
             this.keys.push(key);
             this.values.push(value)
+        },
+        toJS: function () {
+            var out = '{';
+            for (var i = 0; i < this.keys.length; i++) {
+                out += this.keys[i] + ': ' + this.values[i];
+                if (i < this.keys.length - 1) {
+                    out += ',';
+                }
+            }
+            return out + '}';
         }
-    }
+    });
 
-    function LoopControl (type) {
-        this.nodeType = 'LoopControl';
-        this.type = type;
-    }
+    type('LoopControl', {
+        init: function (type) {
+            this.type = type;
+        }
+    });
 
-    function ImportStatement(path, name) {
-        this.nodeType = 'Import';
-        this.path = path;
-        this.name = name || path.split('.')[path.split('.').length-1];
-    }
+    type('ImportStatement', {
+        init: function (path, name) {
+            this.path = path;
+            this.name = name || path.split('.')[path.split('.').length-1];
+        }
+    });
 
-    function Literal(type) {
-        this.nodeType = 'Literal';
-        this.type = type;
-    }
+    type('Literal', {
+        init: function (type) {
+            this.type = type;
+        },
+        toJS: function () {
+            return this.type;
+        }
+    });
+
+    type('StringLiteral', {
+        init: function (string) {
+            this.string = string;
+        }
+    });
 
 }
 
@@ -88,7 +153,7 @@ Program
 
 Statement 
     = Indent? EOL
-        { return new Noop(); }
+        { return new type.Noop(); }
 
     / Indent a:Assign EOL
         { return a; }
@@ -98,28 +163,28 @@ Statement
 
     / Indent 'if ' a:Expression EOL IndentAdd ifBody:Statement+ IndentRemove
       Indent 'else' EOL IndentAdd elseBody:Statement+ IndentRemove 
-        { return new Condition(a, ifBody, elseBody); }
+        { return new type.Condition(a, ifBody, elseBody); }
 
     / Indent 'if ' a:Expression EOL IndentAdd ifBody:Statement+ IndentRemove
-        { return new Condition(a, ifBody); }
+        { return new type.Condition(a, ifBody); }
 
     / Indent 'for ' iterator:Identifier ', ' item:Identifier ' in ' iterable:Expression EOL IndentAdd body:Statement+ IndentRemove
-        { return new ForLoop(iterator, item, iterable, body); } 
+        { return new type.ForLoop(iterator, item, iterable, body); } 
 
     / Indent 'for ' item:Identifier ' in ' iterable:Expression EOL IndentAdd body:Statement+ IndentRemove
-        { return new ForLoop(null, item, iterable, body); } 
+        { return new type.ForLoop(null, item, iterable, body); } 
 
     / Indent 'while ' e:Expression EOL IndentAdd body:Statement+ IndentRemove
-        { return new WhileLoop(e, body); } 
+        { return new type.WhileLoop(e, body); } 
 
-    / Indent type:('break' / 'continue')
-        { return new LoopControl(type) }
+    / Indent word:('break' / 'continue')
+        { return new type.LoopControl(word) }
 
     / Indent 'import ' path:[a-zA-Z.]+ EOL
-        { return new ImportStatement(path.join('')); }
+        { return new type.ImportStatement(path.join('')); }
 
     / Indent 'import ' path:[a-zA-Z.]+ ' as ' name:Identifier EOL
-        { return new ImportStatement(path.join(''), name); }
+        { return new type.ImportStatement(path.join(''), name); }
 
 EOL
     = '\r\n' / '\n' / '\r'
@@ -138,17 +203,17 @@ IndentRemove
 
 Assign 
     = name:Identifier _ '=' _ value:Expression 
-        { return new Assignment(name, value) }
+        { return new type.Assignment(name, value) }
 
 Expression 
     = left:Term _ op:[+-] _ right:Expression 
-        { return new Operator(op, left, right); }
+        { return new type.Operator(op, left, right); }
     
     / Term
 
 Term
     = left:Value _ op:[*/] _ right:Term 
-        { return new Operator(op, left, right); }
+        { return new type.Operator(op, left, right); }
     
     / Value
 
@@ -157,7 +222,7 @@ Value
     / Literal
     / StringLiteral
     / a:Identifier 
-        { return new Expression([a]); }
+        { return new type.Variable([a]); }
 
     / '(' _ a:Expression _ ')' 
         { return a; }
@@ -166,7 +231,7 @@ Value
         { 
             var list = tail.map(function(item) { return item[3]; }); 
             if (head !== '') list.push(head);
-            return new ListLiteral(list);
+            return new type.ListLiteral(list);
         }
 
     / '{' 
@@ -174,7 +239,7 @@ Value
             tail:(_ ',' _ Identifier _ ':' _ Expression)* _  
       '}'
         {
-            var obj = new ObjectLiteral();
+            var obj = new type.ObjectLiteral();
             if (head !== '') obj.add(head[1], head[5]);
             for (var i = 0; i < tail.length; i++) obj.add(tail[i][3], tail[i][7])
             return obj;
@@ -182,7 +247,7 @@ Value
 
 Number 
     = Digits:[0-9]+ 
-        { return new Number(Digits); }
+        { return new type.Number(Digits); }
 
 Identifier
     = !ReservedWord a:(Digits / Letters / '_')+ 
@@ -239,13 +304,13 @@ Keyword
     / 'super'
 
 Literal
-    = type:('null' / 'true' / 'false')
-        { return new Literal(type); }
+    = word:('null' / 'true' / 'false')
+        { return new type.Literal(word); }
 
 
 StringLiteral "string"
   = parts:('"' DoubleStringCharacters? '"' / "'" SingleStringCharacters? "'") {
-      return parts[1];
+      return new type.StringLiteral(parts[1]);
     }
 
 DoubleStringCharacters
