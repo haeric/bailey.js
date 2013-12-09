@@ -76,87 +76,92 @@
         this.name = name || path.split('.')[path.split('.').length-1];
     }
 
+    function Literal(type) {
+        this.nodeType = 'Literal';
+        this.type = type;
+    }
+
 }
 
-program
-    = statement*
+Program
+    = Statement*
 
-statement 
-    = SAMEDENT? EOL
+Statement 
+    = Indent? EOL
         { return new Noop(); }
 
-    / SAMEDENT a:assign EOL
+    / Indent a:Assign EOL
         { return a; }
 
-    / SAMEDENT a:expr EOL
+    / Indent a:Expression EOL
         { return a; }
 
-    / SAMEDENT 'if ' a:expr EOL INDENT ifBody:statement+ DEDENT
-      SAMEDENT 'else' EOL INDENT elseBody:statement+ DEDENT 
+    / Indent 'if ' a:Expression EOL IndentAdd ifBody:Statement+ IndentRemove
+      Indent 'else' EOL IndentAdd elseBody:Statement+ IndentRemove 
         { return new Condition(a, ifBody, elseBody); }
 
-    / SAMEDENT 'if ' a:expr EOL INDENT ifBody:statement+ DEDENT
+    / Indent 'if ' a:Expression EOL IndentAdd ifBody:Statement+ IndentRemove
         { return new Condition(a, ifBody); }
 
-    / SAMEDENT 'for ' iterator:ident ', ' item:ident ' in ' iterable:expr EOL INDENT body:statement+ DEDENT
+    / Indent 'for ' iterator:Identifier ', ' item:Identifier ' in ' iterable:Expression EOL IndentAdd body:Statement+ IndentRemove
         { return new ForLoop(iterator, item, iterable, body); } 
 
-    / SAMEDENT 'for ' item:ident ' in ' iterable:expr EOL INDENT body:statement+ DEDENT
+    / Indent 'for ' item:Identifier ' in ' iterable:Expression EOL IndentAdd body:Statement+ IndentRemove
         { return new ForLoop(null, item, iterable, body); } 
 
-    / SAMEDENT 'while ' e:expr EOL INDENT body:statement+ DEDENT
+    / Indent 'while ' e:Expression EOL IndentAdd body:Statement+ IndentRemove
         { return new WhileLoop(e, body); } 
 
-    / SAMEDENT type:('break' / 'continue')
+    / Indent type:('break' / 'continue')
         { return new LoopControl(type) }
 
-    / SAMEDENT 'import ' path:[a-zA-Z.]+ EOL
+    / Indent 'import ' path:[a-zA-Z.]+ EOL
         { return new ImportStatement(path.join('')); }
 
-    / SAMEDENT 'import ' path:[a-zA-Z.]+ ' as ' name:ident EOL
+    / Indent 'import ' path:[a-zA-Z.]+ ' as ' name:Identifier EOL
         { return new ImportStatement(path.join(''), name); }
 
 EOL
     = '\r\n' / '\n' / '\r'
 
-SAMEDENT
+Indent
     = i:[ \t]* 
         &{ return i.join("") === indent; }
 
-INDENT
+IndentAdd
     = i:[ \t]+ &{ return i.length > indent.length; }
         { indentStack.push(indent); indent = i.join(""); pos = offset; }
 
-DEDENT
+IndentRemove
     = 
         { indent = indentStack.pop(); }
 
-assign 
-    = name:ident _ '=' _ value:expr 
+Assign 
+    = name:Identifier _ '=' _ value:Expression 
         { return new Assignment(name, value) }
 
-expr 
-    = left:term _ op:[+-] _ right:expr 
+Expression 
+    = left:Term _ op:[+-] _ right:Expression 
         { return new Operator(op, left, right); }
     
-    / term
+    / Term
 
-term
-    = left:value _ op:[*/] _ right:term 
+Term
+    = left:Value _ op:[*/] _ right:Term 
         { return new Operator(op, left, right); }
     
-    / value
+    / Value
 
-value
-    = number
-    
-    / a:ident 
+Value
+    = Number
+    / Literal
+    / a:Identifier 
         { return new Expression([a]); }
 
-    / '(' _ a:expr _ ')' 
+    / '(' _ a:Expression _ ')' 
         { return a; }
 
-    / '[' _ head:expr? tail:(_ ',' _ expr)* _ ']'
+    / '[' _ head:Expression? tail:(_ ',' _ Expression)* _ ']'
         { 
             var list = tail.map(function(item) { return item[3]; }); 
             if (head !== '') list.push(head);
@@ -164,8 +169,8 @@ value
         }
 
     / '{' 
-            head:(_ ident _ ':' _ expr)? 
-            tail:(_ ',' _ ident _ ':' _ expr)* _  
+            head:(_ Identifier _ ':' _ Expression)? 
+            tail:(_ ',' _ Identifier _ ':' _ Expression)* _  
       '}'
         {
             var obj = new ObjectLiteral();
@@ -174,24 +179,64 @@ value
             return obj;
         }
 
-number 
-    = digits:[0-9]+ 
-        { return new Number(digits); }
+Number 
+    = Digits:[0-9]+ 
+        { return new Number(Digits); }
 
-ident
-    = !RESERVED a:(digits / letters / '_')+ 
+Identifier
+    = !ReservedWord a:(Digits / Letters / '_')+ 
         { return a.join(''); }
 
-digits
+Digits
     = a:[0-9]+ 
         { return a.join(''); }
 
-letters
+Letters
     = a:[a-zA-Z]+ 
         { return a.join(''); }
 
 _
     = [ \t]*
 
-RESERVED
-    = 'if' / 'for' / 'while' / 'break' / 'continue' / 'import' / 'function'
+ReservedWord
+  = Keyword
+  / Literal
+
+Keyword
+    = 'break'
+    / 'case'
+    / 'catch'
+    / 'continue'
+    / 'debugger'
+    / 'default'
+    / 'delete'
+    / 'do'
+    / 'else'
+    / 'finally'
+    / 'for'
+    / 'function'
+    / 'if'
+    / 'instanceof'
+    / 'in'
+    / 'new'
+    / 'return'
+    / 'switch'
+    / 'this'
+    / 'throw'
+    / 'try'
+    / 'typeof'
+    / 'var'
+    / 'void'
+    / 'while'
+    / 'with' 
+    / 'class'
+    / 'const'
+    / 'enum'
+    / 'export'
+    / 'extends'
+    / 'import'
+    / 'super'
+
+Literal
+    = type:('null' / 'true' / 'false')
+        { return new Literal(type); }

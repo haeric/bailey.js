@@ -2,7 +2,7 @@ import a
 import foo as c
 
 humbug = {a: 1, b: 2, c: 3}
-a = [2, 3, b]
+a = [true, false, null, 1, 2, 3, a, b]
 b = 1*(66-6)*2+1
 if a
     c = 3
