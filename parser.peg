@@ -70,6 +70,12 @@
         this.type = type;
     }
 
+    function ImportStatement(path, name) {
+        this.nodeType = 'Import';
+        this.path = path;
+        this.name = name || path.split('.')[path.split('.').length-1];
+    }
+
 }
 
 program
@@ -103,6 +109,12 @@ statement
 
     / SAMEDENT type:('break' / 'continue')
         { return new LoopControl(type) }
+
+    / SAMEDENT 'import ' path:[a-zA-Z.]+ EOL
+        { return new ImportStatement(path.join('')); }
+
+    / SAMEDENT 'import ' path:[a-zA-Z.]+ ' as ' name:ident EOL
+        { return new ImportStatement(path.join(''), name); }
 
 EOL
     = '\r\n' / '\n' / '\r'
