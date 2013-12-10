@@ -35,3 +35,9 @@ a = "hi!"
 b = "this is a 
 multine string.. wonder how that works!"
 s = 'single quoted... with \' escaping as well'
+
+f = (g) -> 'hai'
+f = (a, b) ->
+    a = 1
+    b = 2
+    return a + 1

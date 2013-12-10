@@ -210,7 +210,26 @@
         toJS: function () {
             return '(' + this.expr.toJS() + ')';
         }
-    })
+    });
+
+    type('Function', {
+        init: function (params, body) {
+            this.params = params;
+            this.body = body;
+        },
+        toJS: function () {
+            return 'function(' + this.params.join(', ') + '){' + this.body.toJS() + '}';
+        }
+    });
+
+    type('Return', {
+        init: function (body) {
+            this.body = body;
+        },
+        toJS: function () {
+            return 'return ' + this.body.toJS() + ';';
+        }
+    });
 
 }
 
@@ -248,6 +267,9 @@ Statement
 
     / 'import ' path:[a-zA-Z.]+
         { return new type.ImportStatement(path.join('')); }
+
+    / 'return ' expr:Expression
+        { return new type.Return(expr); }
 
     / a:Assign
         { return a; }
@@ -341,9 +363,6 @@ Value
     / a:Identifier 
         { return new type.Variable([a]); }
 
-    / '(' _ a:Expression _ ')' 
-        { return new type.Group(a); }
-
     / '[' _ head:Expression? tail:(_ ',' _ Expression)* _ ']'
         { 
             var list = tail.map(function(item) { return item[3]; }); 
@@ -362,6 +381,15 @@ Value
             return obj;
         }
 
+    / '(' _ params:IdentifierTuple _ ')' _ '->' _ body:Expression
+        { return new type.Function(params, new type.Return(body)); }
+
+    / '(' _ params:IdentifierTuple _ ')' _ '->' IndentNewline body:Block IndentRemove
+        { return new type.Function(params, body); }
+
+    / '(' _ a:Expression _ ')' 
+        { return new type.Group(a); }
+
 Number 
     = Digits:[0-9]+ 
         { return new type.Number(Digits); }
@@ -369,6 +397,15 @@ Number
 Identifier
     = !ReservedWord a:(Digits / Letters / '_')+ 
         { return a.join(''); }
+
+IdentifierTuple
+    = head:Identifier tail:(_ ',' _ Identifier)* _
+        {
+            var list = tail.map(function(item) { return item[3]; }); 
+            if (head !== '') list.push(head);
+            return list;
+        }
+    / { return [] }
 
 Digits
     = a:[0-9]+ 
