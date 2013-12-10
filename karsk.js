@@ -29,9 +29,7 @@ fs.readFile('parser.peg', 'utf8', function(err, parserData) {
         var parser = PEG.buildParser(parserData);
         var ast = parser.parse(input);
 
-        var out = ast.map(function(item){
-            return item.toJS();
-        }).join('\n');
+        var out = ast.toJS();
 
         write(out);
     });

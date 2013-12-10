@@ -214,50 +214,51 @@
 
 }
 
-Program
-    = Statement*
-
 Block
-    = statements:Statement+
-        { return new type.Block(statements) }
+    = statements:(Statement (EOL Indent Statement)*)
+        {
+            var list = [statements[0]];
+            for(var i = 0; i < statements[1].length; i++) list.push(statements[1][i][2]);
+            return new type.Block(list) 
+        }
 
-Statement 
-    = Indent? EOL
-        { return new type.Noop(); }
+Statement
 
-    / Indent? Comment EOL
-        { return new type.Noop(); }
-
-    / Indent 'if ' a:Expression EOL IndentAdd ifBody:Block IndentRemove
-      Indent 'else' EOL IndentAdd elseBody:Block IndentRemove 
+    = 'if ' a:Expression IndentNewline ifBody:Block IndentRemove EOL+
+      Indent 'else' IndentNewline elseBody:Block IndentRemove 
         { return new type.Condition(a, ifBody, elseBody); }
 
-    / Indent 'if ' a:Expression EOL IndentAdd ifBody:Block IndentRemove
+    / 'if ' a:Expression IndentNewline ifBody:Block IndentRemove
         { return new type.Condition(a, ifBody); }
 
-    / Indent 'for ' iterator:Identifier ', ' item:Identifier ' in ' iterable:Expression EOL IndentAdd body:Block IndentRemove
+    / 'for ' iterator:Identifier ', ' item:Identifier ' in ' iterable:Expression IndentNewline body:Block IndentRemove
         { return new type.ForLoop(iterator, item, iterable, body); } 
 
-    / Indent 'for ' item:Identifier ' in ' iterable:Expression EOL IndentAdd body:Block IndentRemove
+    / 'for ' item:Identifier ' in ' iterable:Expression IndentNewline body:Block IndentRemove
         { return new type.ForLoop(null, item, iterable, body); } 
 
-    / Indent 'while ' e:Expression EOL IndentAdd body:Block IndentRemove
+    / 'while ' e:Expression IndentNewline body:Block IndentRemove
         { return new type.WhileLoop(e, body); } 
 
-    / Indent word:('break' / 'continue')
+    / word:('break' / 'continue')
         { return new type.LoopControl(word) }
 
-    / Indent 'import ' path:[a-zA-Z.]+ EOL
-        { return new type.ImportStatement(path.join('')); }
-
-    / Indent 'import ' path:[a-zA-Z.]+ ' as ' name:Identifier EOL
+    / 'import ' path:[a-zA-Z.]+ ' as ' name:Identifier
         { return new type.ImportStatement(path.join(''), name); }
 
-    / Indent a:Assign EOL
+    / 'import ' path:[a-zA-Z.]+
+        { return new type.ImportStatement(path.join('')); }
+
+    / a:Assign
         { return a; }
 
-    / Indent a:Expression EOL
+    / a:Expression
         { return a; }
+
+    / Comment
+        { return new type.Noop(); }
+
+    / { return new type.Noop() }
 
 EOL
     = '\r\n' / '\n' / '\r'
@@ -266,12 +267,15 @@ Indent
     = i:[ \t]* 
         &{ return i.join("") === indent; }
 
+IndentNewline
+    = EOL IndentAdd Indent
+
 IndentAdd
     = i:[ \t]+ &{ return i.length > indent.length; }
         { indentStack.push(indent); indent = i.join(""); pos = offset; }
 
 IndentRemove
-    = 
+    =
         { indent = indentStack.pop(); }
 
 Comment
