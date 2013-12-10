@@ -108,7 +108,11 @@
 
     type('Operator', {
         init: function (op, left, right) {
-            this.operator = op === '==' ? '===' : op;
+
+            this.operator = op === '==' ? '===' : 
+                            op === 'and' ? '&&' : 
+                            op === 'or' ? '||' : op;
+                            
             this.left = left;
             this.right = right;
         },
@@ -307,7 +311,10 @@ BinaryOperator
     / '<'
     / '>'
 
+    / 'and'
+    / 'or'
     / 'instanceof'
+    / 'in'
 
 //
 // Cheat alert: This completely ignores operator presedence for simplicity,

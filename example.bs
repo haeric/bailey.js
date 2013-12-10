@@ -9,11 +9,11 @@ c /= 6
 
 if a
     c = 3
-    if 6
+    if a > 5
         7
     else
         8
-    if 9
+    if 9 and 10 or 2
         10
 
 else
