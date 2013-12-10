@@ -2,10 +2,12 @@ import a
 import foo as c
 
 humbug = {a: 1, b: 2, c: 3}
-a = [true, false, null, 1, 2, 3, a, b]
-b = (1*(66-6)*2+1>>3)==5
+data = [true, false, null, 1, 2, 3, 2, 4]
+a = (1*(66-6)*2+1>>3)==5
+a /= 6
+
+b = 1
 b *= 2
-c /= 6
 
 if a
     c = 3
@@ -28,8 +30,8 @@ for i, a in data
 # This is a comment
 for a in data
     777
-while 1
-    88
+while b > 2
+    b -= 1
 
 a = "hi!"
 b = "this is a 
