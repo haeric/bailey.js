@@ -1,5 +1,6 @@
 import a
 import foo as c
+export c
 
 humbug = {a: 1, b: 2, c: 3}
 data = [true, false, null, 1, 2, 3, 2, 4]
