@@ -47,12 +47,13 @@
     });
 
     type('Assignment', {
-        init: function(name, value) {
+        init: function(operator, name, value) {
+            this.operator = operator;
             this.name = name;
             this.value = value;
         },
         toJS: function () {
-            return this.name + ' = ' + this.value.toJS() + ';';
+            return this.name + ' ' + this.operator + ' ' + this.value.toJS() + ';';
         }
     });
 
@@ -107,12 +108,16 @@
 
     type('Operator', {
         init: function (op, left, right) {
-            this.operator = op;
+
+            this.operator = op === '==' ? '===' : 
+                            op === 'and' ? '&&' : 
+                            op === 'or' ? '||' : op;
+                            
             this.left = left;
             this.right = right;
         },
         toJS: function () {
-            return '(' + this.left.toJS() + ' ' + this.operator + ' ' + this.right.toJS() + ')';
+            return this.left.toJS() + ' ' + this.operator + ' ' + this.right.toJS();
         }
     });
 
@@ -198,49 +203,84 @@
         }
     });
 
+    type('Group', {
+        init: function(expr) {
+            this.expr = expr;
+        },
+        toJS: function () {
+            return '(' + this.expr.toJS() + ')';
+        }
+    });
+
+    type('Function', {
+        init: function (params, body) {
+            this.params = params;
+            this.body = body;
+        },
+        toJS: function () {
+            return 'function(' + this.params.join(', ') + '){' + this.body.toJS() + '}';
+        }
+    });
+
+    type('Return', {
+        init: function (body) {
+            this.body = body;
+        },
+        toJS: function () {
+            return 'return ' + this.body.toJS() + ';';
+        }
+    });
+
 }
 
-Program
-    = Statement*
-
 Block
-    = statements:Statement+
-        { return new type.Block(statements) }
+    = statements:(Statement (EOL Indent Statement)*)
+        {
+            var list = [statements[0]];
+            for(var i = 0; i < statements[1].length; i++) list.push(statements[1][i][2]);
+            return new type.Block(list) 
+        }
 
-Statement 
-    = Indent? EOL
-        { return new type.Noop(); }
+Statement
 
-    / Indent a:Assign EOL
-        { return a; }
-
-    / Indent a:Expression EOL
-        { return a; }
-
-    / Indent 'if ' a:Expression EOL IndentAdd ifBody:Block IndentRemove
-      Indent 'else' EOL IndentAdd elseBody:Block IndentRemove 
+    = 'if ' a:Expression IndentNewline ifBody:Block IndentRemove EOL+
+      Indent 'else' IndentNewline elseBody:Block IndentRemove 
         { return new type.Condition(a, ifBody, elseBody); }
 
-    / Indent 'if ' a:Expression EOL IndentAdd ifBody:Block IndentRemove
+    / 'if ' a:Expression IndentNewline ifBody:Block IndentRemove
         { return new type.Condition(a, ifBody); }
 
-    / Indent 'for ' iterator:Identifier ', ' item:Identifier ' in ' iterable:Expression EOL IndentAdd body:Block IndentRemove
+    / 'for ' iterator:Identifier ', ' item:Identifier ' in ' iterable:Expression IndentNewline body:Block IndentRemove
         { return new type.ForLoop(iterator, item, iterable, body); } 
 
-    / Indent 'for ' item:Identifier ' in ' iterable:Expression EOL IndentAdd body:Block IndentRemove
+    / 'for ' item:Identifier ' in ' iterable:Expression IndentNewline body:Block IndentRemove
         { return new type.ForLoop(null, item, iterable, body); } 
 
-    / Indent 'while ' e:Expression EOL IndentAdd body:Block IndentRemove
+    / 'while ' e:Expression IndentNewline body:Block IndentRemove
         { return new type.WhileLoop(e, body); } 
 
-    / Indent word:('break' / 'continue')
+    / word:('break' / 'continue')
         { return new type.LoopControl(word) }
 
-    / Indent 'import ' path:[a-zA-Z.]+ EOL
+    / 'import ' path:[a-zA-Z.]+ ' as ' name:Identifier
+        { return new type.ImportStatement(path.join(''), name); }
+
+    / 'import ' path:[a-zA-Z.]+
         { return new type.ImportStatement(path.join('')); }
 
-    / Indent 'import ' path:[a-zA-Z.]+ ' as ' name:Identifier EOL
-        { return new type.ImportStatement(path.join(''), name); }
+    / 'return ' expr:Expression
+        { return new type.Return(expr); }
+
+    / a:Assign
+        { return a; }
+
+    / a:Expression
+        { return a; }
+
+    / Comment
+        { return new type.Noop(); }
+
+    / { return new type.Noop() }
 
 EOL
     = '\r\n' / '\n' / '\r'
@@ -249,39 +289,79 @@ Indent
     = i:[ \t]* 
         &{ return i.join("") === indent; }
 
+IndentNewline
+    = EOL IndentAdd Indent
+
 IndentAdd
     = i:[ \t]+ &{ return i.length > indent.length; }
         { indentStack.push(indent); indent = i.join(""); pos = offset; }
 
 IndentRemove
-    = 
+    =
         { indent = indentStack.pop(); }
 
+Comment
+    = '#' (!EOL .)*
+
 Assign 
-    = name:Identifier _ '=' _ value:Expression 
-        { return new type.Assignment(name, value) }
+    = name:Identifier _ op:AssignmentOperator _ value:Expression 
+        { return new type.Assignment(op, name, value) }
 
-Expression 
-    = left:Term _ op:[+-] _ right:Expression 
-        { return new type.Operator(op, left, right); }
+AssignmentOperator
+    = '=' (!'=') { return '='; }
+    / '*='
+    / '/='
+    / '%='
+    / '+='
+    / '-='
+    / '<<='
+    / '>>='
+    / '>>>='
+    / '&='
+    / '^='
+    / '|='
+
+BinaryOperator
+    = '+'
+    / '-'
+    / '*'
+    / '/'
     
-    / Term
+    / '>>'
+    / '>>>'
+    / '<<'
 
-Term
-    = left:Value _ op:[*/] _ right:Term 
+    / '=='
+    / '<='
+    / '>='
+    / '<'
+    / '>'
+
+    / 'and'
+    / 'or'
+    / 'instanceof'
+    / 'in'
+
+//
+// Cheat alert: This completely ignores operator presedence for simplicity,
+// and will create a wrong ast. However, as long as we do not really
+// fiddle with operators, it'll output correct javascript.
+//
+Expression 
+    = left:Value _ op:BinaryOperator _ right:Expression 
         { return new type.Operator(op, left, right); }
     
     / Value
 
 Value
     = Number
+    
     / Literal
+    
     / StringLiteral
+
     / a:Identifier 
         { return new type.Variable([a]); }
-
-    / '(' _ a:Expression _ ')' 
-        { return a; }
 
     / '[' _ head:Expression? tail:(_ ',' _ Expression)* _ ']'
         { 
@@ -301,6 +381,15 @@ Value
             return obj;
         }
 
+    / '(' _ params:IdentifierTuple _ ')' _ '->' _ body:Expression
+        { return new type.Function(params, new type.Return(body)); }
+
+    / '(' _ params:IdentifierTuple _ ')' _ '->' IndentNewline body:Block IndentRemove
+        { return new type.Function(params, body); }
+
+    / '(' _ a:Expression _ ')' 
+        { return new type.Group(a); }
+
 Number 
     = Digits:[0-9]+ 
         { return new type.Number(Digits); }
@@ -308,6 +397,15 @@ Number
 Identifier
     = !ReservedWord a:(Digits / Letters / '_')+ 
         { return a.join(''); }
+
+IdentifierTuple
+    = head:Identifier tail:(_ ',' _ Identifier)* _
+        {
+            var list = tail.map(function(item) { return item[3]; }); 
+            if (head !== '') list.push(head);
+            return list;
+        }
+    / { return [] }
 
 Digits
     = a:[0-9]+ 
