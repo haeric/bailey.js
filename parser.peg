@@ -173,6 +173,15 @@
         }
     });
 
+    type('ExportStatement', {
+        init: function (ident) {
+            this.ident = ident;
+        },
+        toJS: function () {
+            return ''; // Ignored for now
+        }
+    });
+
     type('Literal', {
         init: function (type) {
             this.type = type;
@@ -267,6 +276,9 @@ Statement
 
     / 'import ' path:[a-zA-Z.]+
         { return new type.ImportStatement(path.join('')); }
+
+    / 'export ' ident:Identifier
+        { return new type.ExportStatement(ident); }
 
     / 'return ' expr:Expression
         { return new type.Return(expr); }
