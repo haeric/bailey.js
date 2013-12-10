@@ -8,7 +8,7 @@ var source = argv._[0];
 var target = argv._[1];
 
 if (!source) {
-    console.error('Arguments: node karsk.js sourcefile [targetfile]')
+    console.error('Arguments: node bailey.js sourcefile [targetfile]')
     process.exit(1);
 }
 
