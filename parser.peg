@@ -488,7 +488,7 @@ Keyword
     / 'super'
 
 Literal
-    = word:('null' / 'true' / 'false')
+    = word:('null' / 'true' / 'false' / 'undefined' )
         { return new type.Literal(word); }
 
 
