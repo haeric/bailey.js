@@ -30,7 +30,7 @@ for i, a in data
 
 # This is a comment
 for a in data
-    777
+    f()
 while b > 2
     b -= 1
 
@@ -40,7 +40,13 @@ multine string.. wonder how that works!"
 s = 'single quoted... with \' escaping as well'
 
 f = (g) -> 'hai'
-f = (a, b) ->
+f = (a, b, c) ->
     a = 1
     b = 2
     return a + 1
+
+a = f(1, 2, 3)
+b = ((a, b, c) ->
+    1
+)()
+c = f()

@@ -240,6 +240,16 @@
         }
     });
 
+    type('FunctionCall', {
+        init: function (expr, args) {
+            this.expr = expr.toJS ? expr.toJS() : expr;
+            this.args = args;
+        },
+        toJS: function () {
+            return this.expr + '(' + this.args.join(', ') + ')';
+        }
+    });
+
 }
 
 Block
@@ -372,6 +382,9 @@ Value
     
     / StringLiteral
 
+    / expr:(Identifier / GroupedExpression) '(' args:IdentifierTuple ')'
+        { return new type.FunctionCall(expr, args); }
+
     / a:Identifier 
         { return new type.Variable([a]); }
 
@@ -399,7 +412,10 @@ Value
     / '(' _ params:IdentifierTuple _ ')' _ '->' IndentNewline body:Block IndentRemove
         { return new type.Function(params, body); }
 
-    / '(' _ a:Expression _ ')' 
+    / GroupedExpression
+
+GroupedExpression
+    = '(' __ a:Expression __ ')' 
         { return new type.Group(a); }
 
 Number 
@@ -413,9 +429,8 @@ Identifier
 IdentifierTuple
     = head:Identifier tail:(_ ',' _ Identifier)* _
         {
-            var list = tail.map(function(item) { return item[3]; }); 
-            if (head !== '') list.push(head);
-            return list;
+            tail = tail.map(function(item) { return item[3]; });
+            return [head].concat(tail);
         }
     / { return [] }
 
@@ -429,6 +444,9 @@ Letters
 
 _
     = [ \t]*
+
+__ 
+    = [ \t\n\r]*
 
 ReservedWord
   = Keyword
