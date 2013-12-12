@@ -250,6 +250,23 @@
         }
     });
 
+    type('PropertyAccess', {
+        init: function (value, accessors) {
+            this.value = value;
+            this.accessors = accessors;
+        },
+        toJS: function () {
+
+            return this.value.toJS() + this.accessors.map(function(accessor) {
+                if (typeof accessor === 'string')
+                    return '.' + accessor;
+                
+                return '[' + accessor.toJS() + ']';
+            }).join('');
+
+        }
+    });
+
 }
 
 Block
@@ -373,6 +390,14 @@ Expression
     = left:Value _ op:BinaryOperator _ right:Expression 
         { return new type.Operator(op, left, right); }
     
+    / value:Value accessors:(
+        '[' __ expr:Expression __ ']' { return expr; }
+      / '.' __ expr:Identifier        { return expr; }
+    )+
+        {
+            return new type.PropertyAccess(value, accessors); 
+        }
+        
     / Value
 
 Value
@@ -386,7 +411,7 @@ Value
         { return new type.FunctionCall(expr, args); }
 
     / a:Identifier 
-        { return new type.Variable([a]); }
+        { return new type.Variable(a); }
 
     / '[' _ head:Expression? tail:(_ ',' _ Expression)* _ ']'
         { 
@@ -419,8 +444,8 @@ GroupedExpression
         { return new type.Group(a); }
 
 Number 
-    = Digits:[0-9]+ 
-        { return new type.Number(Digits); }
+    = digits:[0-9]+ 
+        { return new type.Number(digits); }
 
 Identifier
     = !ReservedWord a:(Digits / Letters / '_')+ 
