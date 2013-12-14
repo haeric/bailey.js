@@ -413,7 +413,7 @@ Value
     / a:Identifier 
         { return new type.Variable(a); }
 
-    / '[' _ head:Expression? tail:(_ ',' _ Expression)* _ ']'
+    / '[' __ head:Expression? tail:(__ ',' __ Expression)* __ ','? __ ']'
         { 
             var list = tail.map(function(item) { return item[3]; }); 
             if (head !== '') list.push(head);
@@ -421,8 +421,8 @@ Value
         }
 
     / '{' 
-            head:(_ Identifier _ ':' _ Expression)? 
-            tail:(_ ',' _ Identifier _ ':' _ Expression)* _  
+            head:(__ Identifier _ ':' _ Expression)? 
+            tail:(_ ',' __ Identifier _ ':' _ Expression)* __ ','? __  
       '}'
         {
             var obj = new type.ObjectLiteral();

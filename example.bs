@@ -2,8 +2,17 @@ import a
 import foo as c
 export c
 
-humbug = {a: 1, b: 2, c: 3}
-data = [true, false, null, 1, 2, 3, 2, 4]
+humbug = {
+    a: 1, 
+    b: 2, 
+    c: 3,
+}
+data = [
+    true, 
+    false, 
+    null, 
+    1, 2, 3, 2, 4
+]
 a = (1*(66-6)*2+1>>3)==5
 a = data[6]
 a = data.length[6].hey.lol[5]
