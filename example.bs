@@ -1,6 +1,5 @@
 import a
 import foo as c
-export c
 
 humbug = {
     a: 1, 

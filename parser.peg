@@ -22,6 +22,42 @@
         type[name].prototype = functions;
     }
 
+    type('Program', {
+        init: function(block) {
+            this.block = block;
+        },
+        toJS: function () {
+
+            // Handle imports with require js
+            // If an export is defined, this is a DEFINE
+            // else, it's a main entry point, and should be a REQUIRE
+            var imports = this.block.getImports();
+            var export_ = this.block.getExport();
+
+            var pathString = imports.map(function(item) {
+                return '"' + item.path + '"';
+            }).join(', ');
+
+            var paramString = imports.map(function(item) {
+                return item.name;
+            }).join(', ');
+
+            var requireString = export_ ? 'define' : 'require'
+
+            var out = requireString + '([' + pathString + '], ';
+            out += 'function(' + paramString + ') \x7b';
+
+            out += this.block.toJS();
+
+            if (export_) {
+                out += '\nreturn ' + export_.ident + ';';
+            }
+
+            out += '\n\x7d);';
+            return out;
+        }
+    });
+
     type('Noop', {
         toJS: function () {
             return '';
@@ -209,6 +245,23 @@
             return this.statements.map(function (s) {
                 return s.toJS();
             }).join('\n');
+        },
+        getImports: function () {
+            return this.statements.filter(function(statement) {
+                return statement.nodeType === 'ImportStatement';
+            });
+        },
+        getExport: function () {
+            var test = this.statements.filter(function(statement) {
+                return statement.nodeType === 'ExportStatement';
+            });
+            if (test.length > 1) {
+                throw 'More than one export statement found!'
+            }
+            if (test.length === 0) {
+                return null;
+            }
+            return test[0];
         }
     });
 
@@ -268,6 +321,12 @@
     });
 
 }
+
+Program
+    = block:Block
+        {
+            return new type.Program(block);
+        }
 
 Block
     = statements:(Statement (EOL Indent Statement)*)
