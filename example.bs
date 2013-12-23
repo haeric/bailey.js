@@ -43,6 +43,16 @@ for a in data
 while b > 2
     b -= 1
 
+class Animal
+    a: (a) ->
+        return 1
+    lol: 1
+    c: {
+        a: 1, 
+        b: 2,
+    }
+
+
 a = "hi!"
 b = "this is a 
 multine string.. wonder how that works!"

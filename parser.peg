@@ -190,6 +190,24 @@
         }
     });
 
+    type('ClassStatement', {
+        init: function (name) {
+            this.name = name;
+            this.values = [];
+        },
+        add: function (key, value) {
+            this.values.push({key: key, value: value})
+        },
+        toJS: function () {
+            var name = this.name;
+            var out = 'function ' + this.name + '() \x7b \x7d;\n'
+            out += this.values.map(function(item) {
+                return name + '.prototype.' + item.key + ' = ' + item.value.toJS() + ';'
+            }).join('\n');
+            return out;
+        }
+    });
+
     type('LoopControl', {
         init: function (type) {
             this.type = type;
@@ -368,6 +386,16 @@ Statement
 
     / 'return ' expr:Expression
         { return new type.Return(expr); }
+
+    / 'class ' ident:Identifier IndentNewline
+        head:(__ Identifier _ ':' _ Expression) 
+        tail:(EOL Indent Identifier _ ':' _ Expression)* IndentRemove
+        {
+            var obj = new type.ClassStatement(ident);
+            if (head !== '') obj.add(head[1], head[5]);
+            for (var i = 0; i < tail.length; i++) obj.add(tail[i][2], tail[i][6])
+            return obj;
+        }
 
     / a:Assign
         { return a; }
