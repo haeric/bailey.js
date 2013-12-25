@@ -441,7 +441,7 @@ Comment
 Assign 
     = left:Identifier _ op:AssignmentOperator _ value:Expression 
         { return new type.Assignment(op, left, value) }
-        
+
     / left:PropertyExpression _ op:AssignmentOperator _ value:Expression 
         { return new type.Assignment(op, left, value) }
 
@@ -507,6 +507,8 @@ Value
     = Number
     
     / Literal
+
+    / ThisProperty
 
     / ThisToken
     
@@ -624,6 +626,10 @@ Literal
 ThisToken
     = tokens:'@'+
         { return new type.ThisToken(tokens.length - 1); }
+
+ThisProperty
+    = token:ThisToken identifier:Identifier
+        { return new type.PropertyAccess(token, [identifier]); }
 
 
 StringLiteral "string"
