@@ -56,7 +56,7 @@ class Animal
     }
 
 a[6] = 1
-@.lol = a
+@lol = a
 a = "hi!"
 b = "this is a 
 multine string.. wonder how that works!"

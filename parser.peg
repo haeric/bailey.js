@@ -346,6 +346,9 @@
             if (this.scopeOffset === 0 ) {
                 return 'this';
             }
+            else {
+                return 'that';
+            }
         }
     })
 
@@ -443,6 +446,9 @@ Assign
         { return new type.Assignment(op, left, value) }
 
     / left:PropertyExpression _ op:AssignmentOperator _ value:Expression 
+        { return new type.Assignment(op, left, value) }
+
+    / left:ThisProperty _ op:AssignmentOperator _ value:Expression 
         { return new type.Assignment(op, left, value) }
 
 AssignmentOperator
