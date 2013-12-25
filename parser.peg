@@ -83,13 +83,13 @@
     });
 
     type('Assignment', {
-        init: function(operator, name, value) {
+        init: function(operator, left, value) {
             this.operator = operator;
-            this.name = name;
+            this.left = left.toJS ? left.toJS() : left;
             this.value = value;
         },
         toJS: function () {
-            return this.name + ' ' + this.operator + ' ' + this.value.toJS() + ';';
+            return this.left + ' ' + this.operator + ' ' + this.value.toJS() + ';';
         }
     });
 
@@ -338,6 +338,17 @@
         }
     });
 
+    type('ThisToken', {
+        init: function(scopeOffset) {
+            this.scopeOffset = scopeOffset;
+        },
+        toJS: function () {
+            if (this.scopeOffset === 0 ) {
+                return 'this';
+            }
+        }
+    })
+
 }
 
 Program
@@ -397,11 +408,9 @@ Statement
             return obj;
         }
 
-    / a:Assign
-        { return a; }
+    / Assign
 
-    / a:Expression
-        { return a; }
+    / Expression
 
     / Comment
         { return new type.Noop(); }
@@ -430,8 +439,11 @@ Comment
     = '#' (!EOL .)*
 
 Assign 
-    = name:Identifier _ op:AssignmentOperator _ value:Expression 
-        { return new type.Assignment(op, name, value) }
+    = left:Identifier _ op:AssignmentOperator _ value:Expression 
+        { return new type.Assignment(op, left, value) }
+        
+    / left:PropertyExpression _ op:AssignmentOperator _ value:Expression 
+        { return new type.Assignment(op, left, value) }
 
 AssignmentOperator
     = '=' (!'=') { return '='; }
@@ -477,20 +489,26 @@ Expression
     = left:Value _ op:BinaryOperator _ right:Expression 
         { return new type.Operator(op, left, right); }
     
-    / value:Value accessors:(
+    / PropertyExpression
+        
+    / Value
+
+PropertyExpression
+    = value:Value accessors:(
         '[' __ expr:Expression __ ']' { return expr; }
       / '.' __ expr:Identifier        { return expr; }
     )+
         {
             return new type.PropertyAccess(value, accessors); 
         }
-        
-    / Value
+
 
 Value
     = Number
     
     / Literal
+
+    / ThisToken
     
     / StringLiteral
 
@@ -602,6 +620,10 @@ Keyword
 Literal
     = word:('null' / 'true' / 'false' / 'undefined' )
         { return new type.Literal(word); }
+
+ThisToken
+    = tokens:'@'+
+        { return new type.ThisToken(tokens.length - 1); }
 
 
 StringLiteral "string"

@@ -15,6 +15,7 @@ data = [
 a = (1*(66-6)*2+1>>3)==5
 a = data[6]
 a = data.length[6].hey.lol[5]
+a[3] = 12
 
 b = 1
 b *= 2
@@ -52,7 +53,8 @@ class Animal
         b: 2,
     }
 
-
+a[6] = 1
+@.lol = a
 a = "hi!"
 b = "this is a 
 multine string.. wonder how that works!"
