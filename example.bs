@@ -48,7 +48,7 @@ while b > 2
 
 class Animal
     a: (a) ->
-        return 1
+        return @
     lol: 1
     c: {
         a: 1, 
@@ -66,6 +66,8 @@ f = (g) -> 'hai'
 f = (a, b, c) ->
     a = 1
     b = 2
+    c = () ->
+        return @@
     return a + 1
 
 a = f(1, 2, 3)

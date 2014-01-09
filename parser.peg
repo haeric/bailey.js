@@ -1,6 +1,8 @@
 
 {
-    var indentStack = [], indent = "";
+    var indentStack = [], 
+        indent = "",
+        scopeId = 0;
 
     function type (name, options) {
 
@@ -9,6 +11,7 @@
         var functions = {
             init: options.init || function () {},
             toJS: options.toJS || function () { return '<' + name + '>'; },
+            traverse: options.traverse || function () {},
         }
 
         for ( key in options ) {
@@ -17,6 +20,7 @@
 
         type[name] = function () {
             this.nodeType = name;
+            this.parent = null;
             functions.init.apply(this, arguments);
         }
         type[name].prototype = functions;
@@ -27,6 +31,44 @@
             this.block = block;
         },
         toJS: function () {
+
+            // Traverse all children
+            var queue = [this];
+
+            while (queue.length) {
+
+                var item = queue.pop(0);
+
+                for (key in item) {
+
+                    if (key === 'parent' || key === 'nodeType')
+                        continue;
+
+                    if (!item.hasOwnProperty(key))
+                        continue;
+
+                    var prop = item[key];
+
+                    if (!(prop instanceof Array)) {
+                        prop = [prop];
+                    }
+
+                    for (var i = 0; i < prop.length; i++) {
+
+                        if (!prop[i])
+                            continue;
+
+                        if (!prop[i].nodeType)
+                            continue;
+
+                        queue.push(prop[i]);
+                        prop[i].parent = item;
+                        prop[i].traverse();
+                        
+                    }
+
+                }
+            }
 
             // Handle imports with require js
             // If an export is defined, this is a DEFINE
@@ -257,10 +299,19 @@
 
     type('Block', {
         init: function(statements) {
+            this.name = '__scope_' + scopeId++ + '__';
+            this.declareName = false;
             this.statements = statements;
         },
         toJS: function () {
-            return this.statements.map(function (s) {
+
+            var out = '';
+
+            if (this.declareName) {
+                out += 'var ' + this.name + ' = this;\n';
+            }
+
+            return out + this.statements.map(function (s) {
                 return s.toJS();
             }).join('\n');
         },
@@ -280,6 +331,10 @@
                 return null;
             }
             return test[0];
+        },
+        getScopeName: function () {
+            this.declareName = true;
+            return this.name;
         }
     });
 
@@ -341,14 +396,37 @@
     type('ThisToken', {
         init: function(scopeOffset) {
             this.scopeOffset = scopeOffset;
+            this.scopeIdentifier = '';
+        },
+        traverse: function () {
+            this.scopeIdentifier = this.findScopeIdentifier();
         },
         toJS: function () {
+            return this.scopeIdentifier;
+        },
+        findScopeIdentifier: function () {
+
             if (this.scopeOffset === 0 ) {
                 return 'this';
             }
-            else {
-                return 'that';
+
+            var offset = this.scopeOffset + 1;
+            var node = this.parent;
+
+            while (node) {
+
+                if (node.nodeType === 'Block') {
+                    offset--;
+                }
+
+                if (offset === 0) {
+                    return node.getScopeName();
+                }
+
+                node = node.parent;
             }
+
+            throw 'Scope access overflow; not enough scopes to traverse';
         }
     })
 
