@@ -21,6 +21,7 @@
         type[name] = function () {
             this.nodeType = name;
             this.parent = null;
+            this.children = [];
             functions.init.apply(this, arguments);
         }
         type[name].prototype = functions;
@@ -29,6 +30,7 @@
     type('Program', {
         init: function(block) {
             this.block = block;
+            this.children = [block];
         },
         toJS: function () {
 
@@ -38,36 +40,24 @@
             while (queue.length) {
 
                 var item = queue.pop(0);
+                console.log(item);
+                
+                for (var i = 0; i < item.children.length; i++) {
 
-                for (key in item) {
+                    var child = item.children[i];
 
-                    if (key === 'parent' || key === 'nodeType')
+                    if (!child)
                         continue;
 
-                    if (!item.hasOwnProperty(key))
+                    if (!child.nodeType)
                         continue;
-
-                    var prop = item[key];
-
-                    if (!(prop instanceof Array)) {
-                        prop = [prop];
-                    }
-
-                    for (var i = 0; i < prop.length; i++) {
-
-                        if (!prop[i])
-                            continue;
-
-                        if (!prop[i].nodeType)
-                            continue;
-
-                        queue.push(prop[i]);
-                        prop[i].parent = item;
-                        prop[i].traverse();
-                        
-                    }
-
+                    
+                    queue.push(child);
+                    child.parent = item;
+                    child.traverse();
+                    
                 }
+
             }
 
             // Handle imports with require js
@@ -129,6 +119,7 @@
             this.operator = operator;
             this.left = left.toJS ? left.toJS() : left;
             this.value = value;
+            this.children = [left, value];
         },
         toJS: function () {
             return this.left + ' ' + this.operator + ' ' + this.value.toJS() + ';';
@@ -140,6 +131,7 @@
             this.expression = expr;
             this.ifBody = ifBody;
             this.elseBody = elseBody;
+            this.children = [expr, ifBody, elseBody];
         },
         toJS: function () {
             var out = 'if (' + this.expression.toJS() + ') {\n';
@@ -162,6 +154,7 @@
             this.item = item;
             this.iterable = iterable;
             this.body = body;
+            this.children = [item, iterable, body];
         },
         toJS: function () {
             return 'for (var ' + this.iterator + ' = 0; ' + 
@@ -176,6 +169,7 @@
         init: function (expression, body) {
             this.expression = expression;
             this.body = body;
+            this.children = [expression, body];
         },
         toJS: function () {
             return 'while (' + this.expression.toJS() + ') {\n' +
@@ -193,6 +187,7 @@
                             
             this.left = left;
             this.right = right;
+            this.children = [left, right];
         },
         toJS: function () {
             return this.left.toJS() + ' ' + this.operator + ' ' + this.right.toJS();
@@ -202,6 +197,7 @@
     type('ListLiteral', {
         init: function (items) {
             this.items = items;
+            this.children = items;
         },
         toJS: function () {
             var items = this.items.map(function(item) {
@@ -215,6 +211,7 @@
         init: function () {
             this.keys = [];
             this.values = [];
+            this.children = this.values;
         },
         add: function (key, value) {
             this.keys.push(key);
@@ -236,6 +233,7 @@
         init: function (name) {
             this.name = name;
             this.values = [];
+            this.children = this.values;
         },
         add: function (key, value) {
             this.values.push({key: key, value: value})
@@ -302,6 +300,7 @@
             this.name = '__scope_' + scopeId++ + '__';
             this.declareName = false;
             this.statements = statements;
+            this.children = statements;
         },
         toJS: function () {
 
@@ -341,6 +340,7 @@
     type('Group', {
         init: function(expr) {
             this.expr = expr;
+            this.children = [expr];
         },
         toJS: function () {
             return '(' + this.expr.toJS() + ')';
@@ -351,6 +351,7 @@
         init: function (params, body) {
             this.params = params;
             this.body = body;
+            this.children = [body];
         },
         toJS: function () {
             return 'function(' + this.params.join(', ') + '){' + this.body.toJS() + '}';
@@ -360,6 +361,7 @@
     type('Return', {
         init: function (body) {
             this.body = body;
+            this.children = [body];
         },
         toJS: function () {
             return 'return ' + this.body.toJS() + ';';
@@ -370,6 +372,7 @@
         init: function (expr, args) {
             this.expr = expr.toJS ? expr.toJS() : expr;
             this.args = args;
+            this.children = [expr].concat(args);
         },
         toJS: function () {
             return this.expr + '(' + this.args.join(', ') + ')';
@@ -380,6 +383,7 @@
         init: function (value, accessors) {
             this.value = value;
             this.accessors = accessors;
+            this.children = [value].concat(accessors);
         },
         toJS: function () {
 
@@ -396,7 +400,7 @@
     type('ThisToken', {
         init: function(scopeOffset) {
             this.scopeOffset = scopeOffset;
-            this.scopeIdentifier = '';
+            this.scopeIdentifier = 'LOL';
         },
         traverse: function () {
             this.scopeIdentifier = this.findScopeIdentifier();
