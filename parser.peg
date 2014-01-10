@@ -132,9 +132,6 @@
         traverse: function () {
             if (!this.left.nodeType) {
                 this.varThisSonOfABitch = !this.parent.symbols[this.left];
-                if (this.varThisSonOfABitch) {
-                    console.log(this.left, this.parent.symbols);
-                }
                 this.parent.symbols[this.left] = 1;
             }
         },
