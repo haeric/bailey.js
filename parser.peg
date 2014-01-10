@@ -32,10 +32,13 @@
             this.block = block;
             this.children = [block];
         },
-        toJS: function () {
-
-            // Traverse all children
+        traverse: function () {
             var queue = [this];
+
+            // Propagate the imported symbols down to the scope below
+            this.block.copySymbols(this.block.getImports().map(function (item) {
+                return item.name;
+            }))
 
             while (queue.length) {
 
@@ -58,6 +61,11 @@
                 }
 
             }
+
+        },
+        toJS: function () {
+            
+            this.traverse();
 
             // Handle imports with require js
             // If an export is defined, this is a DEFINE
@@ -119,10 +127,21 @@
             this.left = left;
             this.value = value;
             this.children = [left, value];
+            this.varThisSonOfABitch = false;
+        },
+        traverse: function () {
+            if (!this.left.nodeType) {
+                this.varThisSonOfABitch = !this.parent.symbols[this.left];
+                if (this.varThisSonOfABitch) {
+                    console.log(this.left, this.parent.symbols);
+                }
+                this.parent.symbols[this.left] = 1;
+            }
         },
         toJS: function () {
             var left = this.left.toJS ? this.left.toJS() : this.left;
-            return left + ' ' + this.operator + ' ' + this.value.toJS() + ';';
+            var varShit = this.varThisSonOfABitch ? 'var ' : '';
+            return varShit + left + ' ' + this.operator + ' ' + this.value.toJS() + ';';
         }
     });
 
@@ -299,8 +318,25 @@
         init: function(statements) {
             this.name = '__scope_' + scopeId++ + '__';
             this.declareName = false;
+            this.symbols = {};
             this.statements = statements;
             this.children = statements;
+        },
+        traverse: function () {
+
+            var node = this.parent;
+
+            while (node) {
+
+                if (node.nodeType === 'Block') {
+                    this.parentScope = node;
+                    this.symbols.__proto__ = node.symbols;
+                    return;
+                }
+
+                node = node.parent;
+            }
+
         },
         toJS: function () {
 
@@ -334,6 +370,11 @@
         getScopeName: function () {
             this.declareName = true;
             return this.name;
+        },
+        copySymbols: function (list) {
+            for (var i = 0; i < list.length; i++) {
+                this.symbols[list[i]] = 1;
+            }
         }
     });
 
@@ -352,6 +393,10 @@
             this.params = params;
             this.body = body;
             this.children = [body];
+        },
+        traverse: function () {
+            if (this.body.nodeType === 'Block')
+                this.body.copySymbols(this.params);
         },
         toJS: function () {
             return 'function(' + this.params.join(', ') + '){' + this.body.toJS() + '}';
@@ -401,7 +446,7 @@
     type('ThisToken', {
         init: function(scopeOffset) {
             this.scopeOffset = scopeOffset;
-            this.scopeIdentifier = 'LOL';
+            this.scopeIdentifier = 'UntraversedThisToken';
         },
         traverse: function () {
             this.scopeIdentifier = this.findScopeIdentifier();
