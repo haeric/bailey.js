@@ -40,7 +40,6 @@
             while (queue.length) {
 
                 var item = queue.pop(0);
-                console.log(item);
                 
                 for (var i = 0; i < item.children.length; i++) {
 
@@ -117,12 +116,13 @@
     type('Assignment', {
         init: function(operator, left, value) {
             this.operator = operator;
-            this.left = left.toJS ? left.toJS() : left;
+            this.left = left;
             this.value = value;
             this.children = [left, value];
         },
         toJS: function () {
-            return this.left + ' ' + this.operator + ' ' + this.value.toJS() + ';';
+            var left = this.left.toJS ? this.left.toJS() : this.left;
+            return left + ' ' + this.operator + ' ' + this.value.toJS() + ';';
         }
     });
 
@@ -370,12 +370,13 @@
 
     type('FunctionCall', {
         init: function (expr, args) {
-            this.expr = expr.toJS ? expr.toJS() : expr;
+            this.expr = expr;
             this.args = args;
             this.children = [expr].concat(args);
         },
         toJS: function () {
-            return this.expr + '(' + this.args.join(', ') + ')';
+            var expr = this.expr.toJS ? this.expr.toJS() : this.expr;
+            return expr + '(' + this.args.join(', ') + ')';
         }
     });
 
