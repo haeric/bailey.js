@@ -654,7 +654,7 @@ Value
     
     / StringLiteral
 
-    / expr:(Identifier / GroupedExpression) '(' args:IdentifierTuple ')'
+    / expr:(Identifier / GroupedExpression) _ '(' __ args:IdentifierTuple __ ')'
         { return new type.FunctionCall(expr, args); }
 
     / a:Identifier 
@@ -698,8 +698,11 @@ Number
         { return new type.Number(digits); }
 
 Identifier
-    = !ReservedWord a:(Digits / Letters / '_')+ 
+    = !ReservedWord a:IdentifierPart 
         { return a.join(''); }
+
+IdentifierPart
+    = (Digits / Letters / '_')+
 
 IdentifierTuple
     = head:Identifier tail:(_ ',' _ Identifier)* _
@@ -728,39 +731,41 @@ ReservedWord
   / Literal
 
 Keyword
-    = 'break'
-    / 'case'
-    / 'catch'
-    / 'continue'
-    / 'debugger'
-    / 'default'
-    / 'delete'
-    / 'do'
-    / 'else'
-    / 'finally'
-    / 'for'
-    / 'function'
-    / 'if'
-    / 'instanceof'
-    / 'in'
-    / 'new'
-    / 'return'
-    / 'switch'
-    / 'this'
-    / 'throw'
-    / 'try'
-    / 'typeof'
-    / 'var'
-    / 'void'
-    / 'while'
-    / 'with' 
-    / 'class'
-    / 'const'
-    / 'enum'
-    / 'export'
-    / 'extends'
-    / 'import'
-    / 'super'
+    = (   
+        'break'
+        / 'case'
+        / 'catch'
+        / 'continue'
+        / 'debugger'
+        / 'default'
+        / 'delete'
+        / 'do'
+        / 'else'
+        / 'finally'
+        / 'for'
+        / 'function'
+        / 'if'
+        / 'instanceof'
+        / 'in'
+        / 'new'
+        / 'return'
+        / 'switch'
+        / 'this'
+        / 'throw'
+        / 'try'
+        / 'typeof'
+        / 'var'
+        / 'void'
+        / 'while'
+        / 'with' 
+        / 'class'
+        / 'const'
+        / 'enum'
+        / 'export'
+        / 'extends'
+        / 'import'
+        / 'super'
+    ) !IdentifierPart
 
 Literal
     = word:('null' / 'true' / 'false' / 'undefined' )
