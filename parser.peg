@@ -610,6 +610,7 @@ BinaryOperator
     / '<<'
 
     / '=='
+    / '!='
     / '<='
     / '>='
     / '<'
@@ -636,7 +637,7 @@ Expression
 PropertyExpression
     = value:Value accessors:(
         '[' __ expr:Expression __ ']' { return expr; }
-      / '.' __ expr:Identifier        { return expr; }
+      / '.' __ expr:Expression        { return expr; }
     )+
         {
             return new type.PropertyAccess(value, accessors); 
@@ -654,7 +655,7 @@ Value
     
     / StringLiteral
 
-    / expr:(Identifier / GroupedExpression) _ '(' __ args:IdentifierTuple __ ')'
+    / expr:(Identifier / GroupedExpression) _ '(' __ args:ExpressionTuple __ ')'
         { return new type.FunctionCall(expr, args); }
 
     / a:Identifier 
@@ -662,6 +663,9 @@ Value
 
     / 'new' _ expr:Expression
         { return new type.NewExpression(expr); } 
+
+    / 'return' _ expr:Expression
+        { return new type.Return(expr); } 
 
     / '[' __ head:Expression? tail:(__ ',' __ Expression)* __ ','? __ ']'
         { 
@@ -706,6 +710,14 @@ IdentifierPart
 
 IdentifierTuple
     = head:Identifier tail:(_ ',' _ Identifier)* _
+        {
+            tail = tail.map(function(item) { return item[3]; });
+            return [head].concat(tail);
+        }
+    / { return [] }
+
+ExpressionTuple
+    = head:Expression tail:(_ ',' __ Expression)*
         {
             tail = tail.map(function(item) { return item[3]; });
             return [head].concat(tail);
@@ -776,8 +788,8 @@ ThisToken
         { return new type.ThisToken(tokens.length - 1); }
 
 ThisProperty
-    = token:ThisToken identifier:Identifier
-        { return new type.PropertyAccess(token, [identifier]); }
+    = token:ThisToken expr:Expression
+        { return new type.PropertyAccess(token, [expr]); }
 
 
 StringLiteral "string"
