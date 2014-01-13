@@ -3,6 +3,7 @@
 var PEG = require('pegjs');
 var argv = require('optimist').argv;
 var fs = require('fs');
+var exec = require('child_process').exec;
 
 var source = argv._[0];
 var target = argv._[1];
@@ -24,11 +25,29 @@ function write (text) {
     }
 }
 
-fs.readFile('parser.peg', 'utf8', function(err, parserData) {
-    fs.readFile(source, 'utf8', function (err, input) {
-        var parser = PEG.buildParser(parserData);
-        var ast = parser.parse(input);
+exec('pegjs parser.peg parser.js', function (error, stdout, stderr) {
+    
+    if (error) {
+        console.log(error);
+        process.exit(1);
+    }
 
+    if (stderr) {
+        console.log(stderr);
+        process.exit(1);
+    }
+
+    var parser = require('./parser.js');
+    fs.readFile(source, 'utf8', function (err, input) {
+        
+        try {
+            var ast = parser.parse(input);
+        }
+        catch (e) {
+            console.log('Error at line ' + e.line + ', column ' + e.offset);
+            console.log(e.message)
+            process.exit(1);
+        }
         var out = ast.toJS();
 
         write(out);
