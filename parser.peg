@@ -210,6 +210,17 @@
         }
     });
 
+    type('UnaryOperator', {
+        init: function (op, right) {
+            this.operator = op;
+            this.right = right;
+            this.children = [right];
+        },
+        toJS: function () {
+            return this.operator + ' ' + this.right.toJS();
+        }
+    });
+
     type('ListLiteral', {
         init: function (items) {
             this.items = items;
@@ -621,6 +632,14 @@ BinaryOperator
     / 'instanceof'
     / 'in'
 
+UnaryOperator
+    = 'delete'
+    / 'typeof'
+    / '+'
+    / '-'
+    / '~'
+    / '!'
+
 //
 // Cheat alert: This completely ignores operator presedence for simplicity,
 // and will create a wrong ast. However, as long as we do not really
@@ -629,6 +648,9 @@ BinaryOperator
 Expression 
     = left:Value _ op:BinaryOperator _ right:Expression 
         { return new type.Operator(op, left, right); }
+
+    / op:UnaryOperator _ right:Expression 
+        { return new type.UnaryOperator(op, right); }
     
     / PropertyExpression
         
