@@ -475,7 +475,16 @@
 
             throw 'Scope access overflow; not enough scopes to traverse';
         }
-    })
+    });
+
+    type('NewExpression', {
+        init: function(classExpression) {
+            this.classExpression = classExpression;
+        },
+        toJS: function () {
+            return 'new ' + this.classExpression.toJS();
+        }
+    });
 
 }
 
@@ -650,6 +659,9 @@ Value
 
     / a:Identifier 
         { return new type.Variable(a); }
+
+    / 'new' _ expr:Expression
+        { return new type.NewExpression(expr); } 
 
     / '[' __ head:Expression? tail:(__ ',' __ Expression)* __ ','? __ ']'
         { 
