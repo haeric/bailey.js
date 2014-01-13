@@ -55,7 +55,10 @@ class Animal
         b: 2,
     }
 
+
+
 a[6] = 1
+c = new Animal()
 @lol = a
 a = "hi!"
 b = "this is a 
