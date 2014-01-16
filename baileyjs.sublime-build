@@ -1,0 +1,4 @@
+{
+    "cmd": ["node", "bailey.js", "example.bs", "example.js", "--verbose"],
+    "path": "/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/usr/local/git/bin:/usr/texbin" 
+}
