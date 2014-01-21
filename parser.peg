@@ -260,10 +260,11 @@
         init: function (name) {
             this.name = name;
             this.values = [];
-            this.children = this.values;
+            this.children = this.children;
         },
         add: function (val) {
             this.values.push(val);
+            this.children.push(val.value)
         },
         toJS: function () {
             var name = this.name;
