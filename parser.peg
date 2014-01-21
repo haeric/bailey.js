@@ -577,7 +577,7 @@ IndentNewline
 
 IndentAdd
     = i:[ \t]+ &{ return i.length > indent.length; }
-        { indentStack.push(indent); indent = i.join(""); pos = offset; }
+        { indentStack.push(indent); indent = i.join(""); peg$currPos = offset(); }
 
 IndentRemove
     =
