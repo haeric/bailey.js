@@ -42,9 +42,11 @@ function normalizeBlocks(input) {
             if (!thisLineContainsStuff) {
                 numberOfLinesToIndent++;
             }
+            else {
+                out += '\n';
+            }
             thisLineContainsStuff = false;
             thisLinesIndentation = '';
-            out += '\n';
             continue;
         }
 
@@ -55,18 +57,22 @@ function normalizeBlocks(input) {
 
         if (chr !== ' ' || chr !== '\t') {
             
-            if (!thisLineContainsStuff)
+            if (!thisLineContainsStuff) {
                 for (var j = 0; j < numberOfLinesToIndent; j++) {
                     out += thisLinesIndentation + '\n';
                 }
+                out += thisLinesIndentation + chr;
+            }
+            else {
+                out += chr;
+            }
             numberOfLinesToIndent = 0;
             thisLineContainsStuff = true;
-            out += chr;
 
         }
 
     }
-    console.log(out);
+
     return out;
 
 }
