@@ -142,7 +142,7 @@
         }
     });
 
-    type('Condition', {
+    type('If', {
         init: function (expr, ifBody, elseBody) {
             this.expression = expr;
             this.ifBody = ifBody;
@@ -515,12 +515,12 @@ Block
 
 Statement
 
-    = 'if ' a:Expression IndentNewline ifBody:Block IndentRemove EOL+
+    = 'if ' condition:Expression IndentNewline ifBody:Block IndentRemove EOL+
       Indent 'else' IndentNewline elseBody:Block IndentRemove 
-        { return new type.Condition(a, ifBody, elseBody); }
+        { return new type.If(condition, ifBody, elseBody); }
 
-    / 'if ' a:Expression IndentNewline ifBody:Block IndentRemove
-        { return new type.Condition(a, ifBody); }
+    / 'if ' condition:Expression IndentNewline ifBody:Block IndentRemove
+        { return new type.If(condition, ifBody); }
 
     / 'for ' iterator:Identifier ', ' item:Identifier ' in ' iterable:Expression IndentNewline body:Block IndentRemove
         { return new type.ForLoop(iterator, item, iterable, body); } 
@@ -724,8 +724,7 @@ Number
         { return new type.Number(digits); }
 
 Identifier
-    = !ReservedWord a:IdentifierPart 
-        { return a.join(''); }
+    = $ (!ReservedWord IdentifierPart)
 
 IdentifierPart
     = (Digits / Letters / '_')+
@@ -747,12 +746,10 @@ ExpressionTuple
     / { return [] }
 
 Digits
-    = a:[0-9]+ 
-        { return a.join(''); }
+    = $ [0-9]+
 
 Letters
-    = a:[a-zA-Z]+ 
-        { return a.join(''); }
+    = $ [a-zA-Z]+ 
 
 _
     = [ \t]*
