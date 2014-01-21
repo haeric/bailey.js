@@ -240,9 +240,9 @@
             this.values = [];
             this.children = this.values;
         },
-        add: function (key, value) {
-            this.keys.push(key);
-            this.values.push(value)
+        add: function (val) {
+            this.keys.push(val.key);
+            this.values.push(val.value)
         },
         toJS: function () {
             var out = '{';
@@ -262,8 +262,8 @@
             this.values = [];
             this.children = this.values;
         },
-        add: function (key, value) {
-            this.values.push({key: key, value: value})
+        add: function (val) {
+            this.values.push(val);
         },
         toJS: function () {
             var name = this.name;
@@ -547,12 +547,16 @@ Statement
         { return new type.Return(expr); }
 
     / 'class ' ident:Identifier IndentNewline
-        head:(__ Identifier _ ':' _ Expression) 
-        tail:(EOL Indent Identifier _ ':' _ Expression)* IndentRemove
+        head:(__ KeyValuePair) 
+        tail:((EOL Indent)+ KeyValuePair)* IndentRemove
         {
             var obj = new type.ClassStatement(ident);
-            if (head !== '') obj.add(head[1], head[5]);
-            for (var i = 0; i < tail.length; i++) obj.add(tail[i][2], tail[i][6])
+            if (head !== '') obj.add(head[1]);
+
+            for (var i = 0; i < tail.length; i++)
+                if (tail[i][1].key)
+                    obj.add(tail[i][1])
+
             return obj;
         }
 
@@ -561,7 +565,6 @@ Statement
     / Expression
 
     / Comment
-        { return new type.Noop(); }
 
     / { return new type.Noop() }
 
@@ -585,6 +588,7 @@ IndentRemove
 
 Comment
     = '#' (!EOL .)*
+        { return new type.Noop(); }
 
 Assign 
     = left:Identifier _ op:AssignmentOperator _ value:Expression 
@@ -692,18 +696,20 @@ Value
     / '[' __ head:Expression? tail:(__ ',' __ Expression)* __ ','? __ ']'
         { 
             var list = tail.map(function(item) { return item[3]; }); 
-            if (head !== '') list.push(head);
+            if (head !== null) list.push(head);
             return new type.ListLiteral(list);
         }
 
     / '{' 
-            head:(__ Identifier _ ':' _ Expression)? 
-            tail:(_ ',' __ Identifier _ ':' _ Expression)* __ ','? __  
+            head:(__ KeyValuePair)? 
+            tail:(_ ',' __ KeyValuePair)* __ ','? __  
       '}'
         {
             var obj = new type.ObjectLiteral();
-            if (head !== '') obj.add(head[1], head[5]);
-            for (var i = 0; i < tail.length; i++) obj.add(tail[i][3], tail[i][7])
+            if (head !== null) obj.add(head[1]);
+            for (var i = 0; i < tail.length; i++) 
+                if (tail[i][3].key)
+                    obj.add(tail[i][3]);
             return obj;
         }
 
@@ -714,6 +720,12 @@ Value
         { return new type.Function(params, body); }
 
     / GroupedExpression
+
+KeyValuePair
+    = key:Identifier _ ':' _ value:Expression
+        { return {key: key, value: value}; }
+
+    / Comment
 
 GroupedExpression
     = '(' __ a:Expression __ ')' 
