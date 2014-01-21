@@ -25,6 +25,52 @@ function write (text) {
     }
 }
 
+// Whenever we hit an indented block, make sure all preceding
+// empty lines are made to have this indentation level
+function normalizeBlocks(input) {
+
+    var numberOfLinesToIndent = 0,
+        thisLineContainsStuff = false,
+        thisLinesIndentation = '',
+        out = '';
+
+    for (var i = 0; i < input.length; i++) {
+
+        var chr = input[i];
+
+        if (chr === '\n') {
+            if (!thisLineContainsStuff) {
+                numberOfLinesToIndent++;
+            }
+            thisLineContainsStuff = false;
+            thisLinesIndentation = '';
+            out += '\n';
+            continue;
+        }
+
+        if (!thisLineContainsStuff && (chr === ' ' || chr === '\t')) {
+            thisLinesIndentation += chr;
+            continue;
+        }
+
+        if (chr !== ' ' || chr !== '\t') {
+            
+            if (!thisLineContainsStuff)
+                for (var j = 0; j < numberOfLinesToIndent; j++) {
+                    out += thisLinesIndentation + '\n';
+                }
+            numberOfLinesToIndent = 0;
+            thisLineContainsStuff = true;
+            out += chr;
+
+        }
+
+    }
+    console.log(out);
+    return out;
+
+}
+
 exec('./node_modules/pegjs/bin/pegjs parser.peg parser.js', function (error, stdout, stderr) {
     
     if (error) {
@@ -40,11 +86,13 @@ exec('./node_modules/pegjs/bin/pegjs parser.peg parser.js', function (error, std
     var parser = require('./parser.js');
     fs.readFile(source, 'utf8', function (err, input) {
         
+        input = normalizeBlocks(input);
+
         try {
             var ast = parser.parse(input);
         }
         catch (e) {
-            console.log('Error at line ' + e.line + ', column ' + e.offset);
+            console.log('Error at line ' + e.line + ', character ' + e.column);
             console.log(e.message)
             process.exit(1);
         }

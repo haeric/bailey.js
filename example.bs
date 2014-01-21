@@ -44,6 +44,7 @@ for i, a in data
 for a in data
     f()
 while b > 2
+
     b -= 1
 
 class Animal
