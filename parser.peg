@@ -454,6 +454,10 @@
             this.children = [body];
         },
         toJS: function () {
+            if (this.body.nodeType === 'Noop') {
+                return '';
+            }
+
             return 'return ' + this.body.toJS() + ';';
         }
     });
@@ -818,7 +822,7 @@ __
 
 Noop
     = _
-        { return type.Noop(); }
+        { return new type.Noop(); }
 
 ReservedWord
   = Keyword
