@@ -173,6 +173,41 @@
             this.children = [item, iterable, body];
         },
         toJS: function () {
+            if (this.iterable.nodeType === 'Range') {
+                return this.toJSRanged();
+            }
+            else {
+                return this.toJSListed();
+            }
+        },
+        toJSRanged: function () {
+            
+            var step = '',
+                by = this.iterable.by;
+            
+            if (by.nodeType === 'Number' && by.value === 0) {
+                expected("non-zero expression");
+            }
+
+            if (by.value === 1) {
+                step = this.iterator + '++';
+            }
+            else if (by.value === -1) {
+                step = this.iterator + '--';
+            }
+            else if (by.nodeType === 'Number' && by.value < 0) {
+                step = this.iterator + ' = ' + this.iterator + by.toJS();
+            }
+            else {
+                step = this.iterator + ' = ' + this.iterator + '+' + by.toJS()
+            }
+            
+            return 'for (var ' + this.iterator + ' = ' + this.iterable.from.toJS() + '; ' + 
+                this.iterator + ' < ' + this.iterable.to.toJS() + '; ' + step + ') {\n' +
+                this.body.toJS() + '\n' +
+                '}';
+        },
+        toJSListed: function () {
             return 'for (var ' + this.iterator + ' = 0; ' + 
                 this.iterator + ' < ' + this.iterable.toJS() + '.length; ' + this.iterator + '++) { ' +
                 'var ' + this.item + ' = ' + this.iterable.toJS() + '[' + this.iterator + '];\n' +
@@ -404,8 +439,9 @@
             this.children = [body];
         },
         traverse: function () {
-            if (this.body.nodeType === 'Block')
+            if (this.body.nodeType === 'Block') {
                 this.body.copySymbols(this.params);
+            }
         },
         toJS: function () {
             return 'function(' + this.params.join(', ') + '){' + this.body.toJS() + '}';
@@ -498,6 +534,14 @@
         }
     });
 
+    type('Range', {
+        init: function(from, to, by) {
+            this.from = from;
+            this.to = to;
+            this.by = by;
+        }
+    })
+
 }
 
 Program
@@ -526,7 +570,7 @@ Statement
     / 'for ' iterator:Identifier ', ' item:Identifier ' in ' iterable:Expression IndentNewline body:Block IndentRemove
         { return new type.ForLoop(iterator, item, iterable, body); } 
 
-    / 'for ' item:Identifier ' in ' iterable:Expression IndentNewline body:Block IndentRemove
+    / 'for ' item:Identifier ' in ' iterable:(Range / Expression) IndentNewline body:Block IndentRemove
         { return new type.ForLoop(null, item, iterable, body); } 
 
     / 'while ' e:Expression IndentNewline body:Block IndentRemove
@@ -653,9 +697,6 @@ UnaryOperator
 Expression 
     = left:Value _ op:BinaryOperator _ right:Expression 
         { return new type.Operator(op, left, right); }
-
-    / op:UnaryOperator _ right:Expression 
-        { return new type.UnaryOperator(op, right); }
     
     / PropertyExpression
         
@@ -681,6 +722,9 @@ Value
     / ThisToken
     
     / StringLiteral
+
+    / op:UnaryOperator _ right:Expression 
+        { return new type.UnaryOperator(op, right); }
 
     / expr:(Identifier / GroupedExpression) _ '(' __ args:ExpressionTuple __ ')'
         { return new type.FunctionCall(expr, args); }
@@ -732,8 +776,12 @@ GroupedExpression
     = '(' __ a:Expression __ ')' 
         { return new type.Group(a); }
 
+Range
+    = from:Expression _ ':' _ to:Expression _ ':' _ by:Expression
+        { return new type.Range(from, to, by); }
+
 Number 
-    = digits:[0-9]+ 
+    = digits:[-0-9]+ 
         { return new type.Number(digits); }
 
 Identifier
