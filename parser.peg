@@ -758,11 +758,11 @@ Value
             return obj;
         }
 
-    / '(' _ params:IdentifierTuple _ ')' _ '->' _ body:Expression
-        { return new type.Function(params, new type.Return(body)); }
-
     / '(' _ params:IdentifierTuple _ ')' _ '->' IndentNewline body:Block IndentRemove
         { return new type.Function(params, body); }
+
+    / '(' _ params:IdentifierTuple _ ')' _ '->' _ body:(Expression / Noop)
+        { return new type.Function(params, new type.Return(body)); }
 
     / GroupedExpression
 
@@ -817,6 +817,9 @@ _
 
 __ 
     = [ \t\n\r]*
+Noop
+    = _
+        { return type.Noop(); }
 
 ReservedWord
   = Keyword
