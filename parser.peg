@@ -813,10 +813,11 @@ Letters
     = $ [a-zA-Z]+ 
 
 _
-    = [ \t]*
+    = (' ' / '\t' / Comment)*
 
 __ 
-    = [ \t\n\r]*
+    = (' ' / '\t' / '\r' / '\n' / Comment)*
+
 Noop
     = _
         { return type.Noop(); }
