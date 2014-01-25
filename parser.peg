@@ -719,7 +719,9 @@ PropertyExpression
 
 
 Value
-    = Number
+    = HexNumber
+
+    / Number
     
     / Literal
 
@@ -787,6 +789,10 @@ Range
 Number 
     = digits:[-0-9]+ 
         { return new type.Number(digits); }
+
+HexNumber
+    = '0x' [0-9a-fA-F]+
+        { return new type.Literal(text()); }
 
 Identifier
     = $ (!ReservedWord IdentifierPart)
