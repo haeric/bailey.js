@@ -770,8 +770,6 @@ KeyValuePair
     = key:Identifier _ ':' _ value:Expression
         { return {key: key, value: value}; }
 
-    / Comment
-
 GroupedExpression
     = '(' __ a:Expression __ ')' 
         { return new type.Group(a); }
