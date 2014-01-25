@@ -444,7 +444,7 @@
             }
         },
         toJS: function () {
-            return 'function(' + this.params.join(', ') + '){' + this.body.toJS() + '}';
+            return 'function(' + this.params.join(', ') + ') {\n' + this.body.toJS() + '}';
         }
     });
 
@@ -470,7 +470,9 @@
         },
         toJS: function () {
             var expr = this.expr.toJS ? this.expr.toJS() : this.expr;
-            return expr + '(' + this.args.join(', ') + ')';
+            return expr + '(' + this.args.map(function(item){
+                return item.toJS();
+            }).join(', ') + ')';
         }
     });
 
