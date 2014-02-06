@@ -610,8 +610,8 @@ Statement
         { return new type.Return(expr); }
 
     / 'class ' ident:Identifier IndentNewline
-        head:(__ KeyValuePair) 
-        tail:((EOL Indent)+ KeyValuePair)* IndentRemove
+        head:(__ KeyValuePair / Comment) 
+        tail:((EOL Indent)+ (KeyValuePair / Comment))* IndentRemove
         {
             var obj = new type.ClassStatement(ident);
             if (head !== '') obj.add(head[1]);
