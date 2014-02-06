@@ -322,7 +322,7 @@
 
     type('ImportStatement', {
         init: function (path, name) {
-            this.path = path;
+            this.path = path.replace('.', '/');
             this.name = name || path.split('.')[path.split('.').length-1];
         },
         toJS: function () {
