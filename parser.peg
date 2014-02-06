@@ -454,7 +454,7 @@
             this.children = [body];
         },
         toJS: function () {
-            if (this.body.nodeType === 'Noop' || this.body.nodeType === null) {
+            if (this.body === null || this.body.nodeType === 'Noop' ) {
                 return 'return;';
             }
 
@@ -495,7 +495,7 @@
         init: function (value, insideBrackets) {
             this.value = value;
             this.insideBrackets = insideBrackets;
-            this,children = [value];
+            this.children = [value];
         },
         toJS: function () {
             if (!this.insideBrackets) {
@@ -895,7 +895,7 @@ ThisToken
 
 ThisProperty
     = token:ThisToken expr:Expression
-        { return new type.PropertyAccess(token, [expr]); }
+        { return new type.PropertyAccess(token, [new type.PropertyAccessor(expr, false)]); }
 
 
 StringLiteral "string"
