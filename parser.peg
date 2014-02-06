@@ -454,8 +454,8 @@
             this.children = [body];
         },
         toJS: function () {
-            if (this.body.nodeType === 'Noop') {
-                return '';
+            if (this.body.nodeType === 'Noop' || this.body.nodeType === null) {
+                return 'return;';
             }
 
             return 'return ' + this.body.toJS() + ';';
@@ -606,7 +606,7 @@ Statement
     / 'export ' ident:Identifier
         { return new type.ExportStatement(ident); }
 
-    / 'return ' expr:Expression
+    / 'return' _ expr:Expression?
         { return new type.Return(expr); }
 
     / 'class ' ident:Identifier IndentNewline
