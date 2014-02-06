@@ -485,12 +485,24 @@
         toJS: function () {
 
             return this.value.toJS() + this.accessors.map(function(accessor) {
-                if (typeof accessor === 'string')
-                    return '.' + accessor;
-                
-                return '[' + accessor.toJS() + ']';
+                return accessor.toJS();
             }).join('');
 
+        }
+    });
+
+    type('PropertyAccessor', {
+        init: function (value, insideBrackets) {
+            this.value = value;
+            this.insideBrackets = insideBrackets;
+            this,children = [value];
+        },
+        toJS: function () {
+            if (!this.insideBrackets) {
+                return '.' + this.value.toJS();
+            }
+            
+            return '[' + this.value.toJS() + ']';
         }
     });
 
@@ -710,8 +722,8 @@ Expression
 
 PropertyExpression
     = value:Value accessors:(
-        '[' __ expr:Expression __ ']' { return expr; }
-      / '.' __ expr:Expression        { return expr; }
+        '[' __ expr:Expression __ ']' { return new type.PropertyAccessor(expr, true); }
+      / '.' __ expr:Expression        { return new type.PropertyAccessor(expr, false); }
     )+
         {
             return new type.PropertyAccess(value, accessors); 
