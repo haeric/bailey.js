@@ -5,7 +5,10 @@
   "main": "karsk.js",
   "dependencies": {
     "pegjs": "~0.8.0",
-    "optimist": "*"
+    "optimist": "*",
+    "walk": "*",
+    "rimraf": "*",
+    "mkdirp": "*"
   },
   "devDependencies": {},
   "scripts": {

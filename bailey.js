@@ -4,25 +4,22 @@ var PEG = require('pegjs');
 var argv = require('optimist').argv;
 var fs = require('fs');
 var exec = require('child_process').exec;
+var walk = require('walk');
+var path = require('path');
+var rmdir = require('rimraf');
+var mkdir = require('mkdirp');
 
 var source = argv._[0];
 var target = argv._[1];
 
-if (!source) {
-    console.error('Arguments: node bailey.js sourcefile [targetfile]')
+if (!source || !target) {
+    console.error('Arguments: node bailey.js sourcedir targetdir')
     process.exit(1);
 }
 
-function write (text) {
-
-    if (target) {
-        fs.writeFile(target, text, function(err) {
-            if (err) { console.error(err); }
-        });
-    }
-    else {
-        console.log(text);
-    }
+if (source[0] == '/' || target[0] == '/') {
+    console.error('bailey.js currently only takes relative paths.. sort of as a security feature.')
+    process.exit(1);   
 }
 
 // Whenever we hit an indented block, make sure all preceding
@@ -77,6 +74,22 @@ function normalizeBlocks(input) {
 
 }
 
+function parse (parser, fn, input) {
+
+    input = normalizeBlocks(input);
+
+    try {
+        var ast = parser.parse(input);
+    }
+    catch (e) {
+        console.log('Error at ' + fn + ' line ' + e.line + ', character ' + e.column);
+        console.log(e.message)
+        process.exit(1);
+    }
+    return ast.toJS();
+
+}
+
 exec('./node_modules/pegjs/bin/pegjs parser.peg parser.js', function (error, stdout, stderr) {
     
     if (error) {
@@ -90,20 +103,46 @@ exec('./node_modules/pegjs/bin/pegjs parser.peg parser.js', function (error, std
     }
 
     var parser = require('./parser.js');
-    fs.readFile(source, 'utf8', function (err, input) {
-        
-        input = normalizeBlocks(input);
-
-        try {
-            var ast = parser.parse(input);
-        }
-        catch (e) {
-            console.log('Error at line ' + e.line + ', character ' + e.column);
-            console.log(e.message)
-            process.exit(1);
-        }
-        var out = ast.toJS();
-
-        write(out);
+    var walker = walk.walk(source, {
+        followLinks: false
     });
+
+    rmdir.sync(target);
+
+    walker.on("file", function(root, fileStats, next) {
+        
+        if (fileStats.name[0] == ".") {
+            return next();
+        }
+
+        if (path.extname(fileStats.name) !== '.bs') {
+            return next();
+        }
+
+        var sourcePath = path.join(root, fileStats.name);
+        var targetRoot = root.replace(source, target)
+        var targetPath = sourcePath.replace(source, target).replace('.bs', '.js');
+        
+        mkdir.sync(targetRoot);
+
+        if (argv.verbose) {
+            console.log(sourcePath, "->", targetPath);
+        }
+
+        fs.readFile(sourcePath, 'utf8', function (err, input) {
+            
+            if (err) { 
+                return console.error(err); 
+            }
+            
+            var parsed = parse(parser, sourcePath, input);   
+            fs.writeFile(targetPath, parsed, function(err) {
+                if (err) { console.error(err); }
+            });
+            
+            next();
+        });
+    });
+
+
 });
