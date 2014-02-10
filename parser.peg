@@ -149,11 +149,12 @@
     });
 
     type('If', {
-        init: function (expr, ifBody, elseBody, ternary) {
+        init: function (expr, ifBody, elifs, elseBody, ternary) {
             this.expression = expr;
             this.ifBody = ifBody;
             this.elseBody = elseBody;
-            this.children = [expr, ifBody, elseBody];
+            this.elifs = elifs || [];
+            this.children = [expr, ifBody, elseBody].concat(this.elifs);
             this.ternary = !!ternary;
         },
         toJS: function () {
@@ -164,12 +165,16 @@
                        ' : ' + this.elseBody.toJS();
             }
 
-            var out = 'if (' + this.expression.toJS() + ') {\n';
-            out += '    ' + this.ifBody.toJS() + '\n';
+            var out = 'if (' + this.expression.toJS() + ') {\n    ';
+            out += this.ifBody.toJS() + '\n';
             out += '}';
 
+            for (var i = 0; i < this.elifs.length; i++) {
+                out += ' else ' + this.elifs[i].toJS();
+            }
+
             if (this.elseBody) {
-                out += ' else {\n';
+                out += ' else {\n    ';
                 out += this.elseBody.toJS() + '\n';
                 out += '}';
             }
@@ -600,12 +605,15 @@ Block
 
 Statement
 
-    = 'if ' condition:Expression IndentNewline ifBody:Block IndentRemove EOL+
-      Indent 'else' IndentNewline elseBody:Block IndentRemove 
-        { return new type.If(condition, ifBody, elseBody); }
-
-    / 'if ' condition:Expression IndentNewline ifBody:Block IndentRemove
-        { return new type.If(condition, ifBody); }
+    = 'if ' condition:Expression IndentNewline ifBody:Block IndentRemove 
+      elifPart:(EOL+ Indent 'elif' _ Expression _ IndentNewline Block IndentRemove)*
+      elsePart:(EOL+ Indent 'else' IndentNewline Block IndentRemove)?
+        {
+            var elifs = elifPart.map(function(elif) {
+                return new type.If(elif[4], elif[7]);
+            });
+            return new type.If(condition, ifBody, elifs, elsePart ? elsePart[4] : null); 
+        }
 
     / 'while ' e:Expression IndentNewline body:Block IndentRemove
         { return new type.WhileLoop(e, body); } 
@@ -749,12 +757,12 @@ Expression
        rest:(_ '?' _ Expression _ ':' _ Expression)?
         { 
             if (!rest) return cond;
-            return new type.If(cond, rest[3], rest[7], true);
+            return new type.If(cond, rest[3], null, rest[7], true);
         }
 
 BinaryExpression
     = left:PropertyExpression 
-      rest:(_ BinaryOperator _ BinaryExpression)?
+      rest:(__ BinaryOperator __ BinaryExpression)?
         { 
             if (!rest) return left;
             return new type.Operator(rest[1], left, rest[3]); 
@@ -772,7 +780,10 @@ PropertyExpression
 
 
 Value
-    = HexNumber
+
+    = op:UnaryOperator _ right:Expression 
+        { return new type.UnaryOperator(op, right); }
+    / HexNumber
 
     / Number
     
@@ -783,9 +794,6 @@ Value
     / ThisToken
     
     / StringLiteral
-
-    / op:UnaryOperator _ right:Expression 
-        { return new type.UnaryOperator(op, right); }
 
     / expr:(Identifier / GroupedExpression) _ '(' __ args:ExpressionTuple __ ')'
         { return new type.FunctionCall(expr, args); }
