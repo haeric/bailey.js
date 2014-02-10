@@ -74,6 +74,14 @@ function normalizeBlocks(input) {
 
 }
 
+function repeat(str, n) {
+    var out = "";
+    for (var i = 0; i < n; i++) {
+        out += str;
+    }
+    return out;
+}
+
 function parse (parser, fn, input) {
 
     input = normalizeBlocks(input);
@@ -82,7 +90,9 @@ function parse (parser, fn, input) {
         var ast = parser.parse(input);
     }
     catch (e) {
-        console.log('Error at ' + fn + ' line ' + e.line + ', character ' + e.column);
+        console.log('Error at ' + fn + ' line ' + e.line + ', character ' + e.column + ':');
+        console.log(input.split('\n')[e.line-1])
+        console.log(repeat(" ", e.column-2), '^'); 
         console.log(e.message)
         process.exit(1);
     }
