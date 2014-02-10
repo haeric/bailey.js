@@ -211,9 +211,9 @@
             var step = '',
                 iterator = this.item,
                 by = this.iterable.by;
-            
+
             if (by.nodeType === 'Number' && by.value === 0) {
-                expected("non-zero expression");
+                expected("anything else but the number 0");
             }
 
             if (by.value === 1) {
@@ -844,8 +844,10 @@ GroupedExpression
         { return new type.Group(a); }
 
 Range
-    = from:Expression _ ':' _ to:Expression _ ':' _ by:Expression
-        { return new type.Range(from, to, by); }
+    = from:Expression _ ':' _ to:Expression _ by:(':' _ Expression)?
+        { 
+            by = by ? by[2] : {value: 1};
+            return new type.Range(from, to, by); }
 
 Number 
     = digits:[-0-9]+ 
