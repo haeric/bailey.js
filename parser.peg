@@ -715,7 +715,7 @@ UnaryOperator
     / '+'
     / '-'
     / '~'
-    / '!'
+    / 'not' { return '!'}
 
 //
 // Cheat alert: This completely ignores operator presedence for simplicity,
