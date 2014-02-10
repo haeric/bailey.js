@@ -585,12 +585,6 @@ Statement
     / 'if ' condition:Expression IndentNewline ifBody:Block IndentRemove
         { return new type.If(condition, ifBody); }
 
-    / 'for ' iterator:Identifier ', ' item:Identifier ' in ' iterable:Expression IndentNewline body:Block IndentRemove
-        { return new type.ForLoop(iterator, item, iterable, body); } 
-
-    / 'for ' item:Identifier ' in ' iterable:(Range / Expression) IndentNewline body:Block IndentRemove
-        { return new type.ForLoop(null, item, iterable, body); } 
-
     / 'while ' e:Expression IndentNewline body:Block IndentRemove
         { return new type.WhileLoop(e, body); } 
 
@@ -623,6 +617,8 @@ Statement
             return obj;
         }
 
+    / ForStatement
+
     / Assign
 
     / Expression
@@ -630,6 +626,20 @@ Statement
     / Comment
 
     / { return new type.Noop() }
+
+ForStatement
+    = 'for ' iterator:Identifier ', ' item:Identifier ' in ' iterable:Expression IndentNewline body:Block IndentRemove
+        { return new type.ForLoop(iterator, item, iterable, body); } 
+
+    / 'for ' item:Identifier ' in ' iterable:(Range / Expression) IndentNewline body:Block IndentRemove
+        { return new type.ForLoop(null, item, iterable, body); } 
+
+    / 'for ' iterator:Identifier ', ' item:Identifier ' in ' iterable:Expression EOL Indent body:ForStatement
+        { return new type.ForLoop(iterator, item, iterable, body); } 
+
+    / 'for ' item:Identifier ' in ' iterable:(Range / Expression) EOL Indent body:ForStatement
+        { return new type.ForLoop(null, item, iterable, body); } 
+
 
 EOL
     = '\r\n' / '\n' / '\r'
