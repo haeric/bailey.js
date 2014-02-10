@@ -143,13 +143,21 @@
     });
 
     type('If', {
-        init: function (expr, ifBody, elseBody) {
+        init: function (expr, ifBody, elseBody, ternary) {
             this.expression = expr;
             this.ifBody = ifBody;
             this.elseBody = elseBody;
             this.children = [expr, ifBody, elseBody];
+            this.ternary = !!ternary;
         },
         toJS: function () {
+
+            if (this.ternary) {
+                return this.expression.toJS() + 
+                       ' ? ' + this.ifBody.toJS() + 
+                       ' : ' + this.elseBody.toJS();
+            }
+
             var out = 'if (' + this.expression.toJS() + ') {\n';
             out += '    ' + this.ifBody.toJS() + '\n';
             out += '}';
@@ -723,20 +731,29 @@ UnaryOperator
 // fiddle with operators, it'll output correct javascript.
 //
 Expression 
-    = left:Value _ op:BinaryOperator _ right:Expression 
-        { return new type.Operator(op, left, right); }
-    
-    / PropertyExpression
-        
-    / Value
+    =  cond:BinaryExpression 
+       rest:(_ '?' _ Expression _ ':' _ Expression)?
+        { 
+            if (!rest) return cond;
+            return new type.If(cond, rest[3], rest[7], true);
+        }
+
+BinaryExpression
+    = left:PropertyExpression 
+      rest:(_ BinaryOperator _ BinaryExpression)?
+        { 
+            if (!rest) return left;
+            return new type.Operator(rest[1], left, rest[3]); 
+        }
 
 PropertyExpression
     = value:Value accessors:(
         '[' __ expr:Expression __ ']' { return new type.PropertyAccessor(expr, true); }
       / '.' __ expr:Expression        { return new type.PropertyAccessor(expr, false); }
-    )+
+    )*
         {
-            return new type.PropertyAccess(value, accessors); 
+            if (!accessors.length) return value;
+            return new type.PropertyAccess(value, accessors);
         }
 
 
