@@ -821,7 +821,7 @@ IdentifierTuple
     / { return [] }
 
 ExpressionTuple
-    = head:Expression tail:(_ ',' __ Expression)*
+    = head:Expression tail:(__ ',' __ Expression)*
         {
             tail = tail.map(function(item) { return item[3]; });
             return [head].concat(tail);
@@ -832,7 +832,7 @@ Digits
     = $ [0-9]+
 
 Letters
-    = $ [a-zA-Z]+ 
+    = $ [a-zA-Z$_]+ 
 
 _
     = (' ' / '\t' / Comment)*
