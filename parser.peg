@@ -21,6 +21,7 @@
         type[name] = function () {
             this.nodeType = name;
             this.parent = null;
+            this.scope = null;
             this.children = [];
             functions.init.apply(this, arguments);
         }
@@ -43,6 +44,10 @@
             while (queue.length) {
 
                 var item = queue.pop(0);
+
+                if (item.nodeType === 'Block') {
+                    item.scope = item;
+                }
                 
                 for (var i = 0; i < item.children.length; i++) {
 
@@ -56,6 +61,7 @@
                     
                     queue.push(child);
                     child.parent = item;
+                    child.scope = item.scope;
                     child.traverse();
                     
                 }
@@ -174,11 +180,18 @@
 
     type('ForLoop', {
         init: function (iterator, item, iterable, body) {
-            this.iterator = iterator || 'i';
+            this.iterator = iterator;
             this.item = item;
             this.iterable = iterable;
             this.body = body;
             this.children = [item, iterable, body];
+        },
+        traverse: function () {
+            var i = 1;
+            while (this.iterator == null || this.scope.symbols[this.iterator]) {
+                this.iterator = '__i' + i++;
+            }
+            this.scope.symbols[this.iterator] = 1;
         },
         toJS: function () {
             if (this.iterable.nodeType === 'Range') {
@@ -191,6 +204,7 @@
         toJSRanged: function () {
             
             var step = '',
+                iterator = this.item,
                 by = this.iterable.by;
             
             if (by.nodeType === 'Number' && by.value === 0) {
@@ -198,20 +212,20 @@
             }
 
             if (by.value === 1) {
-                step = this.iterator + '++';
+                step = iterator + '++';
             }
             else if (by.value === -1) {
-                step = this.iterator + '--';
+                step = iterator + '--';
             }
             else if (by.nodeType === 'Number' && by.value < 0) {
-                step = this.iterator + ' = ' + this.iterator + by.toJS();
+                step = iterator + ' = ' + iterator + by.toJS();
             }
             else {
-                step = this.iterator + ' = ' + this.iterator + '+' + by.toJS()
+                step = iterator + ' = ' + iterator + '+' + by.toJS()
             }
             
-            return 'for (var ' + this.iterator + ' = ' + this.iterable.from.toJS() + '; ' + 
-                this.iterator + ' < ' + this.iterable.to.toJS() + '; ' + step + ') {\n' +
+            return 'for (var ' + iterator + ' = ' + this.iterable.from.toJS() + '; ' + 
+                iterator + ' < ' + this.iterable.to.toJS() + '; ' + step + ') {\n' +
                 this.body.toJS() + '\n' +
                 '}';
         },
