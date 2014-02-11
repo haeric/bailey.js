@@ -395,17 +395,8 @@
         },
         traverse: function () {
 
-            var node = this.parent;
-
-            while (node) {
-
-                if (node.nodeType === 'Block') {
-                    this.parentScope = node;
-                    this.symbols.__proto__ = node.symbols;
-                    return;
-                }
-
-                node = node.parent;
+            if (this.parent && this.parent.scope) {
+                this.symbols.__proto__ = this.parent.scope.symbols;
             }
 
         },
