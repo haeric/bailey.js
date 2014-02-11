@@ -87,7 +87,7 @@
                 return item.name;
             }).join(', ');
 
-            var requireString = export_ ? 'define' : 'require'
+            var requireString = export_ ? 'define' : 'require';
 
             var out = requireString + '([' + pathString + '], ';
             out += 'function(' + paramString + ') \x7b';
@@ -189,7 +189,7 @@
             this.item = item;
             this.iterable = iterable;
             this.body = body;
-            this.children = [item, iterable, body];
+            this.children = [iterator, item, iterable, body];
         },
         traverse: function () {
             var i = 1;
@@ -304,7 +304,7 @@
         },
         add: function (val) {
             this.keys.push(val.key);
-            this.values.push(val.value)
+            this.values.push(val.value);
         },
         toJS: function () {
             var out = '{';
@@ -322,11 +322,11 @@
         init: function (name) {
             this.name = name;
             this.values = [];
-            this.children = this.children;
+            this.children = [];
         },
         add: function (val) {
             this.values.push(val);
-            this.children.push(val.value)
+            this.children.push(val.value);
         },
         toJS: function () {
             var name = this.name;
@@ -353,7 +353,7 @@
             this.name = name || path.split('.')[path.split('.').length-1];
         },
         toJS: function () {
-            return ''; // Ignored for now
+            return '';
         }
     });
 
@@ -362,7 +362,7 @@
             this.ident = ident;
         },
         toJS: function () {
-            return ''; // Ignored for now
+            return '';
         }
     });
 
@@ -564,6 +564,7 @@
     type('NewExpression', {
         init: function(classExpression) {
             this.classExpression = classExpression;
+            this.children = [classExpression];
         },
         toJS: function () {
             return 'new ' + this.classExpression.toJS();
@@ -575,6 +576,7 @@
             this.from = from;
             this.to = to;
             this.by = by;
+            this.children = [from, to, by];
         }
     })
 
