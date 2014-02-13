@@ -2,7 +2,10 @@
 {
     var indentStack = [], 
         indent = "",
-        scopeId = 0;
+        scopeId = 0,
+        parser = this;
+
+
 
     function type (name, options) {
 

@@ -100,7 +100,7 @@ function parse (parser, fn, input) {
 
 }
 
-exec('./node_modules/pegjs/bin/pegjs parser.peg parser.js', function (error, stdout, stderr) {
+exec('./node_modules/pegjs/bin/pegjs --allowed-start-rules Program,Expression parser.peg parser.js', function (error, stdout, stderr) {
     
     if (error) {
         console.log(error);
