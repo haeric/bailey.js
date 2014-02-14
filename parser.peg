@@ -946,8 +946,21 @@ ThisProperty
 
 
 StringLiteral "string"
-  = parts:('"' DoubleStringCharacters? '"' / "'" SingleStringCharacters? "'") {
-      return new type.StringLiteral(parts[0], parts[1]);
+  = parts:('"' DoubleStringCharacters? '"' / "'" SingleStringCharacters? "'") 
+    {
+        var d = parts[0];
+        var text = parts[1] !== null ? parts[1] : "";
+        
+        // Is this a normal string?
+        if (text.indexOf('#\x7b') === -1) {
+            return new type.StringLiteral(d, text);
+        }
+        
+        // Oh, it contains variables. Let's reparse it then! Somewhat of a hack, but.. :)
+        var re = new RegExp("#{([^\x7d]+)}", "g");
+        text = d + text.replace(re, d + ' + $1 + ' + d) + d;
+        return parser.parse(text, {startRule: 'Expression'});
+        
     }
 
 DoubleStringCharacters
