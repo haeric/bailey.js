@@ -679,7 +679,11 @@ IndentNewline
 
 IndentAdd
     = i:[ \t]+ &{ return i.length > indent.length; }
-        { indentStack.push(indent); indent = i.join(""); peg$currPos = offset(); }
+        { 
+            indentStack.push(indent); 
+            indent = i.join(""); 
+            peg$currPos = offset(); 
+        }
 
 IndentRemove
     =
@@ -752,7 +756,9 @@ Expression
     =  cond:BinaryExpression 
        rest:(_ '?' _ Expression _ ':' _ Expression)?
         { 
-            if (!rest) return cond;
+            if (!rest) {
+                return cond;
+            }
             return new type.If(cond, rest[3], null, rest[7], true);
         }
 
@@ -760,7 +766,9 @@ BinaryExpression
     = left:PropertyExpression 
       rest:(__ BinaryOperator __ BinaryExpression)?
         { 
-            if (!rest) return left;
+            if (!rest) {
+                return left;
+            }
             return new type.Operator(rest[1], left, rest[3]); 
         }
 
@@ -770,7 +778,9 @@ PropertyExpression
       / '.' __ expr:Expression        { return new type.PropertyAccessor(expr, false); }
     )*
         {
-            if (!accessors.length) return value;
+            if (!accessors.length) {
+                return value;
+            }
             return new type.PropertyAccess(value, accessors);
         }
 
@@ -779,6 +789,7 @@ Value
 
     = op:UnaryOperator _ right:Expression 
         { return new type.UnaryOperator(op, right); }
+
     / HexNumber
 
     / Number
@@ -806,7 +817,9 @@ Value
     / '[' __ head:Expression? tail:(__ ',' __ Expression)* __ ','? __ ']'
         { 
             var list = tail.map(function(item) { return item[3]; }); 
-            if (head !== null) list.push(head);
+            if (head !== null) {
+                list.push(head);
+            }
             return new type.ListLiteral(list);
         }
 
@@ -817,9 +830,11 @@ Value
         {
             var obj = new type.ObjectLiteral();
             if (head !== null) obj.add(head[1]);
-            for (var i = 0; i < tail.length; i++) 
-                if (tail[i][3].key)
+            for (var i = 0; i < tail.length; i++) { 
+                if (tail[i][3].key) {
                     obj.add(tail[i][3]);
+                }
+            }
             return obj;
         }
 
@@ -955,14 +970,14 @@ StringLiteral "string"
         if (text.indexOf('#\x7b') === -1) {
             return new type.StringLiteral(d, text);
         }
-        
+
         // Oh, it contains variables. Let's reparse it then! Somewhat of a hack, but.. :)
         var re = new RegExp("#{([^\x7d]+)}", "g");
         text = d + text.replace(re, d + ' + $1 + ' + d) + d;
         return parser.parse(text, {startRule: 'Expression'});
         
     }
-
+ 
 DoubleStringCharacters
   = chars:DoubleStringCharacter+ { return chars.join(""); }
 
