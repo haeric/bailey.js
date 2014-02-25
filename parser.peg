@@ -5,8 +5,6 @@
         scopeId = 0,
         parser = this;
 
-
-
     function type (name, options) {
 
         options = options || {};
@@ -72,7 +70,7 @@
             }
 
         },
-        toJS: function () {
+        toJS: function (options) {
             
             this.traverse();
 
@@ -82,26 +80,39 @@
             var imports = this.block.getImports();
             var export_ = this.block.getExport();
 
-            var pathString = imports.map(function(item) {
-                return '"' + item.path + '"';
-            }).join(', ');
+            if (options.node) {
+                var out = imports.map(function(item) {
+                    return 'var ' + item.name + ' = require("' + item.path + '");';
+                }).join('\n');
 
-            var paramString = imports.map(function(item) {
-                return item.name;
-            }).join(', ');
+                out += this.block.toJS();
 
-            var requireString = export_ ? 'define' : 'require';
-
-            var out = requireString + '([' + pathString + '], ';
-            out += 'function(' + paramString + ') \x7b';
-
-            out += this.block.toJS();
-
-            if (export_) {
-                out += '\nreturn ' + export_.ident + ';';
+                if (export_) {
+                    out += '\nmodule.exports = ' + export_.ident + ';';
+                }
             }
+            else {
+                var pathString = imports.map(function(item) {
+                    return '"' + item.path + '"';
+                }).join(', ');
 
-            out += '\n\x7d);';
+                var paramString = imports.map(function(item) {
+                    return item.name;
+                }).join(', ');
+
+                var requireString = export_ ? 'define' : 'require';
+
+                var out = requireString + '([' + pathString + '], ';
+                out += 'function(' + paramString + ') \x7b';
+
+                out += this.block.toJS();
+
+                if (export_) {
+                    out += '\nreturn ' + export_.ident + ';';
+                }
+
+                out += '\n\x7d);';   
+            }
             return out;
         }
     });

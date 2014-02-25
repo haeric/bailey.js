@@ -22,6 +22,10 @@ if (source[0] == '/' || target[0] == '/') {
     process.exit(1);   
 }
 
+var options = {
+    node: !!argv.node
+}
+
 // Whenever we hit an indented block, make sure all preceding
 // empty lines are made to have this indentation level
 function normalizeBlocks(input) {
@@ -96,7 +100,7 @@ function parse (parser, fn, input) {
         console.log(e.message)
         process.exit(1);
     }
-    return ast.toJS();
+    return ast.toJS(options);
 
 }
 
