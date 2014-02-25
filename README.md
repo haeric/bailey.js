@@ -7,3 +7,8 @@ bailey.js is currently very, very work in progress, with lots of stuff missing. 
 ````
 node bailey.js examples/ build/
 ```
+
+To build a version with node imports instead of requirejs-imports, simply add `--node`:
+````
+node bailey.js examples/ build/ --node
+```
