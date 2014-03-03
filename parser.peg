@@ -132,6 +132,18 @@
         }
     });
 
+    type('Comment', {
+        init: function (text) {
+            this.text = text;
+        },
+        toJS: function () {
+            if (parser.options.removeComments) {
+                return '';
+            }
+            return '//' + this.text;
+        }
+    });
+
     type('Number', {
         init: function (digits) {
             this.value = parseInt(digits.join(''));
@@ -734,8 +746,8 @@ IndentRemove
         { indent = indentStack.pop(); }
 
 Comment
-    = '#' (!EOL .)*
-        { return new type.Noop(); }
+    = '#' text:($(!EOL .)*)
+        { return new type.Comment(text); }
 
 Assign 
     = left:Identifier _ op:AssignmentOperator _ value:Expression 

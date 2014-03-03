@@ -24,7 +24,8 @@ if (source[0] == '/' || target[0] == '/') {
 }
 
 var options = {
-    node: !!argv.node
+    node: !!argv.node,
+    removeComments: !!argv['remove-comments'],
 }
 
 // Whenever we hit an indented block, make sure all preceding
