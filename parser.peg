@@ -670,13 +670,13 @@ Statement
     / word:('break' / 'continue')
         { return new type.LoopControl(word) }
 
-    / 'import ' path:[a-zA-Z.]+ ' as ' name:Identifier
+    / 'import ' path:[a-zA-Z0-9._]+ ' as ' name:Identifier
         { return new type.ImportStatement(path.join(''), name); }
 
-    / 'import ' path:[a-zA-Z.]+
+    / 'import ' path:[a-zA-Z0-9._]+
         { return new type.ImportStatement(path.join('')); }
     
-    / 'include ' path:[a-zA-Z.]+
+    / 'include ' path:[a-zA-Z0-9._-]+
         { return new type.IncludeStatement(path.join('')); }
 
     / 'export ' ident:Identifier
