@@ -99,6 +99,11 @@
                 if (export_) {
                     out += '\nmodule.exports = ' + export_.ident + ';';
                 }
+                else {
+                    out += '\nmodule.exports = {' + this.block.getPublicSymbolsList().map(function(key) {
+                        return "'" + key + "': " + key;
+                    }).join(',') + '};';
+                }
             }
             else {
                 var pathString = imports.map(function(item) {
@@ -118,6 +123,11 @@
 
                 if (export_) {
                     out += '\nreturn ' + export_.ident + ';';
+                }
+                else {
+                    out += '\nreturn {' + this.block.getPublicSymbolsList().map(function(key) {
+                        return "'" + key + "': " + key;
+                    }).join(',') + '};';
                 }
 
                 out += '\n\x7d);';   
@@ -485,6 +495,11 @@
             }
             return test[0];
         },
+        getPublicSymbolsList: function () {
+            return Object.keys(this.symbols).filter(function(key) {
+                return key[0] !== '_';
+            });
+        },
         getScopeName: function () {
             this.declareName = true;
             return this.name;
@@ -670,13 +685,13 @@ Statement
     / word:('break' / 'continue')
         { return new type.LoopControl(word) }
 
-    / 'import ' path:[a-zA-Z.]+ ' as ' name:Identifier
+    / 'import ' path:[a-zA-Z0-9._]+ ' as ' name:Identifier
         { return new type.ImportStatement(path.join(''), name); }
 
-    / 'import ' path:[a-zA-Z.]+
+    / 'import ' path:[a-zA-Z0-9._]+
         { return new type.ImportStatement(path.join('')); }
     
-    / 'include ' path:[a-zA-Z.]+
+    / 'include ' path:[a-zA-Z0-9._-]+
         { return new type.IncludeStatement(path.join('')); }
 
     / 'export ' ident:Identifier
