@@ -8,6 +8,7 @@ var walk = require('walk');
 var path = require('path');
 var rmdir = require('rimraf');
 var mkdir = require('mkdirp');
+var beautify = require('js-beautify').js_beautify;
 
 var source = argv._[0];
 var target = argv._[1];
@@ -100,7 +101,7 @@ function parse (parser, fn, input) {
         console.log(e.message)
         process.exit(1);
     }
-    return ast.toJS(options);
+    return beautify(ast.toJS(options));
 
 }
 
