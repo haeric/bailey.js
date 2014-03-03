@@ -99,6 +99,11 @@
                 if (export_) {
                     out += '\nmodule.exports = ' + export_.ident + ';';
                 }
+                else {
+                    out += '\nmodule.exports = {' + this.block.getPublicSymbolsList().map(function(key) {
+                        return "'" + key + "': " + key;
+                    }).join(',') + '};';
+                }
             }
             else {
                 var pathString = imports.map(function(item) {
@@ -118,6 +123,11 @@
 
                 if (export_) {
                     out += '\nreturn ' + export_.ident + ';';
+                }
+                else {
+                    out += '\nreturn {' + this.block.getPublicSymbolsList().map(function(key) {
+                        return "'" + key + "': " + key;
+                    }).join(',') + '};';
                 }
 
                 out += '\n\x7d);';   
@@ -484,6 +494,11 @@
                 return null;
             }
             return test[0];
+        },
+        getPublicSymbolsList: function () {
+            return Object.keys(this.symbols).filter(function(key) {
+                return key[0] !== '_';
+            });
         },
         getScopeName: function () {
             this.declareName = true;
