@@ -368,14 +368,29 @@
             this.name = name;
             this.values = [];
             this.children = [];
+            this.init = null;
         },
         add: function (val) {
-            this.values.push(val);
             this.children.push(val.value);
+
+            if (val.key === 'init') {
+                this.init = val.value;
+            }
+            else {
+                this.values.push(val);
+            }
         },
         toJS: function () {
             var name = this.name;
-            var out = 'function ' + this.name + '() \x7b \x7d;\n'
+            var out = 'function ' + this.name + ' ';
+            if (this.init !== null) {
+                out += '(' + this.init.params.join(', ') + ') ';
+                out += '{' + this.init.body.toJS() + ' return this; }'
+            }
+            else {
+                out += '() { return this; }';
+            }
+            
             out += this.values.map(function(item) {
                 return name + '.prototype.' + item.key + ' = ' + item.value.toJS() + ';'
             }).join('\n');
