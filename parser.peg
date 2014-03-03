@@ -1,5 +1,8 @@
 
 {
+    var fs = require('fs');
+    var path = require('path');
+
     var indentStack = [], 
         indent = "",
         scopeId = 0,
@@ -72,6 +75,7 @@
         },
         toJS: function (options) {
             
+            parser.options = options;
             this.traverse();
 
             // Handle imports with require js
@@ -79,9 +83,14 @@
             // else, it's a main entry point, and should be a REQUIRE
             var imports = this.block.getImports();
             var export_ = this.block.getExport();
+            var includes = this.block.extractIncludes();
+
+            var out = includes.map(function(item) {
+                return item.toJS();
+            }).join('\n');
 
             if (options.node) {
-                var out = imports.map(function(item) {
+                out += imports.map(function(item) {
                     return 'var ' + item.name + ' = require("' + item.path + '");';
                 }).join('\n');
 
@@ -102,7 +111,7 @@
 
                 var requireString = export_ ? 'define' : 'require';
 
-                var out = requireString + '([' + pathString + '], ';
+                out += requireString + '([' + pathString + '], ';
                 out += 'function(' + paramString + ') \x7b';
 
                 out += this.block.toJS();
@@ -380,6 +389,16 @@
         }
     });
 
+    type('IncludeStatement', {
+        init: function (path) {
+            this.path = path.replace('.', '/') + '.js';
+        },
+        toJS: function () {
+            var filePath = path.join(parser.options.root, this.path);
+            return fs.readFileSync(filePath, 'utf8');
+        }
+    });
+
     type('Literal', {
         init: function (type) {
             this.type = type;
@@ -425,6 +444,17 @@
             return out + this.statements.map(function (s) {
                 return s.toJS();
             }).join('\n');
+        },
+        extractIncludes: function () {
+            var includes = this.statements.filter(function(statement) {
+                return statement.nodeType === 'IncludeStatement';
+            });
+
+            this.statements = this.statements.filter(function(statement) {
+                return statement.nodeType !== 'IncludeStatement';
+            });
+
+            return includes;
         },
         getImports: function () {
             return this.statements.filter(function(statement) {
@@ -633,6 +663,9 @@ Statement
 
     / 'import ' path:[a-zA-Z.]+
         { return new type.ImportStatement(path.join('')); }
+    
+    / 'include ' path:[a-zA-Z.]+
+        { return new type.IncludeStatement(path.join('')); }
 
     / 'export ' ident:Identifier
         { return new type.ExportStatement(ident); }

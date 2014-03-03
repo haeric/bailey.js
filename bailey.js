@@ -87,7 +87,7 @@ function repeat(str, n) {
     return out;
 }
 
-function parse (parser, fn, input) {
+function parse (parser, path, root, input) {
 
     input = normalizeBlocks(input);
 
@@ -95,12 +95,14 @@ function parse (parser, fn, input) {
         var ast = parser.parse(input);
     }
     catch (e) {
-        console.log('Error at ' + fn + ' line ' + e.line + ', character ' + e.column + ':');
+        console.log('Error at ' + path + ' line ' + e.line + ', character ' + e.column + ':');
         console.log(input.split('\n')[e.line-1])
         console.log(repeat(" ", e.column-2), '^'); 
         console.log(e.message)
         process.exit(1);
     }
+    options.root = root;
+    options.filePath = path;
     return beautify(ast.toJS(options));
 
 }
@@ -150,7 +152,7 @@ exec('./node_modules/pegjs/bin/pegjs --allowed-start-rules Program,Expression pa
                 return console.error(err); 
             }
             
-            var parsed = parse(parser, sourcePath, input);   
+            var parsed = parse(parser, sourcePath, root, input);   
             fs.writeFile(targetPath, parsed, function(err) {
                 if (err) { console.error(err); }
             });
