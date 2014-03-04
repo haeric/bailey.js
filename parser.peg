@@ -428,7 +428,10 @@
 
     type('IncludeStatement', {
         init: function (path) {
-            this.path = path.replace('.', '/') + '.js';
+            this.path = path.replace(/\./g, '/') + '.js';
+            if (this.path[0] === '/') {
+                this.path = '..' + this.path;
+            }
         },
         toJS: function () {
             var filePath = path.join(parser.options.root, this.path);
