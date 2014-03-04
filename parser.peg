@@ -861,7 +861,7 @@ BinaryExpression
 PropertyExpression
     = value:Value accessors:(
         '[' __ expr:Expression __ ']' { return new type.PropertyAccessor(expr, true); }
-      / '.' __ expr:Expression        { return new type.PropertyAccessor(expr, false); }
+      / __ '.' __ expr:Expression        { return new type.PropertyAccessor(expr, false); }
     )*
         {
             if (!accessors.length) {
