@@ -820,18 +820,18 @@ BinaryOperator
     / '<'
     / '>'
 
-    / 'and'
-    / 'or'
-    / 'instanceof'
-    / 'in'
+    / 'and'          !IdentifierPart
+    / 'or'           !IdentifierPart
+    / 'instanceof'   !IdentifierPart
+    / 'in'           !IdentifierPart
 
 UnaryOperator
-    = 'delete'
-    / 'typeof'
+    = 'delete'       !IdentifierPart
+    / 'typeof'       !IdentifierPart
     / '+'
     / '-'
     / '~'
-    / 'not' { return '!'}
+    / 'not'          !IdentifierPart { return '!'}
 
 //
 // Cheat alert: This completely ignores operator presedence for simplicity,
