@@ -229,11 +229,12 @@
     })
 
     type('ForLoop', {
-        init: function (iterator, item, iterable, body) {
+        init: function (iterator, item, iterable, body, ofLoop) {
             this.iterator = iterator;
             this.item = item;
             this.iterable = iterable;
             this.body = body;
+            this.ofLoop = ofLoop;
             this.children = [iterator, item, iterable, body];
         },
         traverse: function () {
@@ -280,6 +281,13 @@
                 '}';
         },
         toJSListed: function () {
+
+            if (this.ofLoop) {
+                return 'for (var ' + this.iterable + ' in ' + this.iterator.toJS() + ') {' +
+                this.body.toJS() + '\n' +
+                '}';
+            }
+
             return 'for (var ' + this.iterator + ' = 0; ' + 
                 this.iterator + ' < ' + this.iterable.toJS() + '.length; ' + this.iterator + '++) { ' +
                 'var ' + this.item + ' = ' + this.iterable.toJS() + '[' + this.iterator + '];\n' +
@@ -749,11 +757,18 @@ ForStatement
     / 'for ' item:Identifier ' in ' iterable:(Range / Expression) IndentNewline body:Block IndentRemove
         { return new type.ForLoop(null, item, iterable, body); } 
 
+    / 'for ' item:Identifier ' of ' iterable:Expression IndentNewline body:Block IndentRemove
+        { return new type.ForLoop(null, item, iterable, body, true); } 
+
+    // Let's allow forloops to NOT indent, if there's a forloop beneath
     / 'for ' iterator:Identifier ', ' item:Identifier ' in ' iterable:Expression EOL Indent body:ForStatement
         { return new type.ForLoop(iterator, item, iterable, body); } 
 
     / 'for ' item:Identifier ' in ' iterable:(Range / Expression) EOL Indent body:ForStatement
-        { return new type.ForLoop(null, item, iterable, body); } 
+        { return new type.ForLoop(null, item, iterable, body); }  
+
+    / 'for ' item:Identifier ' of ' iterable:Expression EOL Indent body:ForStatement
+        { return new type.ForLoop(null, item, iterable, body, true); }  
 
 
 EOL
