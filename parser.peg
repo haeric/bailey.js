@@ -928,8 +928,8 @@ Value
         }
 
     / '{' 
-            head:(__ KeyValuePair)? 
-            tail:(_ ',' __ KeyValuePair)* __ ','? __  
+            head:(__ AnyKeyValuePair)? 
+            tail:(_ ',' __ AnyKeyValuePair)* __ ','? __  
       '}'
         {
             var obj = new type.ObjectLiteral();
@@ -952,6 +952,10 @@ Value
 
 KeyValuePair
     = key:Identifier _ ':' _ value:Expression
+        { return {key: key, value: value}; }
+
+AnyKeyValuePair
+    = key:IdentifierPart _ ':' _ value:Expression
         { return {key: key, value: value}; }
 
 GroupedExpression
