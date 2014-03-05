@@ -851,14 +851,14 @@ BinaryOperator
     / '<'
     / '>'
 
-    / 'and'          !IdentifierPart
-    / 'or'           !IdentifierPart
-    / 'instanceof'   !IdentifierPart
-    / 'in'           !IdentifierPart
+    / 'and'          !IdentifierPart { return 'and'; }
+    / 'or'           !IdentifierPart { return 'or'; }
+    / 'instanceof'   !IdentifierPart { return 'instanceof'; }
+    / 'in'           !IdentifierPart { return 'in'; }
 
 UnaryOperator
-    = 'delete'       !IdentifierPart
-    / 'typeof'       !IdentifierPart
+    = 'delete'       !IdentifierPart { return 'delete'; }
+    / 'typeof'       !IdentifierPart { return 'typeof'; }
     / '+'
     / '-'
     / '~'
