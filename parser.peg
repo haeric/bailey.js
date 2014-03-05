@@ -1063,9 +1063,8 @@ ThisToken
         { return new type.ThisToken(tokens.length - 1); }
 
 ThisProperty
-    = token:ThisToken expr:Expression
-        { return new type.PropertyAccess(token, expr, '.'); }
-
+    = token:ThisToken ident:Identifier
+        { return new type.PropertyAccess(token, new type.Literal(ident), '.'); }
 
 StringLiteral "string"
   = parts:('"' DoubleStringCharacters? '"' / "'" SingleStringCharacters? "'") 
