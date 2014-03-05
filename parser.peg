@@ -675,7 +675,17 @@
             this.by = by;
             this.children = [from, to, by];
         }
-    })
+    });
+
+    type('Throw', {
+        init: function(expr) {
+            this.expr = expr;
+            this.children = [expr];
+        },
+        toJS: function () {
+            return 'throw(' + this.expr.toJS() + ')';
+        }
+    });
 
 }
 
@@ -725,6 +735,9 @@ Statement
 
     / 'return' _ expr:Expression?
         { return new type.Return(expr); }
+
+    / 'throw' _ expr:Expression
+        { return new type.Throw(expr); }
 
     / 'class ' ident:Identifier IndentNewline
         head:(__ KeyValuePair / Comment) 
@@ -945,7 +958,7 @@ Value
     / '(' _ params:IdentifierTuple _ ')' _ '->' IndentNewline body:Block IndentRemove
         { return new type.Function(params, body); }
 
-    / '(' _ params:IdentifierTuple _ ')' _ '->' _ body:(Expression / Noop)
+    / '(' _ params:IdentifierTuple _ ')' _ '->' _ body:Statement
         { return new type.Function(params, new type.Return(body)); }
 
     / GroupedExpression
