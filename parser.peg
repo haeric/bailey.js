@@ -592,32 +592,18 @@
     });
 
     type('PropertyAccess', {
-        init: function (value, accessors) {
+        init: function (value, accessor, type) {
             this.value = value;
-            this.accessors = accessors;
-            this.children = [value].concat(accessors);
+            this.accessor = accessor;
+            this.type = type;
+            this.children = [value, accessor];
         },
         toJS: function () {
-
-            return this.value.toJS() + this.accessors.map(function(accessor) {
-                return accessor.toJS();
-            }).join('');
-
-        }
-    });
-
-    type('PropertyAccessor', {
-        init: function (value, insideBrackets) {
-            this.value = value;
-            this.insideBrackets = insideBrackets;
-            this.children = [value];
-        },
-        toJS: function () {
-            if (!this.insideBrackets) {
-                return '.' + this.value.toJS();
+            if (this.type === '.') {
+                return this.value.toJS() + '.' + this.accessor.toJS();
             }
             
-            return '[' + this.value.toJS() + ']';
+            return this.value.toJS() + '[' + this.accessor.toJS() + ']';
         }
     });
 
@@ -814,7 +800,7 @@ Assign
     = left:Identifier _ op:AssignmentOperator _ value:Expression 
         { return new type.Assignment(op, left, value) }
 
-    / left:PropertyExpression _ op:AssignmentOperator _ value:Expression 
+    / left:Expression _ op:AssignmentOperator _ value:Expression 
         { return new type.Assignment(op, left, value) }
 
     / left:ThisProperty _ op:AssignmentOperator _ value:Expression 
@@ -880,7 +866,7 @@ Expression
         }
 
 BinaryExpression
-    = left:PropertyExpression 
+    = left:FunctionExpression 
       rest:(__ BinaryOperator __ BinaryExpression)?
         { 
             if (!rest) {
@@ -889,16 +875,22 @@ BinaryExpression
             return new type.Operator(rest[1], left, rest[3]); 
         }
 
-PropertyExpression
-    = value:Value accessors:(
-        '[' __ expr:Expression __ ']' { return new type.PropertyAccessor(expr, true); }
-      / __ '.' __ expr:Expression        { return new type.PropertyAccessor(expr, false); }
+FunctionExpression
+    = value:Value modifiers:(
+        '[' __ expr:Expression __ ']'      { return {type: '[]', expr: expr} }
+      / __ '.' __ expr:Expression          { return {type: '.', expr: expr} }
+      / '(' __ args:ExpressionTuple __ ')' { return args; }
     )*
         {
-            if (!accessors.length) {
-                return value;
+            for (var i = 0; i < modifiers.length; i++) {
+                if (modifiers[i].type) {
+                    value = new type.PropertyAccess(value, modifiers[i].expr, modifiers[i].type)
+                }
+                else {
+                    value = new type.FunctionCall(value, modifiers[i]);
+                }
             }
-            return new type.PropertyAccess(value, accessors);
+            return value;
         }
 
 
@@ -919,17 +911,11 @@ Value
     
     / StringLiteral
 
-    / expr:(Identifier / GroupedExpression) _ '(' __ args:ExpressionTuple __ ')'
-        { return new type.FunctionCall(expr, args); }
-
     / a:Identifier 
         { return new type.Variable(a); }
 
     / 'new' _ expr:Expression
         { return new type.NewExpression(expr); } 
-
-    / 'return' _ expr:Expression
-        { return new type.Return(expr); } 
 
     / '[' __ head:Expression? tail:(__ ',' __ Expression)* __ ','? __ ']'
         { 
@@ -1078,7 +1064,7 @@ ThisToken
 
 ThisProperty
     = token:ThisToken expr:Expression
-        { return new type.PropertyAccess(token, [new type.PropertyAccessor(expr, false)]); }
+        { return new type.PropertyAccess(token, expr, '.'); }
 
 
 StringLiteral "string"
