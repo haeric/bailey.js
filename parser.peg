@@ -283,7 +283,7 @@
         toJSListed: function () {
 
             if (this.ofLoop) {
-                return 'for (var ' + this.iterable + ' in ' + this.iterator.toJS() + ') {' +
+                return 'for (var ' + this.iterator + ' in ' + this.iterable.toJS() + ') {' +
                 this.body.toJS() + '\n' +
                 '}';
             }
