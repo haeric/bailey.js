@@ -321,7 +321,7 @@
             this.children = [left, right];
         },
         toJS: function () {
-            return this.left.toJS() + ' ' + this.operator + ' ' + this.right.toJS();
+            return this.left.toJS() + ' ' + this.operator + (this.right ? ' ' + this.right.toJS() : '');
         }
     });
 
@@ -850,6 +850,10 @@ UnaryOperator
     / '~'
     / 'not'          !IdentifierPart { return '!'}
 
+PostfixOperator
+    = '++'
+    / '--'
+
 //
 // Cheat alert: This completely ignores operator presedence for simplicity,
 // and will create a wrong ast. However, as long as we do not really
@@ -866,13 +870,22 @@ Expression
         }
 
 BinaryExpression
-    = left:FunctionExpression 
-      rest:(__ BinaryOperator __ BinaryExpression)?
+    = left:PostfixExpression 
+      rest:(__ BinaryOperator __ Expression)?
         { 
             if (!rest) {
                 return left;
             }
             return new type.Operator(rest[1], left, rest[3]); 
+        }
+
+PostfixExpression
+    = left:FunctionExpression _ op:PostfixOperator?
+        { 
+            if (!op) {
+                return left;
+            }
+            return new type.Operator(op, left);
         }
 
 FunctionExpression
