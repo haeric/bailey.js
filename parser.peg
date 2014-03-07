@@ -436,14 +436,21 @@
 
     type('IncludeStatement', {
         init: function (path) {
-            this.path = path.replace(/\./g, '/') + '.js';
+            this.path = path.replace(/\./g, '/');
             if (this.path[0] === '/') {
                 this.path = '..' + this.path;
             }
         },
         toJS: function () {
             var filePath = path.join(parser.options.root, this.path);
-            return fs.readFileSync(filePath, 'utf8');
+
+            if (fs.existsSync(filePath + '.bs')) {
+                return parser.options.parse(parser, filePath + '.bs', options.root, fs.readFileSync(filePath + '.bs', 'utf8'));
+            }
+            if (fs.existsSync(filePath + '.js')) {
+                return fs.readFileSync(filePath + '.js', 'utf8');
+            }
+            error('Could not find file, tried ' + filePath + '.js and .bs')
         }
     });
 
