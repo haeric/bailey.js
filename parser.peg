@@ -682,26 +682,26 @@ Program
         }
 
 Block
-    = statements:(Statement (EOL Indent Statement)*)
+    = statements:(Statement (_ EOL Indent Statement)*)
         {
             var list = [statements[0]];
-            for(var i = 0; i < statements[1].length; i++) list.push(statements[1][i][2]);
+            for(var i = 0; i < statements[1].length; i++) list.push(statements[1][i][3]);
             return new type.Block(list) 
         }
 
 Statement
 
     = 'if ' condition:Expression IndentNewline ifBody:Block IndentRemove 
-      elifPart:(EOL+ Indent 'elif' _ Expression _ IndentNewline Block IndentRemove)*
-      elsePart:(EOL+ Indent 'else' IndentNewline Block IndentRemove)?
+      elifPart:((EOL Indent)+ 'elif' _ Expression IndentNewline Block IndentRemove)*
+      elsePart:((EOL Indent)+ 'else' IndentNewline Block IndentRemove)?
         {
             var elifs = elifPart.map(function(elif) {
-                return new type.If(elif[4], elif[7]);
+                return new type.If(elif[3], elif[5]);
             });
-            return new type.If(condition, ifBody, elifs, elsePart ? elsePart[4] : null); 
+            return new type.If(condition, ifBody, elifs, elsePart ? elsePart[3] : null); 
         }
 
-    / 'while ' e:Expression IndentNewline body:Block IndentRemove
+    / 'while ' e:Expression _ IndentNewline body:Block IndentRemove
         { return new type.WhileLoop(e, body); } 
 
     / word:('break' / 'continue')
@@ -778,7 +778,7 @@ Indent
         &{ return i.join("") === indent; }
 
 IndentNewline
-    = EOL IndentAdd Indent
+    = _ EOL IndentAdd Indent
 
 IndentAdd
     = i:[ \t]+ &{ return i.length > indent.length; }
