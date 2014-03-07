@@ -41,6 +41,10 @@ function normalizeBlocks(input) {
 
         var chr = input[i];
 
+        if (chr == '\r') {
+            continue;
+        }
+
         if (chr === '\n') {
             if (!thisLineContainsStuff) {
                 numberOfLinesToIndent++;
@@ -97,6 +101,7 @@ function parse (parser, path, root, input) {
     }
     catch (e) {
         console.log('Error at ' + path + ' line ' + e.line + ', character ' + e.column + ':');
+        if (e.line > 2) console.log(input.split('\n')[e.line-2])
         console.log(input.split('\n')[e.line-1])
         console.log(repeat(" ", e.column-2), '^'); 
         console.log(e.message)
@@ -104,6 +109,7 @@ function parse (parser, path, root, input) {
     }
     options.root = root;
     options.filePath = path;
+    options.parse = parse;
     return beautify(ast.toJS(options));
 
 }
@@ -155,7 +161,9 @@ exec('./node_modules/pegjs/bin/pegjs --allowed-start-rules Program,Expression pa
             
             var parsed = parse(parser, sourcePath, root, input);   
             fs.writeFile(targetPath, parsed, function(err) {
-                if (err) { console.error(err); }
+                if (err) { 
+                    console.error(err); 
+                }
             });
             
             next();
