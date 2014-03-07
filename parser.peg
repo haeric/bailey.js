@@ -680,6 +680,19 @@
         }
     });
 
+    type('TryCatch', {
+        init: function(tryBody, catchVar, catchBody) {
+            this.tryBody = tryBody;
+            this.catchVar = catchVar;
+            this.catchBody = catchBody;
+            this.children = [tryBody, catchBody];
+        },
+        toJS: function () {
+            return 'try {' + this.tryBody.toJS() + '} catch (' + this.catchVar + ') {' +
+                   this.catchBody.toJS() + '}';
+        }
+    });
+
 }
 
 Program
@@ -728,6 +741,10 @@ Statement
 
     / 'return' _ expr:Expression?
         { return new type.Return(expr); }
+
+    / 'try' IndentNewline tryBody:Block IndentRemove __
+      'catch' _ catchVar:Identifier IndentNewline catchBody:Block IndentRemove 
+        { return new type.TryCatch(tryBody, catchVar, catchBody)}
 
     / 'throw' _ expr:Expression
         { return new type.Throw(expr); }
