@@ -891,7 +891,7 @@ PostfixOperator
 //
 Expression 
     =  cond:BinaryExpression 
-       rest:(_ '?' _ Expression _ ':' _ Expression)?
+       rest:(__ '?' __ Expression __ ':' __ Expression)?
         { 
             if (!rest) {
                 return cond;
