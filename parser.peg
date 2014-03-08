@@ -155,8 +155,8 @@
     });
 
     type('Number', {
-        init: function (digits) {
-            this.value = parseInt(digits.join(''));
+        init: function (n) {
+            this.value = parseInt(n);
         },
         toJS: function () {
             return this.value;
@@ -1060,8 +1060,8 @@ Range
             return new type.Range(from, to, by); }
 
 Number 
-    = digits:[-0-9]+ 
-        { return new type.Number(digits); }
+    = '-'? ('0' / [1-9] [0-9]*) fract:('.' [0-9]+)? e:('e' '-'? [0-9]+)?
+        { return new type.Number(text()); }
 
 HexNumber
     = '0x' [0-9a-fA-F]+
