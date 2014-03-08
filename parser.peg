@@ -607,7 +607,7 @@
         },
         toJS: function () {
             if (this.type === '.') {
-                return this.value.toJS() + '.' + this.accessor.toJS();
+                return this.value.toJS() + '.' + (this.accessor.toJS ? this.accessor.toJS() : this.accessor);
             }
             
             return this.value.toJS() + '[' + this.accessor.toJS() + ']';
@@ -851,6 +851,9 @@ BinaryOperator
     / '/'
     / '%'
     
+    / '&'
+    / '|'
+    / '^'
     / '>>'
     / '>>>'
     / '<<'
@@ -870,7 +873,9 @@ BinaryOperator
 UnaryOperator
     = 'delete'       !IdentifierPart { return 'delete'; }
     / 'typeof'       !IdentifierPart { return 'typeof'; }
+    / '++'
     / '+'
+    / '--'
     / '-'
     / '~'
     / 'not'          !IdentifierPart { return '!'}
