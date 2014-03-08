@@ -362,7 +362,7 @@
         toJS: function () {
             var out = '{';
             for (var i = 0; i < this.keys.length; i++) {
-                out += this.keys[i] + ': ' + this.values[i].toJS();
+                out += "'" + this.keys[i] + "': " + this.values[i].toJS();
                 if (i < this.keys.length - 1) {
                     out += ', ';
                 }
@@ -997,7 +997,11 @@ KeyValuePair
         { return {key: key, value: value}; }
 
 AnyKeyValuePair
-    = key:IdentifierPart _ ':' _ value:Expression
+    = key:(
+        IdentifierPart 
+        / '"' str:DoubleStringCharacters? '"' { return str; }
+        / "'" str:SingleStringCharacters? "'" { return str; }
+      ) _ ':' _ value:Expression
         { return {key: key, value: value}; }
 
 GroupedExpression
@@ -1134,11 +1138,11 @@ SingleStringCharacters
   = chars:SingleStringCharacter+ { return chars.join(""); }
 
 DoubleStringCharacter
-  = !('"' / "\\") char_:.        { return char_;     }
+  = !('"' / !"\\" "\\") char_:.        { return char_;     }
   / "\\" sequence:EscapeSequence { return sequence;  }
 
 SingleStringCharacter
-  = !("'" / "\\") char_:.        { return char_;     }
+  = !("'" / !"\\" "\\") char_:.        { return char_;     }
   / "\\" sequence:EscapeSequence { return sequence;  }
 
 EscapeSequence
