@@ -712,8 +712,8 @@ Block
 Statement
 
     = 'if ' condition:Expression IndentNewline ifBody:Block IndentRemove 
-      elifPart:((EOL Indent)+ 'elif' _ Expression IndentNewline Block IndentRemove)*
-      elsePart:((EOL Indent)+ 'else' IndentNewline Block IndentRemove)?
+      elifPart:((EOL Indent Comment?)+ 'elif' _ Expression IndentNewline Block IndentRemove)*
+      elsePart:((EOL Indent Comment?)+ 'else' IndentNewline Block IndentRemove)?
         {
             var elifs = elifPart.map(function(elif) {
                 return new type.If(elif[3], elif[5]);
@@ -916,7 +916,7 @@ PostfixExpression
 FunctionExpression
     = value:Value modifiers:(
         '[' __ expr:Expression __ ']'      { return {type: '[]', expr: expr} }
-      / __ '.' __ expr:Expression          { return {type: '.', expr: expr} }
+      / __ '.' __ expr:(Expression / IdentifierPart)          { return {type: '.', expr: expr} }
       / '(' __ args:ExpressionTuple __ ')' { return args; }
     )*
         {
@@ -966,7 +966,7 @@ Value
 
     / '{' 
             head:(__ AnyKeyValuePair)? 
-            tail:(_ ',' __ AnyKeyValuePair)* __ ','? __  
+            tail:(__ ',' __ AnyKeyValuePair)* __ ','? __  
       '}'
         {
             var obj = new type.ObjectLiteral();
