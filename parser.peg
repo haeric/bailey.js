@@ -372,8 +372,9 @@
     });
 
     type('ClassStatement', {
-        init: function (name) {
+        init: function (name, extendFrom) {
             this.name = name;
+            this.extendFrom = extendFrom;
             this.values = [];
             this.children = [];
             this.init = null;
@@ -397,6 +398,10 @@
             }
             else {
                 out += '() { return this; }';
+            }
+
+            if (this.extendFrom) {
+                out += this.name + '.prototype = Object.create(' + this.extendFrom + '.prototype);'
             }
             
             out += this.values.map(function(item) {
@@ -592,7 +597,13 @@
         },
         toJS: function () {
             var expr = this.expr.toJS ? this.expr.toJS() : this.expr;
-            return expr + '(' + this.args.map(function(item){
+
+            var start = this.superCall ? '.call(this' : '(';
+            if (this.superCall && this.args.length > 0) {
+                start += ',';
+            }
+
+            return expr + start + this.args.map(function(item){
                 return item.toJS();
             }).join(', ') + ')';
         }
@@ -692,6 +703,37 @@
                    this.catchBody.toJS() + '}';
         }
     });
+    type('SuperToken', {
+        traverse: function () {
+
+            // Find the class in which this super resides
+            var target = this;
+            while (target.nodeType != 'ClassStatement') {
+                target = target.parent;
+
+                if (!target) {
+                    error("super can only be used inside a classStatement");
+                }
+            }
+
+            this.cls = target;
+
+            // Find the function call
+            if (this.parent.nodeType != 'PropertyAccess') {
+                expected('super.*');
+            }
+
+            if (this.parent.accessor.nodeType != 'FunctionCall') {
+                expected('super.func()');
+            }
+
+            this.parent.accessor.superCall = true;
+
+        },
+        toJS: function () {
+            return this.cls.extendFrom;
+        }
+    });
 
 }
 
@@ -727,10 +769,10 @@ Statement
     / word:('break' / 'continue')
         { return new type.LoopControl(word) }
 
-    / 'import ' path:[a-zA-Z0-9._]+ ' as ' name:Identifier
+    / 'import ' path:[a-zA-Z0-9._!]+ ' as ' name:Identifier
         { return new type.ImportStatement(path.join(''), name); }
 
-    / 'import ' path:[a-zA-Z0-9._]+
+    / 'import ' path:[a-zA-Z0-9._!]+
         { return new type.ImportStatement(path.join('')); }
     
     / 'include ' path:[a-zA-Z0-9._-]+
@@ -749,11 +791,11 @@ Statement
     / 'throw' _ expr:Expression
         { return new type.Throw(expr); }
 
-    / 'class ' ident:Identifier IndentNewline
+    / 'class' _ ident:Identifier _ extender:('extends' _ AnyIdentifier)? IndentNewline
         head:(__ KeyValuePair / Comment) 
         tail:((EOL Indent)+ (KeyValuePair / Comment))* IndentRemove
         {
-            var obj = new type.ClassStatement(ident);
+            var obj = new type.ClassStatement(ident, extender ? extender[2] : null);
             if (head !== '') obj.add(head[1]);
 
             for (var i = 0; i < tail.length; i++)
@@ -957,6 +999,9 @@ Value
     / a:Identifier 
         { return new type.Variable(a); }
 
+    / 'super'
+        { return new type.SuperToken(); }
+
     / 'new' _ expr:Expression
         { return new type.NewExpression(expr); } 
 
@@ -1024,6 +1069,9 @@ HexNumber
 
 Identifier
     = $ (!ReservedWord IdentifierPart)
+
+AnyIdentifier
+    =  (Digits / Letters / '_' / '\.')+
 
 IdentifierPart
     = (Digits / Letters / '_')+
