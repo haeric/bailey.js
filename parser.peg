@@ -607,14 +607,25 @@
             this.children = [expr].concat(args);
         },
         toJS: function () {
+            var start;
             var expr = this.expr.toJS ? this.expr.toJS() : this.expr;
 
-            var start = this.superCall ? '.call(this' : '(';
+            // Since we have init as our constructor call...
+            if (this.superCall && expr === 'init') {
+                start = 'call(this'
+            }
+            else if (this.superCall) {
+                start = expr + '.call(this';
+            }
+            else {
+                start = expr + '(';
+            }
+
             if (this.superCall && this.args.length > 0) {
                 start += ',';
             }
 
-            return expr + start + this.args.map(function(item){
+            return start + this.args.map(function(item){
                 return item.toJS();
             }).join(', ') + ')';
         }
