@@ -49,7 +49,7 @@
 
                 var item = queue.pop(0);
 
-                if (item.nodeType === 'Block') {
+                if (item.nodeType === 'Block' && item.isScope) {
                     item.scope = item;
                 }
                 
@@ -182,8 +182,8 @@
         },
         traverse: function () {
             if (!this.left.nodeType) {
-                this.varThisSonOfABitch = !this.parent.symbols[this.left];
-                this.parent.symbols[this.left] = 1;
+                this.varThisSonOfABitch = !this.scope.symbols[this.left];
+                this.scope.symbols[this.left] = 1;
             }
         },
         toJS: function () {
@@ -238,10 +238,17 @@
             this.children = [iterator, item, iterable, body];
         },
         traverse: function () {
-            var i = 1;
-            while (this.iterator == null || this.scope.symbols[this.iterator]) {
-                this.iterator = '__i' + i++;
+            if (this.iterable.nodeType === 'Range') {
+                this.iterator = this.item;
             }
+            
+            if (!this.iterator) {
+                var i = 1;
+                do {
+                    this.iterator = '__i' + i++;
+                } while (this.scope.symbols[this.iterator]);
+            }
+            
             this.scope.symbols[this.iterator] = 1;
         },
         toJS: function () {
@@ -255,7 +262,7 @@
         toJSRanged: function () {
             
             var step = '',
-                iterator = this.item,
+                iterator = this.iterator,
                 by = this.iterable.by;
 
             if (by.nodeType === 'Number' && by.value === 0) {
@@ -394,7 +401,7 @@
             var out = 'function ' + this.name + ' ';
             if (this.init !== null) {
                 out += '(' + this.init.params.join(', ') + ') ';
-                out += '{' + this.init.body.toJS() + ' return this; }'
+                out += '{' + this.init.body.toJS() + '; return this; }'
             }
             else {
                 out += '() { return this; }';
@@ -487,7 +494,6 @@
             this.children = statements;
         },
         traverse: function () {
-
             if (this.parent && this.parent.scope) {
                 this.symbols.__proto__ = this.parent.scope.symbols;
             }
@@ -647,7 +653,7 @@
 
             while (node) {
 
-                if (node.nodeType === 'Block') {
+                if (node.isScope) {
                     offset--;
                 }
 
@@ -740,6 +746,7 @@
 Program
     = block:Block
         {
+            block.isScope = true;
             return new type.Program(block);
         }
 
@@ -1030,10 +1037,16 @@ Value
         }
 
     / '(' _ params:IdentifierTuple _ ')' _ '->' IndentNewline body:Block IndentRemove
-        { return new type.Function(params, body); }
+        { 
+            body.isScope = true;
+            return new type.Function(params, body); 
+        }
 
     / '(' _ params:IdentifierTuple _ ')' _ '->' _ body:Statement
-        { return new type.Function(params, new type.Return(body)); }
+        { 
+            body.isScope = true;
+            return new type.Function(params, new type.Return(body)); 
+        }
 
     / GroupedExpression
 
