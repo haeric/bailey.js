@@ -290,7 +290,7 @@
         toJSListed: function () {
 
             if (this.ofLoop) {
-                return 'for (var ' + this.iterator + ' in ' + this.iterable.toJS() + ') {' +
+                return 'for (var ' + this.item + ' in ' + this.iterable.toJS() + ') {' +
                 this.body.toJS() + '\n' +
                 '}';
             }
