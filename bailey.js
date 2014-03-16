@@ -23,6 +23,15 @@ if (source[0] == '/' || target[0] == '/') {
     process.exit(1);   
 }
 
+// Make sure the source and target are properly formatted
+if (source[source.length-1] != '/') {
+    source += '/'
+}
+
+if (target[target.length-1] != '/') {
+    target += '/'
+}
+
 var options = {
     node: !!argv.node,
     removeComments: !!argv['remove-comments'],
@@ -114,7 +123,7 @@ function parse (parser, path, root, input) {
 
 }
 
-exec('./node_modules/pegjs/bin/pegjs --allowed-start-rules Program,Expression parser.peg parser.js', function (error, stdout, stderr) {
+exec('npm run-script make-parser', function (error, stdout, stderr) {
     
     if (error) {
         console.log(error);
@@ -133,6 +142,10 @@ exec('./node_modules/pegjs/bin/pegjs --allowed-start-rules Program,Expression pa
 
     rmdir.sync(target);
 
+    // From here on we need a ./ from the start to be removed
+    source = source.replace(/^\.\//, '');
+    target = target.replace(/^\.\//, '');
+
     walker.on("file", function(root, fileStats, next) {
         
         if (fileStats.name[0] == ".") {
@@ -144,7 +157,7 @@ exec('./node_modules/pegjs/bin/pegjs --allowed-start-rules Program,Expression pa
         }
 
         var sourcePath = path.join(root, fileStats.name);
-        var targetRoot = root.replace(source, target)
+        var targetRoot = root.replace(source, target);
         var targetPath = sourcePath.replace(source, target).replace('.bs', '.js');
         
         mkdir.sync(targetRoot);
