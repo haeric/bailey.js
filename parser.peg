@@ -687,7 +687,7 @@
             this.children = [expr];
         },
         toJS: function () {
-            return 'throw(' + this.expr.toJS() + ')';
+            return 'throw ' + this.expr.toJS();
         }
     });
 
