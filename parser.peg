@@ -1035,10 +1035,11 @@ Value
 
     / '[' __ head:Expression? tail:(__ ',' __ Expression)* __ ','? __ ']'
         { 
-            var list = tail.map(function(item) { return item[3]; }); 
+            var list = [];
             if (head !== null) {
                 list.push(head);
             }
+            list = list.concat(tail.map(function(item) { return item[3]; })); 
             return new type.ListLiteral(list);
         }
 
