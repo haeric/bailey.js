@@ -156,7 +156,12 @@
 
     type('Number', {
         init: function (n) {
-            this.value = parseInt(n);
+            if (n.indexOf('.') === -1) {
+                this.value = parseInt(n);
+            }
+            else {
+                this.value = parseFloat(n);
+            }
         },
         toJS: function () {
             return this.value;
