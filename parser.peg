@@ -429,7 +429,12 @@
 
     type('ImportStatement', {
         init: function (path, name) {
-            this.path = path.replace('.', '/');
+            if (path.indexOf('!') === -1) {
+                this.path = path.replace(/\./g, '/');
+            }
+            else {
+                this.path = path;
+            }
             this.name = name || path.split('.')[path.split('.').length-1];
         },
         toJS: function () {
@@ -776,10 +781,10 @@ Statement
     / word:('break' / 'continue')
         { return new type.LoopControl(word) }
 
-    / 'import ' path:[a-zA-Z0-9._!]+ ' as ' name:Identifier
+    / 'import ' path:[a-zA-Z0-9._!/]+ ' as ' name:Identifier
         { return new type.ImportStatement(path.join(''), name); }
 
-    / 'import ' path:[a-zA-Z0-9._!]+
+    / 'import ' path:[a-zA-Z0-9._!/]+
         { return new type.ImportStatement(path.join('')); }
     
     / 'include ' path:[a-zA-Z0-9._-]+
