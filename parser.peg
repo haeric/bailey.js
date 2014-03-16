@@ -1071,7 +1071,7 @@ Identifier
     = $ (!ReservedWord IdentifierPart)
 
 AnyIdentifier
-    =  (Digits / Letters / '_' / '\.')+
+    =  $ (Digits / Letters / '_' / '\.')+
 
 IdentifierPart
     = (Digits / Letters / '_')+
