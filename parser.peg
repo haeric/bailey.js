@@ -159,7 +159,7 @@
 
     type('Number', {
         init: function (n) {
-            if (n.indexOf('.') === -1) {
+            if (n.indexOf('.') === -1 && n.indexOf('e') === -1) {
                 this.value = parseInt(n);
             }
             else {
