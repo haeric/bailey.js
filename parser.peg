@@ -323,11 +323,7 @@
 
     type('Operator', {
         init: function (op, left, right) {
-
-            this.operator = op === '==' ? '===' : 
-                            op === 'and' ? '&&' : 
-                            op === 'or' ? '||' : op;
-                            
+            this.operator = op;            
             this.left = left;
             this.right = right;
             this.children = [left, right];
@@ -928,15 +924,15 @@ BinaryOperator
     / '>>>'
     / '<<'
 
-    / '=='
-    / '!='
+    / '=='  { return '==='; }
+    / '!=' { return '!=='; }
     / '<='
     / '>='
     / '<'
     / '>'
 
-    / 'and'          !IdentifierPart { return 'and'; }
-    / 'or'           !IdentifierPart { return 'or'; }
+    / 'and'          !IdentifierPart { return '&&'; }
+    / 'or'           !IdentifierPart { return '||'; }
     / 'instanceof'   !IdentifierPart { return 'instanceof'; }
     / 'in'           !IdentifierPart { return 'in'; }
 
