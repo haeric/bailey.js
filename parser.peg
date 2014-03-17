@@ -83,9 +83,8 @@
             // else, it's a main entry point, and should be a REQUIRE
             var imports = this.block.getImports();
             var export_ = this.block.getExport();
-            var includes = this.block.extractIncludes();
 
-            var out = includes.map(function(item) {
+            var out = this.block.extractPreImportStatements().map(function(item) {
                 return item.toJS();
             }).join('\n');
 
@@ -116,9 +115,13 @@
 
                 var requireString = export_ ? 'define' : 'require';
 
-                out += requireString + '([' + pathString + '], ';
-                out += 'function(' + paramString + ') \x7b';
+                out += requireString + '(';
+                
+                if (imports.length) {
+                    out += '[' + pathString + '], ';
+                }
 
+                out += 'function(' + paramString + ') \x7b';
                 out += this.block.toJS();
 
                 if (export_) {
@@ -463,7 +466,7 @@
             var filePath = path.join(parser.options.root, this.path);
 
             if (fs.existsSync(filePath + '.bs')) {
-                return parser.options.parse(parser, filePath + '.bs', options.root, fs.readFileSync(filePath + '.bs', 'utf8'));
+                return parser.options.parse(parser, filePath + '.bs', parser.options.root, fs.readFileSync(filePath + '.bs', 'utf8'));
             }
             if (fs.existsSync(filePath + '.js')) {
                 return fs.readFileSync(filePath + '.js', 'utf8');
@@ -527,6 +530,26 @@
             });
 
             return includes;
+        },
+        extractPreImportStatements: function () {
+
+            var list = [],
+                hadImportsOrExport = false;
+            for (var i = 0; i < this.statements.length; i++) {
+                var item = this.statements[i];
+                if (item.nodeType === 'ImportStatement' || item.nodeType === 'ExportStatement') {
+                    this.statements = this.statements.slice(i);
+                    hadImportsOrExport = true;
+                    break;
+                }
+                list.push(item);
+            }
+            if (!hadImportsOrExport) {
+                return [];
+            }
+
+            return list;
+
         },
         getImports: function () {
             return this.statements.filter(function(statement) {
