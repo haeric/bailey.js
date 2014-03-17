@@ -271,7 +271,8 @@
             
             var step = '',
                 iterator = this.iterator,
-                by = this.iterable.by;
+                by = this.iterable.by,
+                comparator = ' <';
 
             if (by.nodeType === 'Number' && by.value === 0) {
                 step == ''
@@ -282,16 +283,20 @@
             }
             else if (by.value === -1) {
                 step = iterator + '--';
+                comparator = ' >';
             }
-            else if (by.nodeType === 'Number' && by.value < 0) {
+            else if (by.value < 0) {
                 step = iterator + ' = ' + iterator + by.toJS();
+                comparator = ' >';
             }
             else {
                 step = iterator + ' = ' + iterator + '+' + by.toJS()
             }
+
+            comparator += this.iterable.equals ? '= ' : ' ';
             
             return 'for (var ' + iterator + ' = ' + this.iterable.from.toJS() + '; ' + 
-                iterator + ' < ' + this.iterable.to.toJS() + '; ' + step + ') {\n' +
+                iterator + comparator + this.iterable.to.toJS() + '; ' + step + ') {\n' +
                 this.body.toJS() + '\n' +
                 '}';
         },
@@ -341,6 +346,10 @@
             this.operator = op;
             this.right = right;
             this.children = [right];
+
+            if (this.operator === '-' && this.right.nodeType === 'Number') {
+                this.value = -this.right.value;
+            }
         },
         toJS: function () {
             return this.operator + ' ' + this.right.toJS();
@@ -719,11 +728,12 @@
     });
 
     type('Range', {
-        init: function(from, to, by) {
+        init: function(from, to, by, equals) {
             this.from = from;
             this.to = to;
             this.by = by;
             this.children = [from, to, by];
+            this.equals = equals;
         }
     });
 
@@ -1108,10 +1118,10 @@ GroupedExpression
         { return new type.Group(a); }
 
 Range
-    = from:Expression _ ':' _ to:Expression _ by:(':' _ Expression)?
+    = from:Expression _ ':' equals:'='? _ to:Expression _ by:(':' _ Expression)?
         { 
             by = by ? by[2] : {value: 1};
-            return new type.Range(from, to, by); }
+            return new type.Range(from, to, by, !!equals); }
 
 Number 
     = '-'? ('0' / [1-9] [0-9]*) fract:('.' [0-9]+)? e:('e' '-'? [0-9]+)?
