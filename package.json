@@ -15,7 +15,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "make-parser": "./node_modules/pegjs/bin/pegjs --allowed-start-rules Program,Expression src/bailey.peg build/parser.js"
+    "make-parser": "./node_modules/pegjs/bin/pegjs --allowed-start-rules Program,Expression src/parser.peg src/parser.js"
   },
   "repository": {
     "type": "git",
