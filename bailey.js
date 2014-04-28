@@ -125,7 +125,7 @@ function parse (parser, input, options) {
 
 function parseFiles (source, target, options) {
 
-    var parser = require('./build/parser.js');
+    var parser = require('./src/parser.js');
     var walker = walk.walk(source, {
         followLinks: false
     });
@@ -177,7 +177,7 @@ function parseFiles (source, target, options) {
 }
 
 function parseString (input, options) {
-    var parser = require('./build/parser.js');
+    var parser = require('./src/parser.js');
     return parse(parser, input, options);
 }
 
