@@ -10,36 +10,35 @@ var rmdir = require('rimraf');
 var mkdir = require('mkdirp');
 var beautify = require('js-beautify').js_beautify;
 
-var source = argv._[0];
-var target = argv._[1];
+if (!module.parent) {
+    var source = argv._[0];
+    var target = argv._[1];
 
-if (!source || !target) {
-    console.error('Arguments: node bailey.js sourcedir targetdir')
-    process.exit(1);
-}
+    if (!source || !target) {
+        console.error('Arguments: node bailey.js sourcedir targetdir')
+        process.exit(1);
+    }
 
-if (source[0] == '/' || target[0] == '/') {
-    console.error('bailey.js currently only takes relative paths.. sort of as a security feature.')
-    process.exit(1);   
-}
+    // Make sure the source and target are properly formatted
+    if (source[source.length-1] != '/') {
+        source += '/'
+    }
 
-// Make sure the source and target are properly formatted
-if (source[source.length-1] != '/') {
-    source += '/'
-}
+    if (target[target.length-1] != '/') {
+        target += '/'
+    }
 
-if (target[target.length-1] != '/') {
-    target += '/'
-}
+    var options = {
+        node: !!argv.node,
+        removeComments: !!argv['remove-comments'],
+    }
 
-var options = {
-    node: !!argv.node,
-    removeComments: !!argv['remove-comments'],
+    parseFiles(source, target, options);
 }
 
 // Whenever we hit an indented block, make sure all preceding
 // empty lines are made to have this indentation level
-function normalizeBlocks(input) {
+function normalizeBlocks (input) {
 
     var numberOfLinesToIndent = 0,
         thisLineContainsStuff = false,
@@ -93,7 +92,7 @@ function normalizeBlocks(input) {
 
 }
 
-function repeat(str, n) {
+function repeat (str, n) {
     var out = "";
     for (var i = 0; i < n; i++) {
         out += str;
@@ -101,46 +100,36 @@ function repeat(str, n) {
     return out;
 }
 
-function parse (parser, path, root, input) {
+function parse (parser, input, options) {
 
     input = normalizeBlocks(input);
+
+    options = options || {};
+    options.removeComments = !!options.removeComments;
+    options.node = !!options.node;
 
     try {
         var ast = parser.parse(input);
     }
     catch (e) {
-        console.log('Error at ' + path + ' line ' + e.line + ', character ' + e.column + ':');
+        console.log('Error at ' + options.path + ' line ' + e.line + ', character ' + e.column + ':');
         if (e.line > 2) console.log(input.split('\n')[e.line-2])
         console.log(input.split('\n')[e.line-1])
         console.log(repeat(" ", e.column-2), '^'); 
         console.log(e.message)
         process.exit(1);
     }
-    options.root = root;
-    options.filePath = path;
     options.parse = parse;
     return beautify(ast.toJS(options));
 
 }
 
-exec('npm run-script make-parser', function (error, stdout, stderr) {
-    
-    if (error) {
-        console.log(error);
-        process.exit(1);
-    }
+function parseFiles (source, target, options) {
 
-    if (stderr) {
-        console.log(stderr);
-        process.exit(1);
-    }
-
-    var parser = require('./parser.js');
+    var parser = require('./build/parser.js');
     var walker = walk.walk(source, {
         followLinks: false
     });
-
-    rmdir.sync(target);
 
     // From here on we need a ./ from the start to be removed
     source = source.replace(/^\.\//, '');
@@ -172,7 +161,11 @@ exec('npm run-script make-parser', function (error, stdout, stderr) {
                 return console.error(err); 
             }
             
-            var parsed = parse(parser, sourcePath, root, input);   
+            options.filePath = sourcePath;
+            options.root = root;
+
+            var parsed = parse(parser, input, options);   
+
             fs.writeFile(targetPath, parsed, function(err) {
                 if (err) { 
                     console.error(err); 
@@ -182,6 +175,12 @@ exec('npm run-script make-parser', function (error, stdout, stderr) {
             next();
         });
     });
+}
 
+function parseString (input, options) {
+    var parser = require('./build/parser.js');
+    return parse(parser, input, options);
+}
 
-});
+module.exports.parseFiles = parseFiles;
+module.exports.parseString = parseString;

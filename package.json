@@ -1,9 +1,10 @@
 {
   "name": "bailey.js",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "A coffeescript without that bitter after-taste.",
   "main": "bailey.js",
-  "dependencies": {
+  "dependencies": {},
+  "devDependencies": {
     "pegjs": "~0.8.0",
     "optimist": "*",
     "walk": "*",
@@ -12,10 +13,9 @@
     "esprima": "*",
     "js-beautify": "*"
   },
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "make-parser": "./node_modules/pegjs/bin/pegjs --allowed-start-rules Program,Expression parser.peg parser.js"
+    "make-parser": "./node_modules/pegjs/bin/pegjs --allowed-start-rules Program,Expression src/bailey.peg build/parser.js"
   },
   "repository": {
     "type": "git",
