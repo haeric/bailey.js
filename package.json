@@ -4,15 +4,14 @@
   "description": "A coffeescript without that bitter after-taste.",
   "main": "bailey.js",
   "dependencies": {
+    "pegjs": "~0.8.0",
     "optimist": "*",
     "walk": "*",
     "js-beautify": "*",
-    "mkdirp": "*"
-    },
-  "devDependencies": {
-    "pegjs": "~0.8.0",
+    "mkdirp": "*",
     "esprima": "*"
-  },
+    },
+  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "make-parser": "./node_modules/pegjs/bin/pegjs --allowed-start-rules Program,Expression src/parser.peg src/parser.js"
