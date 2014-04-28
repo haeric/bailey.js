@@ -6,7 +6,6 @@ var fs = require('fs');
 var exec = require('child_process').exec;
 var walk = require('walk');
 var path = require('path');
-var rmdir = require('rimraf');
 var mkdir = require('mkdirp');
 var beautify = require('js-beautify').js_beautify;
 
@@ -105,8 +104,9 @@ function parse (parser, input, options) {
     input = normalizeBlocks(input);
 
     options = options || {};
-    options.removeComments = !!options.removeComments;
-    options.node = !!options.node;
+    options.removeComments = options.removeComments !== undefined ? options.removeComments : false;
+    options.node = options.node !== undefined ? options.node : false;
+    options.parse = parse;
 
     try {
         var ast = parser.parse(input);
@@ -119,7 +119,6 @@ function parse (parser, input, options) {
         console.log(e.message)
         process.exit(1);
     }
-    options.parse = parse;
     return beautify(ast.toJS(options));
 
 }
