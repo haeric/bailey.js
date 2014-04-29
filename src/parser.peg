@@ -1112,8 +1112,8 @@ KeyValuePair
 AnyKeyValuePair
     = key:(
         IdentifierPart 
-        / '"' str:DoubleStringCharacters? '"' { return str; }
-        / "'" str:SingleStringCharacters? "'" { return str; }
+        / '"' str:DoubleStringCharacter* '"' { return str; }
+        / "'" str:SingleStringCharacter* "'" { return str; }
       ) _ ':' _ value:Expression
         { return {key: key, value: value}; }
 
@@ -1230,11 +1230,12 @@ ThisProperty
         { return new type.PropertyAccess(token, new type.Literal(ident), '.'); }
 
 StringLiteral "string"
-  = parts:('"' DoubleStringCharacters? '"' / "'" SingleStringCharacters? "'") 
+  = parts:('"' DoubleStringCharacter* '"' / "'" SingleStringCharacter* "'") 
     {
         var d = parts[0];
-        var text = parts[1] !== null ? parts[1] : "";
+        var text = parts[1] !== null ? parts[1].join('') : "";
         
+
         // Is this a normal string?
         if (text.indexOf('#\x7b') === -1) {
             return new type.StringLiteral(d, text);
@@ -1247,26 +1248,34 @@ StringLiteral "string"
         
     }
  
-DoubleStringCharacters
-  = chars:DoubleStringCharacter+ { return chars.join(""); }
-
-SingleStringCharacters
-  = chars:SingleStringCharacter+ { return chars.join(""); }
-
 DoubleStringCharacter
-  = !('"' / !"\\" "\\") char_:.        { return char_;     }
-  / "\\" sequence:EscapeSequence { return sequence;  }
+  = !('"' / "\\" ) . { return text(); }
+  / "\\" sequence:EscapeSequence { return sequence; }
 
 SingleStringCharacter
-  = !("'" / !"\\" "\\") char_:.        { return char_;     }
-  / "\\" sequence:EscapeSequence { return sequence;  }
+  = !("'" / "\\" ) . { return text(); }
+  / "\\" sequence:EscapeSequence { return sequence; }
 
 EscapeSequence
+  = CharacterEscapeSequence
+
+CharacterEscapeSequence
   = SingleEscapeCharacter
   / NonEscapeCharacter
 
 SingleEscapeCharacter
-  = ['"]
+  = "'"
+  / '"'
+  / "\\"
+  / "b"  { return "\b";   }
+  / "f"  { return "\f";   }
+  / "n"  { return "\n";   }
+  / "r"  { return "\r";   }
+  / "t"  { return "\t";   }
+  / "v"  { return "\x0B"; }   // IE does not recognize "\v".
 
 NonEscapeCharacter
-  = (!SingleEscapeCharacter / EOL) char_:. { return char_; }
+  = !(EscapeCharacter / EOL) . { return text(); }
+
+EscapeCharacter
+  = SingleEscapeCharacter

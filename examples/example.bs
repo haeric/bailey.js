@@ -67,7 +67,7 @@ c = new Animal()
 a = "hi!"
 b = "this is a 
 multine string.. wonder how that works!"
-#s = 'single quoted... with \' escaping as well'
+s = 'single quoted... with \' escaping as well'
 
 f = (g) -> 'hai'
 f = (a, b, c) ->
