@@ -30,6 +30,7 @@ if (!module.parent) {
     var options = {
         node: !!argv.node,
         removeComments: !!argv['remove-comments'],
+        bare: !!argv.bare,
     }
 
     parseFiles(source, target, options);
@@ -106,6 +107,7 @@ function parse (parser, input, options) {
     options = options || {};
     options.removeComments = options.removeComments !== undefined ? options.removeComments : false;
     options.node = options.node !== undefined ? options.node : false;
+    options.bare = options.bare !== undefined ? options.bare : false;
     options.parse = parse;
 
     try {

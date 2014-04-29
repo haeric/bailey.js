@@ -6228,6 +6228,10 @@ module.exports = (function() {
                     return item.toJS();
                 }).join('\n');
 
+                if (options.bare) {
+                    return this.block.toJS();
+                }
+
                 if (options.node) {
                     out += imports.map(function(item) {
                         return 'var ' + item.name + ' = require("' + item.path + '");';
