@@ -14,3 +14,6 @@ This will result in a version with node imports instead of requirejs-imports
 
 #### --remove-comments
 This will remove all comments in the compiled version.
+
+#### --bare
+This will make the Javascript file without the wrapper function.
