@@ -125,7 +125,7 @@
                     out += '[' + pathString + '], ';
                 }
 
-                out += 'function(' + paramString + ') \x7b';
+                out += 'function(' + paramString + ') \x7b\n"use strict";';
                 out += this.block.toJS();
 
                 if (export_) {
