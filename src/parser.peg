@@ -1112,8 +1112,8 @@ KeyValuePair
 AnyKeyValuePair
     = key:(
         IdentifierPart 
-        / '"' str:DoubleStringCharacter* '"' { return str; }
-        / "'" str:SingleStringCharacter* "'" { return str; }
+        / '"' str:DoubleStringCharacter* '"' { return str.join(''); }
+        / "'" str:SingleStringCharacter* "'" { return str.join(''); }
       ) _ ':' _ value:Expression
         { return {key: key, value: value}; }
 
