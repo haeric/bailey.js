@@ -117,14 +117,7 @@
                     return item.name;
                 }).join(', ');
 
-                var requireString = export_ ? 'define' : 'require';
-
-                out += requireString + '(';
-                
-                if (imports.length) {
-                    out += '[' + pathString + '], ';
-                }
-
+                out += 'require([' + pathString + '], ';
                 out += 'function(' + paramString + ') \x7b\n"use strict";';
                 out += this.block.toJS();
 
