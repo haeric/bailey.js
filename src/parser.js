@@ -6176,6 +6176,7 @@ module.exports = (function() {
 
         var fs = require('fs');
         var path = require('path');
+        var extend = require('util')._extend;
 
         var indentStack = [], 
             indent = "",
@@ -6258,7 +6259,11 @@ module.exports = (function() {
                 var imports = this.block.getImports();
                 var export_ = this.block.getExport();
 
-                var out = this.block.extractPreImportStatements().map(function(item) {
+                var out =  this.block.extractPreImportStatements().map(function(item) {
+                    return item.toJS();
+                }).join('\n');
+
+                out += this.block.extractIncludes().map(function(item) {
                     return item.toJS();
                 }).join('\n');
 
@@ -6291,7 +6296,10 @@ module.exports = (function() {
                         return item.name;
                     }).join(', ');
 
-                    out += 'require([' + pathString + '], ';
+
+                    var requireFunction = /main\.bs$/.test(options.filePath) ? 'require' : 'define';
+
+                    out += requireFunction + '([' + pathString + '], ';
                     out += 'function(' + paramString + ') \x7b\n"use strict";';
                     out += this.block.toJS();
 
@@ -6646,7 +6654,9 @@ module.exports = (function() {
                 var filePath = path.join(parser.options.root, this.path);
 
                 if (fs.existsSync(filePath + '.bs')) {
-                    return parser.options.parse(parser, filePath + '.bs', parser.options.root, fs.readFileSync(filePath + '.bs', 'utf8'));
+                    var options = extend({}, parser.options);
+                    options.path = filePath + '.bs';
+                    return parser.options.parse(parser, fs.readFileSync(filePath + '.bs', 'utf8'), options );
                 }
                 if (fs.existsSync(filePath + '.js')) {
                     return fs.readFileSync(filePath + '.js', 'utf8');
