@@ -114,7 +114,7 @@ function parse (parser, input, options) {
         var ast = parser.parse(input);
     }
     catch (e) {
-        console.log('Error at ' + options.path + ' line ' + e.line + ', character ' + e.column + ':');
+        console.log('Error at ' + options.filePath + ' line ' + e.line + ', character ' + e.column + ':');
         if (e.line > 2) console.log(input.split('\n')[e.line-2])
         console.log(input.split('\n')[e.line-1])
         console.log(repeat(" ", e.column-2), '^'); 
