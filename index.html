@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>bailey.js</title>
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/github.css" rel="stylesheet" />
+    <link href="/assets/style.css" rel="stylesheet" />
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="col-xs-12 text-center">bailey.js</h1>
+      <div class="col-xs-12 col-sm-4 col-sm-offset-4 text-center">
+          <code>npm install bailey</code>
+      </div>
+      
+  <div class="example row">
+    <h3 class="col-xs-12">Datatypes</h3>
+    <div class="bailey-code col-xs-12 col-sm-6">
+      <h4>Bailey.js</h4>
+      
+<div class="highlight-file">
+<div class="highlight"><pre><code class="coffeescript"><span class="nv">number = </span><span class="mi">42</span>
+<span class="nv">decimal = </span><span class="mf">3.14159265359</span>
+
+<span class="c1"># booleans</span>
+<span class="nv">yeah = </span><span class="kc">true</span>
+<span class="nv">hell_no = </span><span class="kc">false</span>
+
+<span class="nv">string = </span><span class="s">&#39;Hi!&#39;</span>
+<span class="nv">another_string = </span><span class="s">&quot;Hi again!&quot;</span>
+<span class="nv">string_with_multiple_lines = </span><span class="s">&quot;This </span>
+<span class="s">is cool&quot;</span>
+
+<span class="nv">object = </span><span class="p">{</span>
+  <span class="nv">number: </span><span class="mi">42</span><span class="p">,</span>
+  <span class="nv">string: </span><span class="s">&quot;Wee&quot;</span>
+<span class="p">}</span>
+
+<span class="nv">list_of_stuff = </span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">6</span><span class="p">]</span>
+<span class="nv">another_list = </span><span class="p">[</span>
+  <span class="mi">1</span><span class="p">,</span>
+  <span class="mi">3</span><span class="p">,</span>
+  <span class="mi">5</span>
+<span class="p">]</span></code></pre></div>
+</div>
+
+    </div>
+    <div class="javascript-code col-xs-12 col-sm-6">
+      <h4>Javascript</h4>
+      
+<div class="highlight-file">
+<div class="highlight"><pre><code class="javascript"><span class="kd">var</span> <span class="nx">number</span> <span class="o">=</span> <span class="mi">42</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">decimal</span> <span class="o">=</span> <span class="mf">3.14159265359</span><span class="p">;</span>
+
+<span class="c1">// booleans</span>
+<span class="kd">var</span> <span class="nx">yeah</span> <span class="o">=</span> <span class="kc">true</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">hell_no</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span>
+
+<span class="kd">var</span> <span class="nx">string</span> <span class="o">=</span> <span class="s1">&#39;Hi!&#39;</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">another_string</span> <span class="o">=</span> <span class="s2">&quot;Hi again!&quot;</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">string_with_multiple_lines</span> <span class="o">=</span> <span class="s2">&quot;This is cool&quot;</span><span class="p">;</span>
+
+<span class="kd">var</span> <span class="nx">object</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;number&#39;</span><span class="o">:</span> <span class="mi">42</span><span class="p">,</span>
+    <span class="s1">&#39;string&#39;</span><span class="o">:</span> <span class="s2">&quot;Wee&quot;</span>
+<span class="p">};</span>
+
+<span class="kd">var</span> <span class="nx">list_of_stuff</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">];</span>
+<span class="kd">var</span> <span class="nx">another_list</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">];</span></code></pre></div>
+</div>
+
+    </div>
+  </div>
+
+  <div class="example row">
+    <h3 class="col-xs-12">If-statements</h3>
+    <div class="bailey-code col-xs-12 col-sm-6">
+      <h4>Bailey.js</h4>
+      
+<div class="highlight-file">
+<div class="highlight"><pre><code class="coffeescript"><span class="k">if</span> <span class="s">&#39;chocolate&#39;</span> <span class="k">in</span> <span class="nx">apartment</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&quot;Awesome!&quot;</span><span class="p">)</span>
+<span class="k">else</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&quot;Too bad for you.&quot;</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="nx">numberOfIceCreamsToday</span> <span class="o">==</span> <span class="mi">0</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&quot;Go eat ice-cream&quot;</span><span class="p">)</span>
+<span class="nx">elif</span> <span class="nx">numberOfIceCreamsToday</span> <span class="o">&gt;</span> <span class="mi">2</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&quot;Good!&quot;</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="nx">numberOfIceCreamsToday</span> <span class="o">&gt;</span> <span class="mi">5</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&quot;Serously?&quot;</span><span class="p">)</span></code></pre></div>
+</div>
+
+    </div>
+    <div class="javascript-code col-xs-12 col-sm-6">
+      <h4>Javascript</h4>
+      
+<div class="highlight-file">
+<div class="highlight"><pre><code class="javascript"><span class="k">if</span> <span class="p">(</span><span class="s1">&#39;chocolate&#39;</span> <span class="k">in</span> <span class="nx">apartment</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Awesome!&quot;</span><span class="p">)</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Too bad for you.&quot;</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="nx">numberOfIceCreamsToday</span> <span class="o">===</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Go eat ice-cream&quot;</span><span class="p">)</span>
+<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">numberOfIceCreamsToday</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Good!&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="nx">numberOfIceCreamsToday</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Serously?&quot;</span><span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">}</span></code></pre></div>
+</div>
+
+    </div>
+  </div>
+
+
+    </div>
+  </body>
+</html>

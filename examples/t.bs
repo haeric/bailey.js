@@ -1,0 +1,2 @@
+for k in numbers.slice(start, end)
+  labels.push(k)
