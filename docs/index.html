@@ -1,0 +1,18 @@
+---
+layout: base
+title: Examples
+---
+
+{% for example in site.data.examples %}
+  <div class="example row">
+    <h3 class="col-xs-12">{{ example.title }}</h3>
+    <div class="bailey-code col-xs-12 col-sm-6">
+      <h4>Bailey.js</h4>
+      {% highlight_file coffeescript example.source_file %}
+    </div>
+    <div class="javascript-code col-xs-12 col-sm-6">
+      <h4>Javascript</h4>
+      {% highlight_file javascript example.compiled_file %}
+    </div>
+  </div>
+{% endfor %}
