@@ -7,7 +7,7 @@ default:
 examples:
 	cp -r ../examples examples
 
-examples/js: 
+examples/js: examples
 	bailey examples/ examples/js/ --bare
 
 build: examples/js 
@@ -16,6 +16,6 @@ build: examples/js
 serve: examples/js
 	jekyll serve -w
 
-publish: generate
-	ghp-import _site/
-	git push gh gh-pages
+publish: build
+	ghp-import _site
+	git push origin gh-pages
