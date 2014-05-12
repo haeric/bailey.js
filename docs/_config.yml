@@ -1,7 +1,9 @@
-safe: false 
+safe: false
 lsi: false
-pygments: true
+highlighter: pygments
 
-name: bailey.js 
+name: bailey.js
 description: bailey.js documentation
 #url: http://baileyjs.io
+sass:
+    style: :compressed
