@@ -246,6 +246,7 @@
             this.iterator = iterator;
             this.item = item;
             this.iterable = iterable;
+            this.iterableLength = null;
             this.body = body;
             this.ofLoop = ofLoop;
             this.children = [iterator, item, iterable, body];
@@ -261,8 +262,24 @@
                     this.iterator = '__i' + i++;
                 } while (this.scope.symbols[this.iterator]);
             }
+
+            if (!this.iterableTemp) {
+                var i = 1;
+                do {
+                    this.iterableTemp = '__a' + i++;
+                } while (this.scope.symbols[this.iterableTemp]);
+            }
+
+            if (!this.iterableLength) {
+                var i = 1;
+                do {
+                    this.iterableLength = '__l' + i++;
+                } while (this.scope.symbols[this.iterableLength]);
+            }
             
             this.scope.symbols[this.iterator] = 1;
+            this.scope.symbols[this.iterableTemp] = 1;
+            this.scope.symbols[this.iterableLength] = 1;
         },
         toJS: function () {
             if (this.iterable.nodeType === 'Range') {
@@ -313,9 +330,20 @@
                 '}';
             }
 
-            return 'for (var ' + this.iterator + ' = 0; ' + 
-                this.iterator + ' < ' + this.iterable.toJS() + '.length; ' + this.iterator + '++) { ' +
-                'var ' + this.item + ' = ' + this.iterable.toJS() + '[' + this.iterator + '];\n' +
+            var out = '';
+
+            if (this.iterable.nodeType === 'Variable') {
+                this.iterableTemp = this.iterable.toJS();
+            }
+            else {
+                out += 'var ' + this.iterableTemp + ' = ' + this.iterable.toJS() + ';'
+            }
+
+            return out +
+                'var ' + this.iterableLength + ' = ' + this.iterableTemp + '.length;' +
+                'for (var ' + this.iterator + ' = 0; ' + 
+                this.iterator + ' < ' + this.iterableLength + '; ' + this.iterator + '++) { ' +
+                'var ' + this.item + ' = ' + this.iterableTemp + '[' + this.iterator + '];\n' +
                 this.body.toJS() + '\n' +
                 '}';
         }
