@@ -18,4 +18,4 @@ serve: examples/js
 
 publish: build
 	ghp-import _site
-	git push gh gh-pages
+	git push origin gh-pages
