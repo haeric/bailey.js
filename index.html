@@ -8,12 +8,28 @@
   </head>
   <body>
     <div class="container">
-      <h1 class="col-xs-12 text-center">bailey.js</h1>
-      <div class="col-xs-12 col-sm-4 col-sm-offset-4 text-center">
-          <code>npm install bailey</code>
+      <div class="row">
+        <h1 class="col-xs-12 text-center">bailey.js</h1>
+        <div class="col-xs-12 col-sm-4 col-sm-offset-4 text-center">
+            <code>npm install bailey</code>
+        </div>
       </div>
+      <div class="row toc">
+  <div class="col-xs-12">
+    <ul class="nav nav-pills">
       
-  <div class="example row">
+      <li><a href="#Datatypes">Datatypes</a></li>
+      
+      <li><a href="#If-statements">If-statements</a></li>
+      
+      <li><a href="#Loops">Loops</a></li>
+      
+    </ul>
+  </div>
+</div>
+
+
+  <div id="Datatypes" class="example row">
     <h3 class="col-xs-12">Datatypes</h3>
     <div class="bailey-code col-xs-12 col-sm-6">
       <h4>Bailey.js</h4>
@@ -64,7 +80,7 @@
     </div>
   </div>
 
-  <div class="example row">
+  <div id="If-statements" class="example row">
     <h3 class="col-xs-12">If-statements</h3>
     <div class="bailey-code col-xs-12 col-sm-6">
       <h4>Bailey.js</h4>
@@ -97,6 +113,40 @@
     <span class="k">if</span> <span class="p">(</span><span class="nx">numberOfIceCreamsToday</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">)</span> <span class="p">{</span>
         <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Serously?&quot;</span><span class="p">)</span>
     <span class="p">}</span>
+<span class="p">}</span></code></pre></div>
+    </div>
+  </div>
+
+  <div id="Loops" class="example row">
+    <h3 class="col-xs-12">Loops</h3>
+    <div class="bailey-code col-xs-12 col-sm-6">
+      <h4>Bailey.js</h4>
+      <div class="highlight"><pre><code class="coffeescript"><span class="k">for</span> <span class="nx">item</span> <span class="k">in</span> <span class="nx">bagOfDelicousCandy</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">item</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="nx">number</span> <span class="k">in</span> <span class="mi">0</span><span class="o">:</span><span class="mi">10</span><span class="o">:</span><span class="mi">2</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">number</span><span class="p">)</span>
+
+<span class="nv">chocolateCount = </span><span class="mi">4</span>
+<span class="k">while</span> <span class="nx">chocolateCount</span> <span class="o">&gt;</span> <span class="mi">0</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&#39;Eat chocolate&#39;</span><span class="p">)</span>
+  <span class="nx">chocolateCount</span> <span class="o">-=</span> <span class="mi">1</span></code></pre></div>
+    </div>
+    <div class="javascript-code col-xs-12 col-sm-6">
+      <h4>Javascript</h4>
+      <div class="highlight"><pre><code class="javascript"><span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">__i1</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">__i1</span> <span class="o">&lt;</span> <span class="nx">bagOfDelicousCandy</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">__i1</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">item</span> <span class="o">=</span> <span class="nx">bagOfDelicousCandy</span><span class="p">[</span><span class="nx">__i1</span><span class="p">];</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">item</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">number</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">number</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">;</span> <span class="nx">number</span> <span class="o">=</span> <span class="nx">number</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">number</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="kd">var</span> <span class="nx">chocolateCount</span> <span class="o">=</span> <span class="mi">4</span><span class="p">;</span>
+<span class="k">while</span> <span class="p">(</span><span class="nx">chocolateCount</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;Eat chocolate&#39;</span><span class="p">)</span>
+    <span class="nx">chocolateCount</span> <span class="o">-=</span> <span class="mi">1</span><span class="p">;</span>
 <span class="p">}</span></code></pre></div>
     </div>
   </div>
