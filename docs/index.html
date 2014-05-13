@@ -3,8 +3,18 @@ layout: base
 title: Examples
 ---
 
+<div class="row toc">
+  <div class="col-xs-12">
+    <ul class="nav nav-pills">
+      {% for example in site.data.examples %}
+      <li><a href="#{{ example.title }}">{{ example.title }}</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+
 {% for example in site.data.examples %}
-  <div class="example row">
+  <div id="{{ example.title }}" class="example row">
     <h3 class="col-xs-12">{{ example.title }}</h3>
     <div class="bailey-code col-xs-12 col-sm-6">
       <h4>Bailey.js</h4>
