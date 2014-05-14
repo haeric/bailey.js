@@ -36,7 +36,7 @@ if a
         car = 5
     car = 1
     if 9 and 10 or 2
-        10
+        pass
 
 else
     111

@@ -883,6 +883,9 @@ Statement
     / 'throw' _ expr:Expression
         { return new type.Throw(expr); }
 
+    / 'pass' 
+        { return new type.Noop() }
+
     / 'class' _ ident:Identifier _ extender:('extends' _ AnyIdentifier)? IndentNewline
         head:(__ KeyValuePair / Comment) 
         tail:((EOL Indent)+ (KeyValuePair / Comment))* IndentRemove
