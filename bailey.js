@@ -165,7 +165,7 @@ function parseFiles (source, target, options, onFile, onError) {
                 onError && onError(e);
             }
 
-            if (parsed) {
+            if (parsed !== undefined) {
                 fs.writeFile(targetPath, parsed, function(err) {
                     if (err) { 
                         console.error(err); 
