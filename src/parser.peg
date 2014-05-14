@@ -1109,7 +1109,7 @@ Value
 
     / '{' 
             head:(__ AnyKeyValuePair)? 
-            tail:(__ ',' __ AnyKeyValuePair)* __ ','? __  
+            tail:(__ ','? __ AnyKeyValuePair)* __ ','? __  
       '}'
         {
             var obj = new type.ObjectLiteral();

@@ -6,6 +6,12 @@ humbug = {
     b: 2, 
     c: 3,
 }
+icecream = {
+    r2d2: 1
+    c3po: 2
+    clear: 3
+}
+
 data = [
     true, 
     false, 
@@ -25,9 +31,10 @@ b *= 2
 if a
     c = 3
     if a > 5
-        7
+        car = 3
     else
-        8
+        car = 5
+    car = 1
     if 9 and 10 or 2
         10
 
