@@ -9,7 +9,8 @@
     "walk": "*",
     "js-beautify": "*",
     "mkdirp": "*",
-    "esprima": "*"
+    "esprima": "*",
+    "colors": "*"
     },
   "devDependencies": {},
   "scripts": {

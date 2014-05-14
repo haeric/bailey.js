@@ -6,10 +6,12 @@ var fs = require('fs');
 var exec = require('child_process').exec;
 var walk = require('walk');
 var path = require('path');
+var colors = require('colors');
 var mkdir = require('mkdirp');
 var beautify = require('js-beautify').js_beautify;
 
-if (!module.parent) {
+// Command-line use of bailey.js
+function main () {
     var source = argv._[0];
     var target = argv._[1];
 
@@ -24,7 +26,14 @@ if (!module.parent) {
         bare: !!argv.bare,
     }
 
-    parseFiles(source, target, options);
+    parseFiles(source, target, options, function(sourcePath, targetPath) {
+        if (argv.verbose) {
+            console.log(sourcePath, "->", targetPath);
+        }
+    }, function(err) {
+        console.error(err.toString().red);
+        process.exit(1);
+    });
 }
 
 // Whenever we hit an indented block, make sure all preceding
@@ -83,14 +92,6 @@ function normalizeBlocks (input) {
 
 }
 
-function repeat (str, n) {
-    var out = "";
-    for (var i = 0; i < n; i++) {
-        out += str;
-    }
-    return out;
-}
-
 function parse (parser, input, options) {
 
     input = normalizeBlocks(input);
@@ -105,19 +106,14 @@ function parse (parser, input, options) {
         var ast = parser.parse(input);
     }
     catch (e) {
-        console.log('Error at ' + options.filePath + ' line ' + e.line + ', character ' + e.column + ':');
-        if (e.line > 2) console.log(input.split('\n')[e.line-2])
-        console.log(input.split('\n')[e.line-1])
-        console.log(repeat(" ", e.column-2), '^'); 
-        console.log(e.message)
-        process.exit(1);
+        throw new ParserError(e, input, options)
     }
+
     return beautify(ast.toJS(options));
 
 }
 
-function parseFiles (source, target, options) {
-
+function parseFiles (source, target, options, onFile, onError) {
 
     var parser = require('./src/parser.js');
     var walker = walk.walk(source, {
@@ -153,10 +149,6 @@ function parseFiles (source, target, options) {
         
         mkdir.sync(targetRoot);
 
-        if (argv.verbose) {
-            console.log(sourcePath, "->", targetPath);
-        }
-
         fs.readFile(sourcePath, 'utf8', function (err, input) {
             
             if (err) { 
@@ -166,15 +158,26 @@ function parseFiles (source, target, options) {
             options.filePath = sourcePath;
             options.root = root;
 
-            var parsed = parse(parser, input, options);   
+            try {
+                var parsed = parse(parser, input, options, onError);
+            }
+            catch (e) {
+                onError && onError(e);
+            }
 
-            fs.writeFile(targetPath, parsed, function(err) {
-                if (err) { 
-                    console.error(err); 
-                }
-            });
-            
-            next();
+            if (parsed) {
+                fs.writeFile(targetPath, parsed, function(err) {
+                    if (err) { 
+                        console.error(err); 
+                    }
+                    else if (onFile) {
+                        onFile(sourcePath, targetPath);
+                    }
+                });
+                
+                next();
+            }
+
         });
     });
 }
@@ -184,5 +187,42 @@ function parseString (input, options) {
     return parse(parser, input, options);
 }
 
+function repeat (str, n) {
+    var out = "";
+    for (var i = 0; i < n; i++) {
+        out += str;
+    }
+    return out;
+}
+
+function ParserError (error, input, options) {    
+    this.message  = error.message;
+    this.expected = error.expected;
+    this.found    = error.found;
+    this.offset   = error.offset;
+    this.line     = error.line;
+    this.column   = error.column;
+    this.name     = 'ParserError';
+
+    this.toString = function () {
+        var lines = input.split('\n');
+        return [
+            error.name + ' at ' + options.filePath + ' line ' + error.line + ', character ' + error.column + ':',
+            error.line > 2 ? lines[error.line-2] : '',
+            lines[error.line-1],
+            repeat(" ", error.column-1) + '^', 
+            error.message,
+        ].join('\n');
+    }
+
+}
+
+ParserError.prototype = Object.create(Error);
+
+if (!module.parent) {
+    main();
+}
+
 module.exports.parseFiles = parseFiles;
 module.exports.parseString = parseString;
+module.exports.ParserError = ParserError;
