@@ -2,23 +2,23 @@
   <div class="col-xs-12">
     <h2>Learn by examples</h2>
     <ul class="nav nav-pills">
-      {% for example in site.data.examples %}
-      <li><a href="#{{ example.title }}">{{ example.title }}</a></li>
+      {% for name in site.examples %}
+      <li><a href="#{{ name }}">{{ name }}</a></li>
       {% endfor %}
     </ul>
   </div>
 </div>
 
-{% for example in site.data.examples %}
-  <div id="{{ example.title }}" class="example row">
-    <h3 class="col-xs-12">{{ example.title }}</h3>
+{% for name in site.examples %}
+  <div id="{{ example }}" class="example row">
+    <h3 class="col-xs-12">{{ name }}</h3>
     <div class="bailey-code col-xs-12 col-sm-6">
       <h4>Bailey.js</h4>
-      {% highlight_file coffeescript example.source_file %}
+      {% load_example name bailey %}
     </div>
     <div class="javascript-code col-xs-12 col-sm-6">
       <h4>Javascript</h4>
-      {% highlight_file javascript example.compiled_file %}
+      {% load_example name javascript %}
     </div>
   </div>
 {% endfor %}

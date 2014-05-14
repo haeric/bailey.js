@@ -1,4 +1,4 @@
 node_modules/
-docs/examples/
-docs/build/
+examples/js/
+build/
 docs/_site

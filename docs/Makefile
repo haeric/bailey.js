@@ -4,16 +4,10 @@ default:
 	@echo "make serve - serve the docs on 0.0.0.0:4000"
 	@echo "make publish - publish the docs on origin/gh-pages"
 
-examples:
-	cp -r ../examples examples
-
-examples/js: examples
-	bailey examples/ examples/js/ --bare
-
-build: examples/js 
+build: 
 	jekyll build
 
-serve: examples/js
+serve:
 	jekyll serve -w
 
 publish: build

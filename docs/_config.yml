@@ -7,3 +7,10 @@ description: bailey.js documentation
 #url: http://baileyjs.io
 sass:
     style: :compressed
+
+
+examples:
+  - Datatypes
+  - Comments
+  - If-statements
+  - Loops
