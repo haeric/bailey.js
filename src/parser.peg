@@ -1142,7 +1142,7 @@ KeyValuePair
 
 AnyKeyValuePair
     = key:(
-        IdentifierPart 
+        str:IdentifierPart                   { return str.join(''); }
         / '"' str:DoubleStringCharacter* '"' { return str.join(''); }
         / "'" str:SingleStringCharacter* "'" { return str.join(''); }
       ) _ ':' _ value:Expression
