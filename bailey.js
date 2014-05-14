@@ -115,11 +115,6 @@ function parse (parser, input, options) {
 
 function parseFiles (source, target, options, onFile, onError) {
 
-    var parser = require('./src/parser.js');
-    var walker = walk.walk(source, {
-        followLinks: false
-    });
-
     // Make sure the source and target are properly formatted
     if (source[source.length-1] != '/') {
         source += '/'
@@ -128,6 +123,11 @@ function parseFiles (source, target, options, onFile, onError) {
     if (target[target.length-1] != '/') {
         target += '/'
     }
+
+    var parser = require('./src/parser.js');
+    var walker = walk.walk(source, {
+        followLinks: false
+    });
 
     // From here on we need a ./ from the start to be removed
     source = source.replace(/^\.\//, '');
