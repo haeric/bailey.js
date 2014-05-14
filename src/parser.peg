@@ -145,12 +145,14 @@
     });
 
     type('Noop', {
+        semicolon: false,
         toJS: function () {
             return '';
         }
     });
 
     type('Comment', {
+        semicolon: false,
         init: function (text) {
             this.text = text;
         },
@@ -202,11 +204,12 @@
         toJS: function () {
             var left = this.left.toJS ? this.left.toJS() : this.left;
             var varShit = this.varThisSonOfABitch ? 'var ' : '';
-            return varShit + left + ' ' + this.operator + ' ' + this.value.toJS() + ';';
+            return varShit + left + ' ' + this.operator + ' ' + this.value.toJS();
         }
     });
 
     type('If', {
+        semicolon: false,
         init: function (expr, ifBody, elifs, elseBody, ternary) {
             this.expression = expr;
             this.ifBody = ifBody;
@@ -242,6 +245,7 @@
     })
 
     type('ForLoop', {
+        semicolon: false,
         init: function (iterator, item, iterable, body, ofLoop) {
             this.iterator = iterator;
             this.item = item;
@@ -350,6 +354,7 @@
     });
 
     type('WhileLoop', {
+        semicolon: false,
         init: function (expression, body) {
             this.expression = expression;
             this.body = body;
@@ -425,6 +430,7 @@
     });
 
     type('ClassStatement', {
+        semicolon: false,
         init: function (name, extendFrom) {
             this.name = name;
             this.extendFrom = extendFrom;
@@ -469,11 +475,12 @@
             this.type = type;
         },
         toJS: function () {
-            return this.type + ';';
+            return this.type;
         }
     });
 
     type('ImportStatement', {
+        semicolon: false,
         init: function (path, name) {
             if (path.indexOf('!') === -1) {
                 this.path = path.replace(/\./g, '/');
@@ -489,6 +496,7 @@
     });
 
     type('ExportStatement', {
+        semicolon: false,
         init: function (ident) {
             this.ident = ident;
         },
@@ -561,7 +569,7 @@
             }
 
             return out + this.statements.map(function (s) {
-                return s.toJS();
+                return s.toJS() + (s.semicolon !== false ? ';' : '');
             }).join('\n');
         },
         extractIncludes: function () {
@@ -664,7 +672,7 @@
                 return 'return;';
             }
 
-            return 'return ' + this.body.toJS() + ';';
+            return 'return ' + this.body.toJS() + (this.body.isScope ? ';' : '');
         }
     });
 
