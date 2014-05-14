@@ -10,15 +10,54 @@
     <div class="container">
       <div class="row">
         <h1 class="col-xs-12 text-center">bailey.js</h1>
-        <div class="col-xs-12 col-sm-4 col-sm-offset-4 text-center">
-            <code>npm install bailey</code>
-        </div>
       </div>
-      <div class="row toc">
+      <h2 id="installation">Installation</h2>
+<p>Installing bailey.js requires you to have <a href="http://nodejs.org/">node.js</a>
+and <a href="https://www.npmjs.org/">node packet manager</a> installed. If you have
+those installed it is as simple as running:</p>
+
+<div class="highlight"><pre><code class="bash"><span class="nv">$ </span>npm install bailey</code></pre></div>
+
+<h2 id="usage">Usage</h2>
+
+<h3 id="in-the-command-line">In the command line</h3>
+
+<div class="highlight"><pre><code class="bash">node bailey.js sourceDir/ targetDir/</code></pre></div>
+
+<h3 id="in-javacscript">In javacscript</h3>
+<p>There are two possible ways to utilise bailey in javascript. The first is to
+compile a string using <code>parseString</code> or compile the content of a folder like
+the command line example by using <code>parseFiles</code>.</p>
+
+<div class="highlight"><pre><code class="javascript"><span class="kd">var</span> <span class="nx">bailey</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;bailey&#39;</span><span class="p">);</span>
+
+  <span class="kd">var</span> <span class="nx">compiledString</span> <span class="o">=</span> <span class="nx">bailey</span><span class="p">.</span><span class="nx">parseString</span><span class="p">(</span><span class="nx">sourceString</span><span class="p">,</span> <span class="p">{});</span>
+
+  <span class="c1">// This is the equivalent of the command line example</span>
+  <span class="nx">bailey</span><span class="p">.</span><span class="nx">parseFiles</span><span class="p">(</span><span class="s1">&#39;sourceDir/&#39;</span><span class="p">,</span> <span class="s1">&#39;targetDir/&#39;</span><span class="p">,</span> <span class="p">{}});</span></code></pre></div>
+
+<h3 id="options">Options</h3>
+<p>The options listed below can be used in different settings. Prepended with <code>--</code>
+is used with the command line and the ones in the parentheses are used in the
+option parameter when running bailey from javascript.</p>
+
+<h4 id="node-node"><code>--node</code> (<code>node</code>)</h4>
+<p>This will result in a version with node imports instead of requirejs-imports</p>
+
+<h4 id="remove-comments-removecomments"><code>--remove-comments</code> (<code>removeComments</code>)</h4>
+<p>This will remove all comments in the compiled version.</p>
+
+<h4 id="bare-bare"><code>--bare</code> (<code>bare</code>)</h4>
+<p>This will make the Javascript file without the wrapper function.</p>
+
+<div class="row">
   <div class="col-xs-12">
+    <h2>Learn by examples</h2>
     <ul class="nav nav-pills">
       
       <li><a href="#Datatypes">Datatypes</a></li>
+      
+      <li><a href="#Comments">Comments</a></li>
       
       <li><a href="#If-statements">If-statements</a></li>
       
@@ -28,12 +67,12 @@
   </div>
 </div>
 
-
-  <div id="Datatypes" class="example row">
+<div id="Datatypes" class="example row">
     <h3 class="col-xs-12">Datatypes</h3>
     <div class="bailey-code col-xs-12 col-sm-6">
       <h4>Bailey.js</h4>
-      <div class="highlight"><pre><code class="coffeescript"><span class="nv">number = </span><span class="mi">42</span>
+      
+<div class="highlight"><pre><code class="coffeescript"><span class="nv">number = </span><span class="mi">42</span>
 <span class="nv">decimal = </span><span class="mf">3.14159265359</span>
 
 <span class="c1"># booleans</span>
@@ -56,10 +95,12 @@
   <span class="mi">3</span><span class="p">,</span>
   <span class="mi">5</span>
 <span class="p">]</span></code></pre></div>
+
     </div>
     <div class="javascript-code col-xs-12 col-sm-6">
       <h4>Javascript</h4>
-      <div class="highlight"><pre><code class="javascript"><span class="kd">var</span> <span class="nx">number</span> <span class="o">=</span> <span class="mi">42</span><span class="p">;</span>
+      
+<div class="highlight"><pre><code class="javascript"><span class="kd">var</span> <span class="nx">number</span> <span class="o">=</span> <span class="mi">42</span><span class="p">;</span>
 <span class="kd">var</span> <span class="nx">decimal</span> <span class="o">=</span> <span class="mf">3.14159265359</span><span class="p">;</span>
 
 <span class="c1">// booleans</span>
@@ -77,14 +118,48 @@
 
 <span class="kd">var</span> <span class="nx">list_of_stuff</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">];</span>
 <span class="kd">var</span> <span class="nx">another_list</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">];</span></code></pre></div>
+
     </div>
   </div>
 
-  <div id="If-statements" class="example row">
+<div id="Comments" class="example row">
+    <h3 class="col-xs-12">Comments</h3>
+    <div class="bailey-code col-xs-12 col-sm-6">
+      <h4>Bailey.js</h4>
+      
+<div class="highlight"><pre><code class="coffeescript"><span class="c1"># This is an awesome comment</span>
+
+<span class="c1"># C</span>
+<span class="c1"># O</span>
+<span class="c1"># M</span>
+<span class="c1"># M</span>
+<span class="c1"># E</span>
+<span class="c1"># N</span>
+<span class="c1"># T</span></code></pre></div>
+
+    </div>
+    <div class="javascript-code col-xs-12 col-sm-6">
+      <h4>Javascript</h4>
+      
+<div class="highlight"><pre><code class="javascript"><span class="c1">// This is an awesome comment</span>
+
+<span class="c1">// C</span>
+<span class="c1">// O</span>
+<span class="c1">// M</span>
+<span class="c1">// M</span>
+<span class="c1">// E</span>
+<span class="c1">// N</span>
+<span class="c1">// T</span></code></pre></div>
+
+    </div>
+  </div>
+
+<div id="If-statements" class="example row">
     <h3 class="col-xs-12">If-statements</h3>
     <div class="bailey-code col-xs-12 col-sm-6">
       <h4>Bailey.js</h4>
-      <div class="highlight"><pre><code class="coffeescript"><span class="k">if</span> <span class="s">&#39;chocolate&#39;</span> <span class="k">in</span> <span class="nx">apartment</span>
+      
+<div class="highlight"><pre><code class="coffeescript"><span class="k">if</span> <span class="s">&#39;chocolate&#39;</span> <span class="k">in</span> <span class="nx">apartment</span>
   <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&quot;Awesome!&quot;</span><span class="p">)</span>
 <span class="k">else</span>
   <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&quot;Too bad for you.&quot;</span><span class="p">)</span>
@@ -96,10 +171,12 @@
 
   <span class="k">if</span> <span class="nx">numberOfIceCreamsToday</span> <span class="o">&gt;</span> <span class="mi">5</span>
     <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&quot;Serously?&quot;</span><span class="p">)</span></code></pre></div>
+
     </div>
     <div class="javascript-code col-xs-12 col-sm-6">
       <h4>Javascript</h4>
-      <div class="highlight"><pre><code class="javascript"><span class="k">if</span> <span class="p">(</span><span class="s1">&#39;chocolate&#39;</span> <span class="k">in</span> <span class="nx">apartment</span><span class="p">)</span> <span class="p">{</span>
+      
+<div class="highlight"><pre><code class="javascript"><span class="k">if</span> <span class="p">(</span><span class="s1">&#39;chocolate&#39;</span> <span class="k">in</span> <span class="nx">apartment</span><span class="p">)</span> <span class="p">{</span>
     <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Awesome!&quot;</span><span class="p">)</span>
 <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
     <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Too bad for you.&quot;</span><span class="p">)</span>
@@ -114,14 +191,16 @@
         <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Serously?&quot;</span><span class="p">)</span>
     <span class="p">}</span>
 <span class="p">}</span></code></pre></div>
+
     </div>
   </div>
 
-  <div id="Loops" class="example row">
+<div id="Loops" class="example row">
     <h3 class="col-xs-12">Loops</h3>
     <div class="bailey-code col-xs-12 col-sm-6">
       <h4>Bailey.js</h4>
-      <div class="highlight"><pre><code class="coffeescript"><span class="k">for</span> <span class="nx">item</span> <span class="k">in</span> <span class="nx">bagOfDelicousCandy</span>
+      
+<div class="highlight"><pre><code class="coffeescript"><span class="k">for</span> <span class="nx">item</span> <span class="k">in</span> <span class="nx">bagOfDelicousCandy</span>
   <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">item</span><span class="p">)</span>
 
 <span class="k">for</span> <span class="nx">number</span> <span class="k">in</span> <span class="mi">0</span><span class="o">:</span><span class="mi">10</span><span class="o">:</span><span class="mi">2</span>
@@ -131,10 +210,12 @@
 <span class="k">while</span> <span class="nx">chocolateCount</span> <span class="o">&gt;</span> <span class="mi">0</span>
   <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&#39;Eat chocolate&#39;</span><span class="p">)</span>
   <span class="nx">chocolateCount</span> <span class="o">-=</span> <span class="mi">1</span></code></pre></div>
+
     </div>
     <div class="javascript-code col-xs-12 col-sm-6">
       <h4>Javascript</h4>
-      <div class="highlight"><pre><code class="javascript"><span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">__i1</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">__i1</span> <span class="o">&lt;</span> <span class="nx">bagOfDelicousCandy</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">__i1</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      
+<div class="highlight"><pre><code class="javascript"><span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">__i1</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">__i1</span> <span class="o">&lt;</span> <span class="nx">bagOfDelicousCandy</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">__i1</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
     <span class="kd">var</span> <span class="nx">item</span> <span class="o">=</span> <span class="nx">bagOfDelicousCandy</span><span class="p">[</span><span class="nx">__i1</span><span class="p">];</span>
     <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">item</span><span class="p">)</span>
 <span class="p">}</span>
@@ -148,6 +229,7 @@
     <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;Eat chocolate&#39;</span><span class="p">)</span>
     <span class="nx">chocolateCount</span> <span class="o">-=</span> <span class="mi">1</span><span class="p">;</span>
 <span class="p">}</span></code></pre></div>
+
     </div>
   </div>
 

@@ -1,1 +1,1 @@
-h1{font-size:60px}code{background:#ededed;padding:0.4em;color:#000}.example{margin:10px 0 20px 0}
+h1{font-size:60px}h1 code,h2 code,h3 code,h4 code{background:transparent;padding:0}code{background:#ededed;padding:0.4em;color:#000}.example{margin-top:10px;margin-bottom:20px}@media only screen and (max-width: 600px){h1,h2,h3,h4{text-align:center}}
