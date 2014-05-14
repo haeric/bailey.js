@@ -16,7 +16,7 @@ function main () {
     var target = argv._[1];
 
     if (!source || !target) {
-        console.error('Arguments: node bailey.js sourcedir targetdir')
+        console.error('Usage: bailey sourcedir/ targetdir/ [--node] [--remove-comments] [--bare]')
         process.exit(1);
     }
 
