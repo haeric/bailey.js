@@ -16,7 +16,7 @@ those installed it is as simple as running:
 
 ### In the command line
 {% highlight bash %}
-  node bailey.js sourceDir/ targetDir/
+  bailey sourceDir/ targetDir/
 {% endhighlight %}
 
 ### In javacscript
