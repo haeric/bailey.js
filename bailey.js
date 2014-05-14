@@ -18,15 +18,6 @@ if (!module.parent) {
         process.exit(1);
     }
 
-    // Make sure the source and target are properly formatted
-    if (source[source.length-1] != '/') {
-        source += '/'
-    }
-
-    if (target[target.length-1] != '/') {
-        target += '/'
-    }
-
     var options = {
         node: !!argv.node,
         removeComments: !!argv['remove-comments'],
@@ -127,10 +118,20 @@ function parse (parser, input, options) {
 
 function parseFiles (source, target, options) {
 
+
     var parser = require('./src/parser.js');
     var walker = walk.walk(source, {
         followLinks: false
     });
+
+    // Make sure the source and target are properly formatted
+    if (source[source.length-1] != '/') {
+        source += '/'
+    }
+
+    if (target[target.length-1] != '/') {
+        target += '/'
+    }
 
     // From here on we need a ./ from the start to be removed
     source = source.replace(/^\.\//, '');
