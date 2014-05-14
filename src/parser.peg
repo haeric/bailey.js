@@ -2,6 +2,7 @@
 {
     var fs = require('fs');
     var path = require('path');
+    var extend = require('util')._extend;
 
     var indentStack = [], 
         indent = "",
@@ -84,9 +85,17 @@
             var imports = this.block.getImports();
             var export_ = this.block.getExport();
 
-            var out = this.block.extractPreImportStatements().map(function(item) {
+            var out =  this.block.extractPreImportStatements().map(function(item) {
                 return item.toJS();
             }).join('\n');
+
+            out += this.block.extractIncludes().map(function(item) {
+                return item.toJS();
+            }).join('\n');
+
+            if (options.bare) {
+                return this.block.toJS();
+            }
 
             if (options.node) {
                 out += imports.map(function(item) {
@@ -113,15 +122,11 @@
                     return item.name;
                 }).join(', ');
 
-                var requireString = export_ ? 'define' : 'require';
 
-                out += requireString + '(';
-                
-                if (imports.length) {
-                    out += '[' + pathString + '], ';
-                }
+                var requireFunction = /main\.bs$/.test(options.filePath) ? 'require' : 'define';
 
-                out += 'function(' + paramString + ') \x7b';
+                out += requireFunction + '([' + pathString + '], ';
+                out += 'function(' + paramString + ') \x7b\n"use strict";';
                 out += this.block.toJS();
 
                 if (export_) {
@@ -140,12 +145,14 @@
     });
 
     type('Noop', {
+        semicolon: false,
         toJS: function () {
             return '';
         }
     });
 
     type('Comment', {
+        semicolon: false,
         init: function (text) {
             this.text = text;
         },
@@ -197,11 +204,12 @@
         toJS: function () {
             var left = this.left.toJS ? this.left.toJS() : this.left;
             var varShit = this.varThisSonOfABitch ? 'var ' : '';
-            return varShit + left + ' ' + this.operator + ' ' + this.value.toJS() + ';';
+            return varShit + left + ' ' + this.operator + ' ' + this.value.toJS();
         }
     });
 
     type('If', {
+        semicolon: false,
         init: function (expr, ifBody, elifs, elseBody, ternary) {
             this.expression = expr;
             this.ifBody = ifBody;
@@ -237,10 +245,12 @@
     })
 
     type('ForLoop', {
+        semicolon: false,
         init: function (iterator, item, iterable, body, ofLoop) {
             this.iterator = iterator;
             this.item = item;
             this.iterable = iterable;
+            this.iterableLength = null;
             this.body = body;
             this.ofLoop = ofLoop;
             this.children = [iterator, item, iterable, body];
@@ -256,8 +266,24 @@
                     this.iterator = '__i' + i++;
                 } while (this.scope.symbols[this.iterator]);
             }
+
+            if (!this.iterableTemp) {
+                var i = 1;
+                do {
+                    this.iterableTemp = '__a' + i++;
+                } while (this.scope.symbols[this.iterableTemp]);
+            }
+
+            if (!this.iterableLength) {
+                var i = 1;
+                do {
+                    this.iterableLength = '__l' + i++;
+                } while (this.scope.symbols[this.iterableLength]);
+            }
             
             this.scope.symbols[this.iterator] = 1;
+            this.scope.symbols[this.iterableTemp] = 1;
+            this.scope.symbols[this.iterableLength] = 1;
         },
         toJS: function () {
             if (this.iterable.nodeType === 'Range') {
@@ -308,15 +334,27 @@
                 '}';
             }
 
-            return 'for (var ' + this.iterator + ' = 0; ' + 
-                this.iterator + ' < ' + this.iterable.toJS() + '.length; ' + this.iterator + '++) { ' +
-                'var ' + this.item + ' = ' + this.iterable.toJS() + '[' + this.iterator + '];\n' +
+            var out = '';
+
+            if (this.iterable.nodeType === 'Variable') {
+                this.iterableTemp = this.iterable.toJS();
+            }
+            else {
+                out += 'var ' + this.iterableTemp + ' = ' + this.iterable.toJS() + ';'
+            }
+
+            return out +
+                'var ' + this.iterableLength + ' = ' + this.iterableTemp + '.length;' +
+                'for (var ' + this.iterator + ' = 0; ' + 
+                this.iterator + ' < ' + this.iterableLength + '; ' + this.iterator + '++) { ' +
+                'var ' + this.item + ' = ' + this.iterableTemp + '[' + this.iterator + '];\n' +
                 this.body.toJS() + '\n' +
                 '}';
         }
     });
 
     type('WhileLoop', {
+        semicolon: false,
         init: function (expression, body) {
             this.expression = expression;
             this.body = body;
@@ -392,6 +430,7 @@
     });
 
     type('ClassStatement', {
+        semicolon: false,
         init: function (name, extendFrom) {
             this.name = name;
             this.extendFrom = extendFrom;
@@ -436,11 +475,12 @@
             this.type = type;
         },
         toJS: function () {
-            return this.type + ';';
+            return this.type;
         }
     });
 
     type('ImportStatement', {
+        semicolon: false,
         init: function (path, name) {
             if (path.indexOf('!') === -1) {
                 this.path = path.replace(/\./g, '/');
@@ -456,6 +496,7 @@
     });
 
     type('ExportStatement', {
+        semicolon: false,
         init: function (ident) {
             this.ident = ident;
         },
@@ -475,7 +516,9 @@
             var filePath = path.join(parser.options.root, this.path);
 
             if (fs.existsSync(filePath + '.bs')) {
-                return parser.options.parse(parser, filePath + '.bs', parser.options.root, fs.readFileSync(filePath + '.bs', 'utf8'));
+                var options = extend({}, parser.options);
+                options.path = filePath + '.bs';
+                return parser.options.parse(parser, fs.readFileSync(filePath + '.bs', 'utf8'), options );
             }
             if (fs.existsSync(filePath + '.js')) {
                 return fs.readFileSync(filePath + '.js', 'utf8');
@@ -526,7 +569,7 @@
             }
 
             return out + this.statements.map(function (s) {
-                return s.toJS();
+                return s.toJS() + (s.semicolon !== false ? ';' : '');
             }).join('\n');
         },
         extractIncludes: function () {
@@ -629,7 +672,7 @@
                 return 'return;';
             }
 
-            return 'return ' + this.body.toJS() + ';';
+            return 'return ' + this.body.toJS() + (this.body.isScope ? ';' : '');
         }
     });
 
@@ -847,6 +890,9 @@ Statement
 
     / 'throw' _ expr:Expression
         { return new type.Throw(expr); }
+
+    / 'pass' 
+        { return new type.Noop() }
 
     / 'class' _ ident:Identifier _ extender:('extends' _ AnyIdentifier)? IndentNewline
         head:(__ KeyValuePair / Comment) 
@@ -1074,7 +1120,7 @@ Value
 
     / '{' 
             head:(__ AnyKeyValuePair)? 
-            tail:(__ ',' __ AnyKeyValuePair)* __ ','? __  
+            tail:(__ ','? __ AnyKeyValuePair)* __ ','? __  
       '}'
         {
             var obj = new type.ObjectLiteral();
@@ -1107,9 +1153,9 @@ KeyValuePair
 
 AnyKeyValuePair
     = key:(
-        IdentifierPart 
-        / '"' str:DoubleStringCharacters? '"' { return str; }
-        / "'" str:SingleStringCharacters? "'" { return str; }
+        str:IdentifierPart                   { return str.join(''); }
+        / '"' str:DoubleStringCharacter* '"' { return str.join(''); }
+        / "'" str:SingleStringCharacter* "'" { return str.join(''); }
       ) _ ':' _ value:Expression
         { return {key: key, value: value}; }
 
@@ -1226,11 +1272,12 @@ ThisProperty
         { return new type.PropertyAccess(token, new type.Literal(ident), '.'); }
 
 StringLiteral "string"
-  = parts:('"' DoubleStringCharacters? '"' / "'" SingleStringCharacters? "'") 
+  = parts:('"' DoubleStringCharacter* '"' / "'" SingleStringCharacter* "'") 
     {
         var d = parts[0];
-        var text = parts[1] !== null ? parts[1] : "";
+        var text = parts[1] !== null ? parts[1].join('') : "";
         
+
         // Is this a normal string?
         if (text.indexOf('#\x7b') === -1) {
             return new type.StringLiteral(d, text);
@@ -1243,26 +1290,34 @@ StringLiteral "string"
         
     }
  
-DoubleStringCharacters
-  = chars:DoubleStringCharacter+ { return chars.join(""); }
-
-SingleStringCharacters
-  = chars:SingleStringCharacter+ { return chars.join(""); }
-
 DoubleStringCharacter
-  = !('"' / !"\\" "\\") char_:.        { return char_;     }
-  / "\\" sequence:EscapeSequence { return sequence;  }
+  = !('"' / "\\" ) . { return text(); }
+  / "\\" sequence:EscapeSequence { return sequence; }
 
 SingleStringCharacter
-  = !("'" / !"\\" "\\") char_:.        { return char_;     }
-  / "\\" sequence:EscapeSequence { return sequence;  }
+  = !("'" / "\\" ) . { return text(); }
+  / "\\" sequence:EscapeSequence { return sequence; }
 
 EscapeSequence
+  = CharacterEscapeSequence
+
+CharacterEscapeSequence
   = SingleEscapeCharacter
   / NonEscapeCharacter
 
 SingleEscapeCharacter
-  = ['"]
+  = "'"
+  / '"'
+  / "\\" { return "\\\\"; }
+  / "b"  { return "\b";   }
+  / "f"  { return "\f";   }
+  / "n"  { return "\n";   }
+  / "r"  { return "\r";   }
+  / "t"  { return "\t";   }
+  / "v"  { return "\x0B"; }   // IE does not recognize "\v".
 
 NonEscapeCharacter
-  = (!SingleEscapeCharacter / EOL) char_:. { return char_; }
+  = !(EscapeCharacter / EOL) . { return text(); }
+
+EscapeCharacter
+  = SingleEscapeCharacter

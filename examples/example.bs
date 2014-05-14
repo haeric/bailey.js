@@ -6,6 +6,12 @@ humbug = {
     b: 2, 
     c: 3,
 }
+icecream = {
+    r2d2: 1
+    c3po: 2
+    clear: 3
+}
+
 data = [
     true, 
     false, 
@@ -25,11 +31,12 @@ b *= 2
 if a
     c = 3
     if a > 5
-        7
+        car = 3
     else
-        8
+        car = 5
+    car = 1
     if 9 and 10 or 2
-        10
+        pass
 
 else
     111
@@ -67,7 +74,7 @@ c = new Animal()
 a = "hi!"
 b = "this is a 
 multine string.. wonder how that works!"
-#s = 'single quoted... with \' escaping as well'
+s = 'single quoted... with \' escaping as well'
 
 f = (g) -> 'hai'
 f = (a, b, c) ->
@@ -82,3 +89,6 @@ b = ((a, b, c) ->
     1
 )()
 c = f()
+
+for i, x in f()
+    1

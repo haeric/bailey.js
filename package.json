@@ -1,6 +1,6 @@
 {
   "name": "bailey",
-  "version": "0.0.3",
+  "version": "0.0.6",
   "description": "A coffeescript without that bitter after-taste.",
   "main": "bailey.js",
   "dependencies": {
@@ -9,13 +9,15 @@
     "walk": "*",
     "js-beautify": "*",
     "mkdirp": "*",
-    "esprima": "*"
+    "esprima": "*",
+    "colors": "*"
     },
   "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node bailey.js examples/ build/ && node bailey.js examples/ build/ --node && node bailey.js examples/ build/ --remove-comments; rm -r build",
     "make-parser": "./node_modules/pegjs/bin/pegjs --allowed-start-rules Program,Expression src/parser.peg src/parser.js"
   },
+  "bin": "./bailey.js",
   "repository": {
     "type": "git",
     "url": "git://github.com/haeric/bailey.js.git"
