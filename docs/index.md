@@ -4,13 +4,13 @@ title: bailey.js
 ---
 
 ## Installation
-Installing bailey.js requires you to have [node.js](http://nodejs.org/)
-and [node packet manager](https://www.npmjs.org/) installed. If you have
-those installed it is as simple as running:
+Installing bailey.js requires you to have [node.js](http://nodejs.org/) installed. If you have those installed it is as simple as running the command below to install bailey.js globally.
 
 {% highlight bash %}
-  $ npm install bailey
+  $ npm install bailey -g
 {% endhighlight %}
+
+If you want to add it to your project dependencies run `npm install bailey --save`.
 
 ## Usage
 
