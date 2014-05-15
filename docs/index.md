@@ -1,5 +1,5 @@
 ---
-layout: base
+layout: landing 
 title: bailey.js
 ---
 
