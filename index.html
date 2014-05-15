@@ -7,22 +7,32 @@
     <link href="assets/style.css" rel="stylesheet" />
   </head>
   <body>
-    <div class="container">
-      <div class="row">
-        <h1 class="col-xs-12 text-center">bailey.js</h1>
+    <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+      <div class="container">
+        <ul id="nav-ul" class="nav navbar-nav"></ul>
       </div>
-      <h2 id="installation">Installation</h2>
-<p>Installing bailey.js requires you to have <a href="http://nodejs.org/">node.js</a>
-and <a href="https://www.npmjs.org/">node packet manager</a> installed. If you have
-those installed it is as simple as running:</p>
+    </nav>
+    <div class="jumbotron">
+  <h1 class="col-xs-12 text-center">bailey.js</h1>
+  <p class="lead">
+    bailey.js is a pragmatic language that compiles to javascript.
+    Sort of like coffeescript, but a lot more inspired by python than ruby,
+    with a focus on creating a cleaner, saner language with less flaws.
+  </p>
+</div>
+<div class="container">
+  <h2 id="installation">Installation</h2>
+<p>Installing bailey.js requires you to have <a href="http://nodejs.org/">node.js</a> installed. If you have those installed it is as simple as running the command below to install bailey.js globally.</p>
 
-<div class="highlight"><pre><code class="bash"><span class="nv">$ </span>npm install bailey</code></pre></div>
+<div class="highlight"><pre><code class="bash"><span class="nv">$ </span>npm install bailey -g</code></pre></div>
+
+<p>If you want to add it to your project dependencies run <code>npm install bailey --save</code>.</p>
 
 <h2 id="usage">Usage</h2>
 
 <h3 id="in-the-command-line">In the command line</h3>
 
-<div class="highlight"><pre><code class="bash">node bailey.js sourceDir/ targetDir/</code></pre></div>
+<div class="highlight"><pre><code class="bash">bailey sourceDir/ targetDir/</code></pre></div>
 
 <h3 id="in-javacscript">In javacscript</h3>
 <p>There are two possible ways to utilise bailey in javascript. The first is to
@@ -50,9 +60,12 @@ option parameter when running bailey from javascript.</p>
 <h4 id="bare-bare"><code>--bare</code> (<code>bare</code>)</h4>
 <p>This will make the Javascript file without the wrapper function.</p>
 
+<h2 id="feedback">Feedback?</h2>
+<p>Feedback is awesome! Did you find a bug, do you have a question or do you have a great idea for a feature? Just <a href="https://github.com/haeric/bailey.js/issues/new">open an issue on Github</a> or join our discussion on <a href="https://gitter.im/haeric/bailey.js">gitter.im/haeric/bailey.js</a></p>
+
 <div class="row">
   <div class="col-xs-12">
-    <h2>Learn by examples</h2>
+    <h2 id="examples">Learn by examples</h2>
     <ul class="nav nav-pills">
       
       <li><a href="#Datatypes">Datatypes</a></li>
@@ -67,7 +80,7 @@ option parameter when running bailey from javascript.</p>
   </div>
 </div>
 
-<div id="Datatypes" class="example row">
+<div class="example row">
     <h3 class="col-xs-12">Datatypes</h3>
     <div class="bailey-code col-xs-12 col-sm-6">
       <h4>Bailey.js</h4>
@@ -122,39 +135,23 @@ option parameter when running bailey from javascript.</p>
     </div>
   </div>
 
-<div id="Comments" class="example row">
+<div class="example row">
     <h3 class="col-xs-12">Comments</h3>
     <div class="bailey-code col-xs-12 col-sm-6">
       <h4>Bailey.js</h4>
       
-<div class="highlight"><pre><code class="coffeescript"><span class="c1"># This is an awesome comment</span>
-
-<span class="c1"># C</span>
-<span class="c1"># O</span>
-<span class="c1"># M</span>
-<span class="c1"># M</span>
-<span class="c1"># E</span>
-<span class="c1"># N</span>
-<span class="c1"># T</span></code></pre></div>
+<div class="highlight"><pre><code class="coffeescript"><span class="c1"># This is an awesome comment</span></code></pre></div>
 
     </div>
     <div class="javascript-code col-xs-12 col-sm-6">
       <h4>Javascript</h4>
       
-<div class="highlight"><pre><code class="javascript"><span class="c1">// This is an awesome comment</span>
-
-<span class="c1">// C</span>
-<span class="c1">// O</span>
-<span class="c1">// M</span>
-<span class="c1">// M</span>
-<span class="c1">// E</span>
-<span class="c1">// N</span>
-<span class="c1">// T</span></code></pre></div>
+<div class="highlight"><pre><code class="javascript"><span class="c1">// This is an awesome comment</span></code></pre></div>
 
     </div>
   </div>
 
-<div id="If-statements" class="example row">
+<div class="example row">
     <h3 class="col-xs-12">If-statements</h3>
     <div class="bailey-code col-xs-12 col-sm-6">
       <h4>Bailey.js</h4>
@@ -177,25 +174,25 @@ option parameter when running bailey from javascript.</p>
       <h4>Javascript</h4>
       
 <div class="highlight"><pre><code class="javascript"><span class="k">if</span> <span class="p">(</span><span class="s1">&#39;chocolate&#39;</span> <span class="k">in</span> <span class="nx">apartment</span><span class="p">)</span> <span class="p">{</span>
-    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Awesome!&quot;</span><span class="p">)</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Awesome!&quot;</span><span class="p">);</span>
 <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Too bad for you.&quot;</span><span class="p">)</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Too bad for you.&quot;</span><span class="p">);</span>
 <span class="p">}</span>
 
 <span class="k">if</span> <span class="p">(</span><span class="nx">numberOfIceCreamsToday</span> <span class="o">===</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Go eat ice-cream&quot;</span><span class="p">)</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Go eat ice-cream&quot;</span><span class="p">);</span>
 <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">numberOfIceCreamsToday</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
-    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Good!&quot;</span><span class="p">)</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Good!&quot;</span><span class="p">);</span>
 
     <span class="k">if</span> <span class="p">(</span><span class="nx">numberOfIceCreamsToday</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">)</span> <span class="p">{</span>
-        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Serously?&quot;</span><span class="p">)</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Serously?&quot;</span><span class="p">);</span>
     <span class="p">}</span>
 <span class="p">}</span></code></pre></div>
 
     </div>
   </div>
 
-<div id="Loops" class="example row">
+<div class="example row">
     <h3 class="col-xs-12">Loops</h3>
     <div class="bailey-code col-xs-12 col-sm-6">
       <h4>Bailey.js</h4>
@@ -215,18 +212,19 @@ option parameter when running bailey from javascript.</p>
     <div class="javascript-code col-xs-12 col-sm-6">
       <h4>Javascript</h4>
       
-<div class="highlight"><pre><code class="javascript"><span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">__i1</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">__i1</span> <span class="o">&lt;</span> <span class="nx">bagOfDelicousCandy</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">__i1</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+<div class="highlight"><pre><code class="javascript"><span class="kd">var</span> <span class="nx">__l1</span> <span class="o">=</span> <span class="nx">bagOfDelicousCandy</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span>
+<span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">__i1</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">__i1</span> <span class="o">&lt;</span> <span class="nx">__l1</span><span class="p">;</span> <span class="nx">__i1</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
     <span class="kd">var</span> <span class="nx">item</span> <span class="o">=</span> <span class="nx">bagOfDelicousCandy</span><span class="p">[</span><span class="nx">__i1</span><span class="p">];</span>
-    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">item</span><span class="p">)</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">item</span><span class="p">);</span>
 <span class="p">}</span>
 
 <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">number</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">number</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">;</span> <span class="nx">number</span> <span class="o">=</span> <span class="nx">number</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
-    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">number</span><span class="p">)</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">number</span><span class="p">);</span>
 <span class="p">}</span>
 
 <span class="kd">var</span> <span class="nx">chocolateCount</span> <span class="o">=</span> <span class="mi">4</span><span class="p">;</span>
 <span class="k">while</span> <span class="p">(</span><span class="nx">chocolateCount</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;Eat chocolate&#39;</span><span class="p">)</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;Eat chocolate&#39;</span><span class="p">);</span>
     <span class="nx">chocolateCount</span> <span class="o">-=</span> <span class="mi">1</span><span class="p">;</span>
 <span class="p">}</span></code></pre></div>
 
@@ -234,6 +232,9 @@ option parameter when running bailey from javascript.</p>
   </div>
 
 
-    </div>
+</div>
+
+
+    <script src="assets/nav.js" type="text/javascript"></script>
   </body>
 </html>

@@ -1,7 +1,0 @@
-
-import fs
-
-do_something = (with_this) ->
-	console.log(with_this)
-
-do_something("lala")
