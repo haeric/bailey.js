@@ -22,6 +22,11 @@
     "type": "git",
     "url": "git://github.com/haeric/bailey.js.git"
   },
+  "files": [
+    "src/",
+    "bailey.js",
+    "LICENSE"
+  ],
   "author": "Haakon Erichsen, @haeric",
   "license": "MIT"
 }
