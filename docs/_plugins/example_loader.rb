@@ -1,3 +1,5 @@
+require "execjs"
+
 module Jekyll
   module Tags
     class LoadExampleBlock < Liquid::Tag
@@ -13,41 +15,33 @@ module Jekyll
         end
       end
 
-      def compile_examples()
-        space = '                    '
-        puts "#{space}Compiling examples"
-        IO.popen('bailey ../examples/ ../examples/js/ --bare') { |io| io.each{|s| puts s} }
-        success = $? == 0
-        puts "#{space}Compilation failed" unless success
-        success
+      def convert_helper(content, options)
+        context = ExecJS.compile('var bailey = require("bailey");')
+        context.call("bailey.parseString", content, options)
       end
 
       def render(context)
         file = context
         @file.split('.').each{ |item| file = file[item] if file}
-        if @language == 'javascript'
-          file = "../examples/js/#{file.downcase}.js"
-        else
-          file = "../examples/#{file.downcase}.bs"
-        end
+        file = "../examples/#{file.downcase}.bs"
 
-        if compile_examples()
-          file_path = File.join *file.split('/')
+        file_path = File.join *file.split('/')
 
-          if File.exists? file_path
-            content = File.read file_path
-            highlighted = highlight content, context
-          end
+        if File.exists? file_path
+          content = File.read file_path
+          content = convert_helper(content, { :bare => true }) if @language == 'javascript'
+          highlighted = highlight content, context
         end
 
         highlighted or 'Could not load example.'
       end
 
       def highlight(content, context)
-        @language = 'coffeescript' if @language == 'bailey'
+        language = @language
+        language = 'coffeescript' if @language == 'bailey'
         highlight_block = Jekyll::Tags::HighlightBlock.new(
           'highlight',
-          @language,
+          language,
           [content, "{% endhighlight %}" ]
         )
 
