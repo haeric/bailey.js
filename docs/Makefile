@@ -4,13 +4,10 @@ default:
 	@echo "make serve - serve the docs on 0.0.0.0:4000"
 	@echo "make publish - publish the docs on origin/gh-pages"
 
-build-assets:
-	bailey assets assets --bare
-
-build: build-assets
+build:
 	jekyll build
 
-serve: build-assets
+serve:
 	jekyll serve -w
 
 publish: build
