@@ -1,18 +1,17 @@
 #!/usr/bin/env node
 
-var PEG = require('pegjs');
 var argv = require('optimist').argv;
 var fs = require('fs');
-var exec = require('child_process').exec;
 var walk = require('walk');
 var path = require('path');
-var colors = require('colors');
 var watch = require('node-watch');
 var mkdir = require('mkdirp');
 var beautify = require('js-beautify').js_beautify;
 
+require('colors');
+
 // Command-line use of bailey.js
-ALLOWED_ARGS = {
+var ALLOWED_ARGS = {
     '_': 1,
     '$0': 1,
     'node': 1,
@@ -20,21 +19,21 @@ ALLOWED_ARGS = {
     'verbose': 1, 
     'remove-comments': 1,
     'watch': 1,
-}
+};
 
 function main () {
     var source = argv._[0];
     var target = argv._[1];
 
     if (argv.help || argv.h) {
-        usage()
+        usage();
     }
 
     if (argv.version) {
         return console.log(require('./package.json').version);
     }
 
-    for (key in argv) {
+    for (var key in argv) {
         if (argv._.length > 2) {
             usage(argv._.length + ' positional arguments? That is surely a bit too many, I only take 2!');
         }
@@ -44,14 +43,14 @@ function main () {
     }
 
     if (!source || !target) {
-        usage()
+        usage();
     }
 
     var options = {
         node: !!argv.node,
         removeComments: !!argv['remove-comments'],
         bare: !!argv.bare,
-    }
+    };
 
     function compile(onDone) {
         parseFiles(source, target, options, function(sourcePath, targetPath) {
@@ -66,7 +65,7 @@ function main () {
 
     function startWatching () {
         argv.verbose = true;
-        console.log('Watching ' + source + ' for changes...')
+        console.log('Watching ' + source + ' for changes...');
         watch(source, function(filename) {
             console.log('\n' + filename + ' changed, recompiling...\n-----------');
             compile(function(){
@@ -86,7 +85,7 @@ function main () {
 
 function usage (err) {
     if (err) console.error(err.red);
-    console.error('Usage: bailey sourcedir/ targetdir/ [--node] [--remove-comments] [--bare] [--watch] [--verbose]')
+    console.error('Usage: bailey sourcedir/ targetdir/ [--node] [--remove-comments] [--bare] [--watch] [--verbose]');
     process.exit(1);
 }
 
@@ -147,7 +146,7 @@ function normalizeBlocks (input) {
 }
 
 function parse (parser, input, options) {
-
+    
     input = normalizeBlocks(input);
 
     options = options || {};
@@ -156,11 +155,12 @@ function parse (parser, input, options) {
     options.bare = options.bare !== undefined ? options.bare : false;
     options.parse = parse;
 
+    var ast;
     try {
-        var ast = parser.parse(input);
+        ast = parser.parse(input);
     }
     catch (e) {
-        throw new ParserError(e, input, options)
+        throw new ParserError(e, input, options);
     }
 
     return beautify(ast.toJS(options));
@@ -171,11 +171,11 @@ function parseFiles (source, target, options, onFile, onError, onDone) {
 
     // Make sure the source and target are properly formatted
     if (source[source.length-1] != '/') {
-        source += '/'
+        source += '/';
     }
 
     if (target[target.length-1] != '/') {
-        target += '/'
+        target += '/';
     }
 
     var parser = require('./src/parser.js');
@@ -212,11 +212,13 @@ function parseFiles (source, target, options, onFile, onError, onDone) {
             options.filePath = sourcePath;
             options.root = root;
 
+            var parsed;
+          
             try {
-                var parsed = parse(parser, input, options, onError);
+                parsed = parse(parser, input, options, onError);
             }
             catch (e) {
-                onError && onError(e);
+                if (onError) onError(e);
             }
 
             if (parsed !== undefined) {
@@ -271,7 +273,7 @@ function ParserError (error, input, options) {
             repeat(" ", error.column-1) + '^', 
             error.message,
         ].join('\n');
-    }
+    };
 
 }
 
