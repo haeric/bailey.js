@@ -7,7 +7,7 @@
     <link href="assets/style.css" rel="stylesheet" />
   </head>
   <body>
-    <nav class="navbar navbar-default" role="navigation">
+    <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
       <div class="container">
         <ul id="nav-ul" class="nav navbar-nav"></ul>
       </div>
@@ -55,16 +55,19 @@ is used with the command line and the ones in the parentheses are used in the
 option parameter when running bailey from javascript.</p>
 
 <h4 id="node-node"><code>--node</code> (<code>node</code>)</h4>
-<p>This will result in a version with node imports instead of requirejs-imports</p>
+<p>Use node imports instead of requirejs-imports, for running things server-side.</p>
 
 <h4 id="remove-comments-removecomments"><code>--remove-comments</code> (<code>removeComments</code>)</h4>
-<p>This will remove all comments in the compiled version.</p>
+<p>Remove all comments in the compiled version.</p>
 
 <h4 id="bare-bare"><code>--bare</code> (<code>bare</code>)</h4>
-<p>This will make the Javascript file without the wrapper function.</p>
+<p>Make the Javascript file without the wrapper function.</p>
 
-<h2 id="feedback">Feedback?</h2>
-<p>Feedback is awesome! Did you find a bug, do you have a question or do you have a great idea for a feature? Just <a href="https://github.com/haeric/bailey.js/issues/new">open an issue on Github</a> or join our discussion on <a href="https://gitter.im/haeric/bailey.js">gitter.im/haeric/bailey.js</a></p>
+<h4 id="watch"><code>--watch</code></h4>
+<p>Watch the source file or directory, recompiling when any file changes.</p>
+
+<h4 id="version"><code>--version</code></h4>
+<p>Output the current version.</p>
 
 <div class="row">
   <div class="col-xs-12">
@@ -78,6 +81,8 @@ option parameter when running bailey from javascript.</p>
       <li><a href="#If-statements">If-statements</a></li>
       
       <li><a href="#Loops">Loops</a></li>
+      
+      <li><a href="#Classes">Classes</a></li>
       
     </ul>
   </div>
@@ -234,9 +239,100 @@ option parameter when running bailey from javascript.</p>
     </div>
   </div>
 
+<div class="example row">
+    <h3 class="col-xs-12">Classes</h3>
+    <div class="bailey-code col-xs-12 col-sm-6">
+      <h4>Bailey.js</h4>
+      
+<div class="highlight"><pre><code class="coffeescript"><span class="k">class</span> <span class="nx">CandyStore</span>
+
+  <span class="nv">init: </span><span class="p">()</span> <span class="nf">-&gt;</span>
+    <span class="vi">@inventory = </span><span class="p">{}</span>
+    <span class="vi">@cashRegister = </span><span class="mi">0</span>
+
+  <span class="nv">loadInventory: </span><span class="nf">(newLoad) -&gt;</span>
+    <span class="k">for</span> <span class="nx">item</span> <span class="k">in</span> <span class="nx">newLoad</span>
+      <span class="k">if</span> <span class="nx">item</span><span class="p">.</span><span class="nx">slug</span> <span class="k">in</span> <span class="nx">@inventory</span>
+        <span class="nx">@inventory</span><span class="p">[</span><span class="nx">item</span><span class="p">.</span><span class="nx">slug</span><span class="p">].</span><span class="nx">quantity</span> <span class="o">+=</span> <span class="nx">item</span><span class="p">.</span><span class="nx">quantity</span>
+      <span class="k">else</span>
+        <span class="nx">@inventory</span><span class="p">[</span><span class="nx">item</span><span class="p">.</span><span class="nx">slug</span><span class="p">]</span> <span class="o">=</span> <span class="nx">item</span>
+
+  <span class="nv">sell: </span><span class="nf">(item, quantity) -&gt;</span>
+    <span class="k">if</span> <span class="nx">quantity</span> <span class="o">&gt;</span> <span class="nx">@inventory</span><span class="p">[</span><span class="nx">item</span><span class="p">.</span><span class="nx">slug</span><span class="p">].</span><span class="nx">quantity</span>
+      <span class="k">throw</span> <span class="nx">SoldOutError</span>
+      <span class="k">return</span> <span class="kc">false</span>
+
+    <span class="nx">@inventory</span><span class="p">[</span><span class="nx">item</span><span class="p">.</span><span class="nx">slug</span><span class="p">].</span><span class="nx">quantity</span> <span class="o">-=</span> <span class="nx">quantity</span>
+    <span class="nx">@cashRegister</span> <span class="o">+=</span> <span class="nx">item</span><span class="p">.</span><span class="nx">price</span> <span class="o">*</span> <span class="nx">quantity</span>
+
+
+<span class="k">class</span> <span class="nx">Candy</span>
+  <span class="nv">title: </span><span class="s">&quot;&quot;</span>
+  <span class="nv">slug: </span><span class="s">&quot;&quot;</span>
+  <span class="nv">price: </span><span class="mi">0</span>
+  <span class="nv">quantity: </span><span class="mi">0</span>
+
+  <span class="nv">init: </span><span class="nf">(title, price, quantity) -&gt;</span>
+    <span class="vi">@title = </span><span class="nx">title</span>
+    <span class="vi">@price = </span><span class="nx">price</span>
+    <span class="vi">@quantity = </span><span class="nx">quantity</span>
+    <span class="vi">@slug = </span><span class="nx">slugify</span><span class="p">(</span><span class="nx">title</span><span class="p">)</span></code></pre></div>
+
+    </div>
+    <div class="javascript-code col-xs-12 col-sm-6">
+      <h4>Javascript</h4>
+      
+<div class="highlight"><pre><code class="javascript"><span class="kd">function</span> <span class="nx">CandyStore</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">inventory</span> <span class="o">=</span> <span class="p">{};</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">cashRegister</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;;</span>
+    <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="nx">CandyStore</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">loadInventory</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">newLoad</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">__l1</span> <span class="o">=</span> <span class="nx">newLoad</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">__i1</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">__i1</span> <span class="o">&lt;</span> <span class="nx">__l1</span><span class="p">;</span> <span class="nx">__i1</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">var</span> <span class="nx">item</span> <span class="o">=</span> <span class="nx">newLoad</span><span class="p">[</span><span class="nx">__i1</span><span class="p">];</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nx">item</span><span class="p">.</span><span class="nx">slug</span> <span class="k">in</span> <span class="k">this</span><span class="p">.</span><span class="nx">inventory</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">this</span><span class="p">.</span><span class="nx">inventory</span><span class="p">[</span><span class="nx">item</span><span class="p">.</span><span class="nx">slug</span><span class="p">].</span><span class="nx">quantity</span> <span class="o">+=</span> <span class="nx">item</span><span class="p">.</span><span class="nx">quantity</span><span class="p">;</span>
+        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+            <span class="k">this</span><span class="p">.</span><span class="nx">inventory</span><span class="p">[</span><span class="nx">item</span><span class="p">.</span><span class="nx">slug</span><span class="p">]</span> <span class="o">=</span> <span class="nx">item</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+<span class="nx">CandyStore</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">sell</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">item</span><span class="p">,</span> <span class="nx">quantity</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">quantity</span> <span class="o">&gt;</span> <span class="k">this</span><span class="p">.</span><span class="nx">inventory</span><span class="p">[</span><span class="nx">item</span><span class="p">.</span><span class="nx">slug</span><span class="p">].</span><span class="nx">quantity</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">throw</span> <span class="nx">SoldOutError</span><span class="p">;</span>
+        <span class="k">return</span> <span class="kc">false</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">this</span><span class="p">.</span><span class="nx">inventory</span><span class="p">[</span><span class="nx">item</span><span class="p">.</span><span class="nx">slug</span><span class="p">].</span><span class="nx">quantity</span> <span class="o">-=</span> <span class="nx">quantity</span><span class="p">;</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">cashRegister</span> <span class="o">+=</span> <span class="nx">item</span><span class="p">.</span><span class="nx">price</span> <span class="o">*</span> <span class="nx">quantity</span><span class="p">;</span>
+<span class="p">};</span>
+
+
+<span class="kd">function</span> <span class="nx">Candy</span><span class="p">(</span><span class="nx">title</span><span class="p">,</span> <span class="nx">price</span><span class="p">,</span> <span class="nx">quantity</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">title</span> <span class="o">=</span> <span class="nx">title</span><span class="p">;</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">price</span> <span class="o">=</span> <span class="nx">price</span><span class="p">;</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">quantity</span> <span class="o">=</span> <span class="nx">quantity</span><span class="p">;</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">slug</span> <span class="o">=</span> <span class="nx">slugify</span><span class="p">(</span><span class="nx">title</span><span class="p">);;</span>
+    <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="nx">Candy</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">title</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">;</span>
+<span class="nx">Candy</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">slug</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">;</span>
+<span class="nx">Candy</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">price</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="nx">Candy</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">quantity</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span></code></pre></div>
+
+    </div>
+  </div>
+
+<h2 id="feedback">Feedback?</h2>
+<p>Feedback is awesome! Did you find a bug, do you have a question or do you have a great idea for a feature? Just <a href="https://github.com/haeric/bailey.js/issues/new">open an issue on Github</a> or join our discussion on <a href="https://gitter.im/haeric/bailey.js">gitter.im/haeric/bailey.js</a></p>
 
 </div>
+<div class="footer">
+</div>
 
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js" type="text/javascript"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
     <script src="assets/nav.js" type="text/javascript"></script>
   </body>
 </html>
