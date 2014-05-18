@@ -1,7 +1,8 @@
 ---
-bare: true
 ---
 
 navBar = document.getElementById('nav-ul')
 for element in document.getElementsByTagName('h2')
-  navBar.innerHTML += '<li><a href="##{element.id}">#{element.innerHTML}</a></li>'
+  navBar.innerHTML += '<li id="#{element.id}-btn"><a href="##{element.id}">#{element.innerHTML}</a></li>'
+
+$('body').scrollspy({ target: '.navbar' })

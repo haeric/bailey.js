@@ -1,6 +1,6 @@
 ---
 ---
-
+$blue: #0094DA
 body
   font-size: 18px
   background: url(bg.png)
@@ -17,8 +17,19 @@ code
   background: #ededed
   padding: 0.4em
   color: black
+
 .navbar
   margin-bottom: 0
+  .container
+    max-width: 540px
+
+  li>a
+    border-bottom: 3px solid #f8f8f8
+    padding-bottom: 12px
+
+  li.active>a
+    background-color: transparent !important
+    border-bottom: 3px solid $blue
 
 .jumbotron
   background: #fafafa
@@ -30,6 +41,14 @@ code
 .example
   margin-top: 10px
   margin-bottom: 20px
+
+.footer
+  min-height: 20px
+  margin-bottom: 60px
+
+.btn-info
+  background: $blue
+  border-color: darken($blue, 4%)
 
 @media only screen and (max-width : 600px)
   h1, h2, h3, h4
