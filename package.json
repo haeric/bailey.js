@@ -4,7 +4,6 @@
   "description": "A coffeescript without that bitter after-taste.",
   "main": "bailey.js",
   "dependencies": {
-    "pegjs": "~0.8.0",
     "optimist": "*",
     "walk": "*",
     "js-beautify": "*",
@@ -13,7 +12,9 @@
     "colors": "*",
     "node-watch": "*"
     },
-  "devDependencies": {},
+  "devDependencies": {
+    "pegjs": "~0.8.0"
+  },
   "scripts": {
     "test": "node bailey.js examples/ build/ && node bailey.js examples/ build/ --node && node bailey.js examples/ build/ --remove-comments; rm -r build",
     "make-parser": "./node_modules/pegjs/bin/pegjs --allowed-start-rules Program,Expression src/parser.peg src/parser.js"
