@@ -20,6 +20,7 @@ var ALLOWED_ARGS = {
     'remove-comments': 1,
     'watch': 1,
     'eval': 1,
+    'stdio': 1,
 };
 
 function main () {
@@ -47,14 +48,19 @@ function main () {
         }
     }
 
+    if (argv.stdio) {
+        process.stdin.setEncoding('utf8');
+
+        process.stdin.on('readable', function() {
+            parseStringOrPrintError(process.stdin.read() || '');
+        });
+
+        process.stdin.resume();
+        return;
+    }
+
     if (argv.eval) {
-        try {
-            return console.log(parseString(argv.eval, options));
-        }
-        catch (e) {
-            console.error(e.toString().red);
-            process.exit(1);
-        }
+        return parseStringOrPrintError(argv.eval);
     }
 
     var source = argv._[0];
@@ -62,6 +68,16 @@ function main () {
 
     if (!source || !target) {
         usage();
+    }
+
+    function parseStringOrPrintError(string) {
+        try {
+            return console.log(parseString(string, options));
+        }
+        catch (e) {
+            console.error(e.toString().red);
+            process.exit(1);
+        }
     }
 
     function compile(onDone) {
@@ -92,7 +108,6 @@ function main () {
         }
     });
 
-    
 }
 
 function usage (err) {
@@ -290,6 +305,8 @@ function ParserError (error, input, options) {
 }
 
 ParserError.prototype = Object.create(Error);
+
+
 
 if (!module.parent) {
     main();
