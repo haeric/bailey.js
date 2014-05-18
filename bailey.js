@@ -19,11 +19,16 @@ var ALLOWED_ARGS = {
     'verbose': 1, 
     'remove-comments': 1,
     'watch': 1,
+    'eval': 1,
 };
 
 function main () {
-    var source = argv._[0];
-    var target = argv._[1];
+
+    var options = {
+        node: !!argv.node,
+        removeComments: !!argv['remove-comments'],
+        bare: !!argv.bare,
+    };
 
     if (argv.help || argv.h) {
         usage();
@@ -42,15 +47,22 @@ function main () {
         }
     }
 
+    if (argv.eval) {
+        try {
+            return console.log(parseString(argv.eval, options));
+        }
+        catch (e) {
+            console.error(e.toString().red);
+            process.exit(1);
+        }
+    }
+
+    var source = argv._[0];
+    var target = argv._[1];
+
     if (!source || !target) {
         usage();
     }
-
-    var options = {
-        node: !!argv.node,
-        removeComments: !!argv['remove-comments'],
-        bare: !!argv.bare,
-    };
 
     function compile(onDone) {
         parseFiles(source, target, options, function(sourcePath, targetPath) {
