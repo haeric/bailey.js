@@ -40,13 +40,19 @@ is used with the command line and the ones in the parentheses are used in the
 option parameter when running bailey from javascript.
 
 #### `--node` (`node`)
-This will result in a version with node imports instead of requirejs-imports
+Use node imports instead of requirejs-imports, for running things server-side.
 
 #### `--remove-comments` (`removeComments`)
-This will remove all comments in the compiled version.
+Remove all comments in the compiled version.
 
 #### `--bare` (`bare`)
-This will make the Javascript file without the wrapper function.
+Make the Javascript file without the wrapper function.
+
+#### `--watch`
+Watch the source file or directory, recompiling when any file changes.
+
+#### `--version`
+Output the current version.
 
 {% include examples.html %}
 
