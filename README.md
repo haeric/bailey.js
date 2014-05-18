@@ -10,10 +10,13 @@ node bailey.js examples/ build/
 
 ### Options
 #### --node
-This will result in a version with node imports instead of requirejs-imports
+Use node imports instead of requirejs-imports, for running things server-side.
 
 #### --remove-comments
-This will remove all comments in the compiled version.
+Remove all comments in the compiled version.
 
 #### --bare
-This will make the Javascript file without the wrapper function.
+Make the Javascript file without the wrapper function.
+
+#### --version
+Output the current version.

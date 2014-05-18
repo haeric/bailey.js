@@ -15,6 +15,10 @@ function main () {
     var source = argv._[0];
     var target = argv._[1];
 
+    if (argv.version) {
+        return console.log(require('./package.json').version);
+    }
+
     if (!source || !target) {
         console.error('Usage: bailey sourcedir/ targetdir/ [--node] [--remove-comments] [--bare]')
         process.exit(1);
