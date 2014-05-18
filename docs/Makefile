@@ -13,3 +13,5 @@ serve:
 publish: build
 	ghp-import _site
 	git push origin gh-pages
+
+test: build

@@ -1,5 +1,5 @@
 ---
-layout: landing 
+layout: landing
 title: bailey.js
 ---
 
@@ -48,7 +48,7 @@ This will remove all comments in the compiled version.
 #### `--bare` (`bare`)
 This will make the Javascript file without the wrapper function.
 
+{% include examples.html %}
+
 ## Feedback?
 Feedback is awesome! Did you find a bug, do you have a question or do you have a great idea for a feature? Just [open an issue on Github](https://github.com/haeric/bailey.js/issues/new) or join our discussion on [gitter.im/haeric/bailey.js](https://gitter.im/haeric/bailey.js)
-
-{% include examples.html %}
