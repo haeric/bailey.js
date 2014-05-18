@@ -15,9 +15,12 @@ module Jekyll
         end
       end
 
-      def convert_helper(content, options)
-        context = ExecJS.compile('var bailey = require("bailey");')
-        context.call("bailey.parseString", content, options)
+      def convert_helper(content)
+        IO.popen(["node", "../bailey", "--bare", "--stdio"], "w+") do |io|
+          io.write content
+          io.close_write
+          io.readlines.join.chomp
+        end
       end
 
       def render(context)
@@ -29,7 +32,7 @@ module Jekyll
 
         if File.exists? file_path
           content = File.read file_path
-          content = convert_helper(content, { :bare => true }) if @language == 'javascript'
+          content = convert_helper(content) if @language == 'javascript'
           highlighted = highlight content, context
         end
 

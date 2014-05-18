@@ -19,8 +19,11 @@ module Jekyll
       end
 
       def convert_helper(content, options)
-        context = ExecJS.compile('var bailey = require("bailey");')
-        context.call("bailey.parseString", content, options)
+        IO.popen(["node", "../bailey", "--bare", "--stdio"], "w+") do |io|
+          io.write content
+          io.close_write
+          io.readlines.join.chomp
+        end
       end
     end
   end
