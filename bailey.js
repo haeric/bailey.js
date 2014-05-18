@@ -11,17 +11,36 @@ var mkdir = require('mkdirp');
 var beautify = require('js-beautify').js_beautify;
 
 // Command-line use of bailey.js
+ALLOWED_ARGS = {
+    '_': 1,
+    'node': 1,
+    'bare': 1, 
+    'remove-comments': 1,
+}
+
 function main () {
     var source = argv._[0];
     var target = argv._[1];
+
+    if (argv.help || argv.h) {
+        usage()
+    }
 
     if (argv.version) {
         return console.log(require('./package.json').version);
     }
 
+    for (key in argv) {
+        if (argv._.length > 2) {
+            usage(argv._.length + ' positional arguments? That is surely a bit too many, I only take 2!');
+        }
+        if (!(key in ALLOWED_ARGS)) {
+            usage('I really have no idea what you mean by "' + key + '"...');
+        }
+    }
+
     if (!source || !target) {
-        console.error('Usage: bailey sourcedir/ targetdir/ [--node] [--remove-comments] [--bare]')
-        process.exit(1);
+        usage()
     }
 
     var options = {
@@ -38,6 +57,12 @@ function main () {
         console.error(err.toString().red);
         process.exit(1);
     });
+}
+
+function usage (err) {
+    if (err) console.error(err.red);
+    console.error('Usage: bailey sourcedir/ targetdir/ [--node] [--remove-comments] [--bare]')
+    process.exit(1);
 }
 
 // Whenever we hit an indented block, make sure all preceding
