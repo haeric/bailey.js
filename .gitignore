@@ -3,5 +3,7 @@ examples/js/
 build/
 docs/_site
 docs/assets/*.js
+docs/bailey.tgz
+docs/bailey.docset
 build/
 src/parser.js
