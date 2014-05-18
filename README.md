@@ -20,3 +20,6 @@ Make the Javascript file without the wrapper function.
 
 #### --version
 Output the current version.
+
+#### --watch
+Watch the source file or directory, recompiling when any file changes.

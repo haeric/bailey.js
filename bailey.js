@@ -7,15 +7,19 @@ var exec = require('child_process').exec;
 var walk = require('walk');
 var path = require('path');
 var colors = require('colors');
+var watch = require('node-watch');
 var mkdir = require('mkdirp');
 var beautify = require('js-beautify').js_beautify;
 
 // Command-line use of bailey.js
 ALLOWED_ARGS = {
     '_': 1,
+    '$0': 1,
     'node': 1,
     'bare': 1, 
+    'verbose': 1, 
     'remove-comments': 1,
+    'watch': 1,
 }
 
 function main () {
@@ -49,19 +53,40 @@ function main () {
         bare: !!argv.bare,
     }
 
-    parseFiles(source, target, options, function(sourcePath, targetPath) {
-        if (argv.verbose) {
-            console.log(sourcePath, "->", targetPath);
+    function compile(onDone) {
+        parseFiles(source, target, options, function(sourcePath, targetPath) {
+            if (argv.verbose) {
+                console.log(sourcePath, "->", targetPath);
+            }
+        }, function(err) {
+            console.error(err.toString().red);
+            process.exit(1);
+        }, onDone);
+    }
+
+    function startWatching () {
+        argv.verbose = true;
+        console.log('Watching ' + source + ' for changes...')
+        watch(source, function(filename) {
+            console.log('\n' + filename + ' changed, recompiling...\n-----------');
+            compile(function(){
+                console.log('-----------\nDone! Looking for more changes...');
+            });
+        });
+    }
+
+    compile(function () {
+        if (argv.watch) {
+            startWatching();
         }
-    }, function(err) {
-        console.error(err.toString().red);
-        process.exit(1);
     });
+
+    
 }
 
 function usage (err) {
     if (err) console.error(err.red);
-    console.error('Usage: bailey sourcedir/ targetdir/ [--node] [--remove-comments] [--bare]')
+    console.error('Usage: bailey sourcedir/ targetdir/ [--node] [--remove-comments] [--bare] [--watch] [--verbose]')
     process.exit(1);
 }
 
@@ -142,7 +167,7 @@ function parse (parser, input, options) {
 
 }
 
-function parseFiles (source, target, options, onFile, onError) {
+function parseFiles (source, target, options, onFile, onError, onDone) {
 
     // Make sure the source and target are properly formatted
     if (source[source.length-1] != '/') {
@@ -201,13 +226,17 @@ function parseFiles (source, target, options, onFile, onError) {
                     }
                     else if (onFile) {
                         onFile(sourcePath, targetPath);
+                        next();
                     }
                 });
                 
-                next();
             }
 
         });
+    });
+
+    walker.on("end", function () {
+        if (onDone) onDone();
     });
 }
 

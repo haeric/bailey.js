@@ -10,7 +10,8 @@
     "js-beautify": "*",
     "mkdirp": "*",
     "esprima": "*",
-    "colors": "*"
+    "colors": "*",
+    "node-watch": "*"
     },
   "devDependencies": {},
   "scripts": {
