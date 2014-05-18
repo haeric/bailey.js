@@ -1,0 +1,24 @@
+<div class="row">
+  <div class="col-xs-12">
+    <h2 id="examples">Learn by examples</h2>
+    <ul class="nav nav-pills">
+      {% for name in site.examples %}
+      <li><a href="#{{ name }}">{{ name }}</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+
+{% for name in site.examples %}
+  <div id="{{ example }}" class="example row">
+    <h3 class="col-xs-12">{{ name }}</h3>
+    <div class="bailey-code col-xs-12 col-sm-6">
+      <h4>Bailey.js</h4>
+      {% load_example name bailey %}
+    </div>
+    <div class="javascript-code col-xs-12 col-sm-6">
+      <h4>Javascript</h4>
+      {% load_example name javascript %}
+    </div>
+  </div>
+{% endfor %}

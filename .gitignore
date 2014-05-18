@@ -1,3 +1,7 @@
 node_modules/
+examples/js/
+build/
+docs/_site
+docs/assets/*.js
 build/
 src/parser.js
