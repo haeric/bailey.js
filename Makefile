@@ -17,9 +17,9 @@ serve:
 	jekyll serve -w
 
 publish: build docset
-	rm -rf _site/dash _site/bailey.docset
+	rm -rf _site/dash _site/bailey.docset _site/dash-docset-generation
 	ghp-import _site
-	git push origin gh-pages
+	git push origin gh-pages -f
 
 docset: build
 	mkdir -p bailey.docset/Contents/Resources/Documents/

@@ -5,15 +5,18 @@
     <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
     <link href="assets/github.css" rel="stylesheet" />
     <link href="assets/style.css" rel="stylesheet" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
   </head>
   <body>
-    <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <nav class="navbar navbar-default navbar-fixed-top hidden-xs" role="navigation">
       <div class="container">
         <ul id="nav-ul" class="nav navbar-nav"></ul>
       </div>
     </nav>
     <div class="jumbotron">
-  <h1 class="col-xs-12 text-center">bailey.js</h1>
+  <h1 class="text-center">bailey.js</h1>
   <p class="lead">
     bailey.js is a pragmatic language that compiles to javascript.
     Sort of like coffeescript, but a lot more inspired by python than ruby,
@@ -260,7 +263,6 @@ option parameter when running bailey from javascript.</p>
   <span class="nv">sell: </span><span class="nf">(item, quantity) -&gt;</span>
     <span class="k">if</span> <span class="nx">quantity</span> <span class="o">&gt;</span> <span class="nx">@inventory</span><span class="p">[</span><span class="nx">item</span><span class="p">.</span><span class="nx">slug</span><span class="p">].</span><span class="nx">quantity</span>
       <span class="k">throw</span> <span class="nx">SoldOutError</span>
-      <span class="k">return</span> <span class="kc">false</span>
 
     <span class="nx">@inventory</span><span class="p">[</span><span class="nx">item</span><span class="p">.</span><span class="nx">slug</span><span class="p">].</span><span class="nx">quantity</span> <span class="o">-=</span> <span class="nx">quantity</span>
     <span class="nx">@cashRegister</span> <span class="o">+=</span> <span class="nx">item</span><span class="p">.</span><span class="nx">price</span> <span class="o">*</span> <span class="nx">quantity</span>
@@ -301,7 +303,6 @@ option parameter when running bailey from javascript.</p>
 <span class="nx">CandyStore</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">sell</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">item</span><span class="p">,</span> <span class="nx">quantity</span><span class="p">)</span> <span class="p">{</span>
     <span class="k">if</span> <span class="p">(</span><span class="nx">quantity</span> <span class="o">&gt;</span> <span class="k">this</span><span class="p">.</span><span class="nx">inventory</span><span class="p">[</span><span class="nx">item</span><span class="p">.</span><span class="nx">slug</span><span class="p">].</span><span class="nx">quantity</span><span class="p">)</span> <span class="p">{</span>
         <span class="k">throw</span> <span class="nx">SoldOutError</span><span class="p">;</span>
-        <span class="k">return</span> <span class="kc">false</span><span class="p">;</span>
     <span class="p">}</span>
 
     <span class="k">this</span><span class="p">.</span><span class="nx">inventory</span><span class="p">[</span><span class="nx">item</span><span class="p">.</span><span class="nx">slug</span><span class="p">].</span><span class="nx">quantity</span> <span class="o">-=</span> <span class="nx">quantity</span><span class="p">;</span>
