@@ -1,0 +1,6 @@
+iceCreamsEaten = 0
+
+while iceCreamsEaten < 42
+  iceCreamsEaten += 2
+
+iceCreamsEaten

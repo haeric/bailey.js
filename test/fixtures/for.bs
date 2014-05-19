@@ -1,0 +1,10 @@
+s = 0
+for i in 0:10:2
+  s += i
+
+for i, l in "ice cream"
+  s += 2
+
+for l in "oreo"
+  s += 1
+s

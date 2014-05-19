@@ -1,0 +1,9 @@
+output = 40
+
+if output < 20
+  output -= 10
+else
+  output += 1
+  if output == 41
+    output += 1
+output
