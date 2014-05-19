@@ -2,8 +2,8 @@ import a
 import foo as c
 
 humbug = {
-    a: 1, 
-    b: 2, 
+    a: 1,
+    b: 2,
     c: 3,
 }
 icecream = {
@@ -13,9 +13,9 @@ icecream = {
 }
 
 data = [
-    true, 
-    false, 
-    null, 
+    true,
+    false,
+    null,
     1, 2, 3, 2, 4
 ]
 a = (1*(66-6)*2+1>>3)==5
@@ -62,7 +62,7 @@ class Animal
         return @
     lol: 1
     c: {
-        a: 1, 
+        a: 1,
         b: 2,
     }
 
@@ -72,9 +72,14 @@ a[6] = 1
 c = new Animal()
 @lol = a
 a = "hi!"
-b = "this is a 
+b = "this is a
 multine string.. wonder how that works!"
 s = 'single quoted... with \' escaping as well'
+
+if lala then foo
+elif muddy then bar
+elif bam then blamo
+else kobar
 
 f = (g) -> 'hai'
 f = (a, b, c) ->

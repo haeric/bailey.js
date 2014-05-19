@@ -4,7 +4,7 @@
     var path = require('path');
     var extend = require('util')._extend;
 
-    var indentStack = [], 
+    var indentStack = [],
         indent = "",
         scopeId = 0,
         parser = this;
@@ -53,7 +53,7 @@
                 if (item.nodeType === 'Block' && item.isScope) {
                     item.scope = item;
                 }
-                
+
                 for (var i = 0; i < item.children.length; i++) {
 
                     var child = item.children[i];
@@ -63,19 +63,19 @@
 
                     if (!child.nodeType)
                         continue;
-                    
+
                     queue.push(child);
                     child.parent = item;
                     child.scope = item.scope;
                     child.traverse();
-                    
+
                 }
 
             }
 
         },
         toJS: function (options) {
-            
+
             parser.options = options;
             this.traverse();
 
@@ -138,7 +138,7 @@
                     }).join(',') + '};';
                 }
 
-                out += '\n\x7d);';   
+                out += '\n\x7d);';
             }
             return out;
         }
@@ -221,8 +221,8 @@
         toJS: function () {
 
             if (this.ternary) {
-                return this.expression.toJS() + 
-                       ' ? ' + this.ifBody.toJS() + 
+                return this.expression.toJS() +
+                       ' ? ' + this.ifBody.toJS() +
                        ' : ' + this.elseBody.toJS();
             }
 
@@ -259,7 +259,7 @@
             if (this.iterable.nodeType === 'Range') {
                 this.iterator = this.item;
             }
-            
+
             if (!this.iterator) {
                 var i = 1;
                 do {
@@ -280,7 +280,7 @@
                     this.iterableLength = '__l' + i++;
                 } while (this.scope.symbols[this.iterableLength]);
             }
-            
+
             this.scope.symbols[this.iterator] = 1;
             this.scope.symbols[this.iterableTemp] = 1;
             this.scope.symbols[this.iterableLength] = 1;
@@ -294,7 +294,7 @@
             }
         },
         toJSRanged: function () {
-            
+
             var step = '',
                 iterator = this.iterator,
                 by = this.iterable.by,
@@ -320,8 +320,8 @@
             }
 
             comparator += this.iterable.equals ? '= ' : ' ';
-            
-            return 'for (var ' + iterator + ' = ' + this.iterable.from.toJS() + '; ' + 
+
+            return 'for (var ' + iterator + ' = ' + this.iterable.from.toJS() + '; ' +
                 iterator + comparator + this.iterable.to.toJS() + '; ' + step + ') {\n' +
                 this.body.toJS() + '\n' +
                 '}';
@@ -345,7 +345,7 @@
 
             return out +
                 'var ' + this.iterableLength + ' = ' + this.iterableTemp + '.length;' +
-                'for (var ' + this.iterator + ' = 0; ' + 
+                'for (var ' + this.iterator + ' = 0; ' +
                 this.iterator + ' < ' + this.iterableLength + '; ' + this.iterator + '++) { ' +
                 'var ' + this.item + ' = ' + this.iterableTemp + '[' + this.iterator + '];\n' +
                 this.body.toJS() + '\n' +
@@ -369,7 +369,7 @@
 
     type('Operator', {
         init: function (op, left, right) {
-            this.operator = op;            
+            this.operator = op;
             this.left = left;
             this.right = right;
             this.children = [left, right];
@@ -462,7 +462,7 @@
             if (this.extendFrom) {
                 out += this.name + '.prototype = Object.create(' + this.extendFrom + '.prototype);'
             }
-            
+
             out += this.values.map(function(item) {
                 return name + '.prototype.' + item.key + ' = ' + item.value.toJS() + ';'
             }).join('\n');
@@ -718,7 +718,7 @@
             if (this.type === '.') {
                 return this.value.toJS() + '.' + (this.accessor.toJS ? this.accessor.toJS() : this.accessor);
             }
-            
+
             return this.value.toJS() + '[' + this.accessor.toJS() + ']';
         }
     });
@@ -848,23 +848,23 @@ Block
         {
             var list = [statements[0]];
             for(var i = 0; i < statements[1].length; i++) list.push(statements[1][i][3]);
-            return new type.Block(list) 
+            return new type.Block(list)
         }
 
 Statement
 
-    = 'if ' condition:Expression IndentNewline ifBody:Block IndentRemove 
-      elifPart:((EOL Indent Comment?)+ 'elif' _ Expression IndentNewline Block IndentRemove)*
-      elsePart:((EOL Indent Comment?)+ 'else' IndentNewline Block IndentRemove)?
+    = 'if ' condition:Expression ifBody:IndentedBlockOrThenPlusExpresssion
+      elifPart:((EOL Indent Comment?)+ 'elif' _ Expression IndentedBlockOrThenPlusExpresssion)*
+      elsePart:((EOL Indent Comment?)+ 'else' IndentedBlockOrExpresssion)?
         {
             var elifs = elifPart.map(function(elif) {
-                return new type.If(elif[3], elif[5]);
+                return new type.If(elif[3], elif[4]);
             });
-            return new type.If(condition, ifBody, elifs, elsePart ? elsePart[3] : null); 
+            return new type.If(condition, ifBody, elifs, elsePart ? elsePart[2] : null);
         }
 
     / 'while ' e:Expression _ IndentNewline body:Block IndentRemove
-        { return new type.WhileLoop(e, body); } 
+        { return new type.WhileLoop(e, body); }
 
     / word:('break' / 'continue')
         { return new type.LoopControl(word) }
@@ -874,7 +874,7 @@ Statement
 
     / 'import ' path:[a-zA-Z0-9._!/]+
         { return new type.ImportStatement(path.join('')); }
-    
+
     / 'include ' path:[a-zA-Z0-9._-]+
         { return new type.IncludeStatement(path.join('')); }
 
@@ -885,17 +885,17 @@ Statement
         { return new type.Return(expr); }
 
     / 'try' IndentNewline tryBody:Block IndentRemove __
-      'catch' _ catchVar:Identifier IndentNewline catchBody:Block IndentRemove 
+      'catch' _ catchVar:Identifier IndentNewline catchBody:Block IndentRemove
         { return new type.TryCatch(tryBody, catchVar, catchBody)}
 
     / 'throw' _ expr:Expression
         { return new type.Throw(expr); }
 
-    / 'pass' 
+    / 'pass'
         { return new type.Noop() }
 
     / 'class' _ ident:Identifier _ extender:('extends' _ AnyIdentifier)? IndentNewline
-        head:(__ KeyValuePair / Comment) 
+        head:(__ KeyValuePair / Comment)
         tail:((EOL Indent)+ (KeyValuePair / Comment))* IndentRemove
         {
             var obj = new type.ClassStatement(ident, extender ? extender[2] : null);
@@ -920,30 +920,37 @@ Statement
 
 ForStatement
     = 'for ' iterator:Identifier ', ' item:Identifier ' in ' iterable:Expression IndentNewline body:Block IndentRemove
-        { return new type.ForLoop(iterator, item, iterable, body); } 
+        { return new type.ForLoop(iterator, item, iterable, body); }
 
     / 'for ' item:Identifier ' in ' iterable:(Range / Expression) IndentNewline body:Block IndentRemove
-        { return new type.ForLoop(null, item, iterable, body); } 
+        { return new type.ForLoop(null, item, iterable, body); }
 
     / 'for ' item:Identifier ' of ' iterable:Expression IndentNewline body:Block IndentRemove
-        { return new type.ForLoop(null, item, iterable, body, true); } 
+        { return new type.ForLoop(null, item, iterable, body, true); }
 
     // Let's allow forloops to NOT indent, if there's a forloop beneath
     / 'for ' iterator:Identifier ', ' item:Identifier ' in ' iterable:Expression EOL Indent body:ForStatement
-        { return new type.ForLoop(iterator, item, iterable, body); } 
+        { return new type.ForLoop(iterator, item, iterable, body); }
 
     / 'for ' item:Identifier ' in ' iterable:(Range / Expression) EOL Indent body:ForStatement
-        { return new type.ForLoop(null, item, iterable, body); }  
+        { return new type.ForLoop(null, item, iterable, body); }
 
     / 'for ' item:Identifier ' of ' iterable:Expression EOL Indent body:ForStatement
-        { return new type.ForLoop(null, item, iterable, body, true); }  
+        { return new type.ForLoop(null, item, iterable, body, true); }
 
+IndentedBlockOrThenPlusExpresssion
+  = IndentNewline block:Block IndentRemove { return block; }
+  / _ 'then' _ statement:Statement _       { return statement; }
+
+IndentedBlockOrExpresssion
+  = IndentNewline block:Block IndentRemove { return block; }
+  /  _ statement:Statement _               { return statement; }
 
 EOL
     = '\r\n' / '\n' / '\r'
 
 Indent
-    = i:[ \t]* 
+    = i:[ \t]*
         &{ return i.join("") === indent; }
 
 IndentNewline
@@ -951,10 +958,10 @@ IndentNewline
 
 IndentAdd
     = i:[ \t]+ &{ return i.length > indent.length; }
-        { 
-            indentStack.push(indent); 
-            indent = i.join(""); 
-            peg$currPos = offset(); 
+        {
+            indentStack.push(indent);
+            indent = i.join("");
+            peg$currPos = offset();
         }
 
 IndentRemove
@@ -965,14 +972,14 @@ Comment
     = '#' text:($(!EOL .)*)
         { return new type.Comment(text); }
 
-Assign 
-    = left:Identifier _ op:AssignmentOperator _ value:Expression 
+Assign
+    = left:Identifier _ op:AssignmentOperator _ value:Expression
         { return new type.Assignment(op, left, value) }
 
-    / left:Expression _ op:AssignmentOperator _ value:Expression 
+    / left:Expression _ op:AssignmentOperator _ value:Expression
         { return new type.Assignment(op, left, value) }
 
-    / left:ThisProperty _ op:AssignmentOperator _ value:Expression 
+    / left:ThisProperty _ op:AssignmentOperator _ value:Expression
         { return new type.Assignment(op, left, value) }
 
 AssignmentOperator
@@ -995,7 +1002,7 @@ BinaryOperator
     / '*'
     / '/'
     / '%'
-    
+
     / '&'
     / '|'
     / '^'
@@ -1034,10 +1041,10 @@ PostfixOperator
 // and will create a wrong ast. However, as long as we do not really
 // fiddle with operators, it'll output correct javascript.
 //
-Expression 
-    =  cond:BinaryExpression 
+Expression
+    =  cond:BinaryExpression
        rest:(__ '?' __ Expression __ ':' __ Expression)?
-        { 
+        {
             if (!rest) {
                 return cond;
             }
@@ -1045,18 +1052,18 @@ Expression
         }
 
 BinaryExpression
-    = left:PostfixExpression 
+    = left:PostfixExpression
       rest:(__ BinaryOperator __ Expression)?
-        { 
+        {
             if (!rest) {
                 return left;
             }
-            return new type.Operator(rest[1], left, rest[3]); 
+            return new type.Operator(rest[1], left, rest[3]);
         }
 
 PostfixExpression
     = left:FunctionExpression _ op:PostfixOperator?
-        { 
+        {
             if (!op) {
                 return left;
             }
@@ -1084,48 +1091,48 @@ FunctionExpression
 
 Value
 
-    = op:UnaryOperator _ right:Expression 
+    = op:UnaryOperator _ right:Expression
         { return new type.UnaryOperator(op, right); }
 
     / HexNumber
 
     / Number
-    
+
     / Literal
 
     / ThisProperty
 
     / ThisToken
-    
+
     / StringLiteral
 
-    / a:Identifier 
+    / a:Identifier
         { return new type.Variable(a); }
 
     / 'super'
         { return new type.SuperToken(); }
 
     / 'new' _ expr:Expression
-        { return new type.NewExpression(expr); } 
+        { return new type.NewExpression(expr); }
 
     / '[' __ head:Expression? tail:(__ ',' __ Expression)* __ ','? __ ']'
-        { 
+        {
             var list = [];
             if (head !== null) {
                 list.push(head);
             }
-            list = list.concat(tail.map(function(item) { return item[3]; })); 
+            list = list.concat(tail.map(function(item) { return item[3]; }));
             return new type.ListLiteral(list);
         }
 
-    / '{' 
-            head:(__ AnyKeyValuePair)? 
-            tail:(__ ','? __ AnyKeyValuePair)* __ ','? __  
+    / '{'
+            head:(__ AnyKeyValuePair)?
+            tail:(__ ','? __ AnyKeyValuePair)* __ ','? __
       '}'
         {
             var obj = new type.ObjectLiteral();
             if (head !== null) obj.add(head[1]);
-            for (var i = 0; i < tail.length; i++) { 
+            for (var i = 0; i < tail.length; i++) {
                 if (tail[i][3].key) {
                     obj.add(tail[i][3]);
                 }
@@ -1134,15 +1141,15 @@ Value
         }
 
     / '(' _ params:IdentifierTuple _ ')' _ '->' IndentNewline body:Block IndentRemove
-        { 
+        {
             body.isScope = true;
-            return new type.Function(params, body); 
+            return new type.Function(params, body);
         }
 
     / '(' _ params:IdentifierTuple _ ')' _ '->' _ body:Statement
-        { 
+        {
             body.isScope = true;
-            return new type.Function(params, new type.Return(body)); 
+            return new type.Function(params, new type.Return(body));
         }
 
     / GroupedExpression
@@ -1160,16 +1167,16 @@ AnyKeyValuePair
         { return {key: key, value: value}; }
 
 GroupedExpression
-    = '(' __ a:Expression __ ')' 
+    = '(' __ a:Expression __ ')'
         { return new type.Group(a); }
 
 Range
     = from:Expression _ ':' equals:'='? _ to:Expression _ by:(':' _ Expression)?
-        { 
+        {
             by = by ? by[2] : {value: 1};
             return new type.Range(from, to, by, !!equals); }
 
-Number 
+Number
     = '-'? ('0' / [1-9] [0-9]*) fract:('.' [0-9]+)? e:('e' '-'? [0-9]+)?
         { return new type.Number(text()); }
 
@@ -1206,12 +1213,12 @@ Digits
     = $ [0-9]+
 
 Letters
-    = $ [a-zA-Z$_]+ 
+    = $ [a-zA-Z$_]+
 
 _
     = (' ' / '\t' / Comment)*
 
-__ 
+__
     = (' ' / '\t' / '\r' / '\n' / Comment)*
 
 Noop
@@ -1223,7 +1230,7 @@ ReservedWord
   / Literal
 
 Keyword
-    = (   
+    = (
         'break'
         / 'case'
         / 'catch'
@@ -1249,7 +1256,7 @@ Keyword
         / 'var'
         / 'void'
         / 'while'
-        / 'with' 
+        / 'with'
         / 'class'
         / 'const'
         / 'enum'
@@ -1272,11 +1279,11 @@ ThisProperty
         { return new type.PropertyAccess(token, new type.Literal(ident), '.'); }
 
 StringLiteral "string"
-  = parts:('"' DoubleStringCharacter* '"' / "'" SingleStringCharacter* "'") 
+  = parts:('"' DoubleStringCharacter* '"' / "'" SingleStringCharacter* "'")
     {
         var d = parts[0];
         var text = parts[1] !== null ? parts[1].join('') : "";
-        
+
 
         // Is this a normal string?
         if (text.indexOf('#\x7b') === -1) {
@@ -1287,9 +1294,9 @@ StringLiteral "string"
         var re = new RegExp("#{([^\x7d]+)}", "g");
         text = d + text.replace(re, d + ' + $1 + ' + d) + d;
         return parser.parse(text, {startRule: 'Expression'});
-        
+
     }
- 
+
 DoubleStringCharacter
   = !('"' / "\\" ) . { return text(); }
   / "\\" sequence:EscapeSequence { return sequence; }
