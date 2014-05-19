@@ -19,7 +19,7 @@ serve:
 publish: build docset
 	rm -rf _site/dash _site/bailey.docset _site/dash-docset-generation
 	ghp-import _site
-	git push origin gh-pages -f
+	git push origin gh-pages
 
 docset: build
 	mkdir -p bailey.docset/Contents/Resources/Documents/

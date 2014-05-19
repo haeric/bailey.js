@@ -10,13 +10,13 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
   </head>
   <body>
-    <nav class="navbar navbar-default navbar-fixed-top hidden-xs" role="navigation">
+    <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
       <div class="container">
         <ul id="nav-ul" class="nav navbar-nav"></ul>
       </div>
     </nav>
     <div class="jumbotron">
-  <h1 class="text-center">bailey.js</h1>
+  <h1 class="col-xs-12 text-center">bailey.js</h1>
   <p class="lead">
     bailey.js is a pragmatic language that compiles to javascript.
     Sort of like coffeescript, but a lot more inspired by python than ruby,
@@ -99,26 +99,37 @@ option parameter when running bailey from javascript.</p>
 <div class="highlight"><pre><code class="coffeescript"><span class="nv">number = </span><span class="mi">42</span>
 <span class="nv">decimal = </span><span class="mf">3.14159265359</span>
 
-<span class="c1"># booleans</span>
 <span class="nv">yeah = </span><span class="kc">true</span>
-<span class="nv">hell_no = </span><span class="kc">false</span>
+<span class="nv">hellNo = </span><span class="kc">false</span>
 
+<span class="c1"># Strings are as you expect, plus string interpolation</span>
 <span class="nv">string = </span><span class="s">&#39;Hi!&#39;</span>
-<span class="nv">another_string = </span><span class="s">&quot;Hi again!&quot;</span>
-<span class="nv">string_with_multiple_lines = </span><span class="s">&quot;This </span>
+<span class="nv">anotherString = </span><span class="s">&quot;The answer is </span><span class="si">#{</span><span class="nx">number</span><span class="si">}</span><span class="s">&quot;</span>
+<span class="nv">stringWithMultipleLines = </span><span class="s">&quot;This</span>
 <span class="s">is cool&quot;</span>
 
-<span class="nv">object = </span><span class="p">{</span>
-  <span class="nv">number: </span><span class="mi">42</span><span class="p">,</span>
-  <span class="nv">string: </span><span class="s">&quot;Wee&quot;</span>
+<span class="c1"># Objects can be with commas...</span>
+<span class="nv">obj = </span><span class="p">{</span>
+    <span class="nv">number: </span><span class="mi">42</span><span class="p">,</span>
+    <span class="nv">string: </span><span class="s">&quot;Wee&quot;</span>
 <span class="p">}</span>
 
-<span class="nv">list_of_stuff = </span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">6</span><span class="p">]</span>
-<span class="nv">another_list = </span><span class="p">[</span>
-  <span class="mi">1</span><span class="p">,</span>
-  <span class="mi">3</span><span class="p">,</span>
-  <span class="mi">5</span>
-<span class="p">]</span></code></pre></div>
+<span class="c1"># ...or without</span>
+<span class="nv">flavors = </span><span class="p">{</span>
+    <span class="nv">vanilla: </span><span class="kc">true</span>
+    <span class="nv">chocolate: </span><span class="kc">false</span>
+<span class="p">}</span>
+
+<span class="nv">listOfStuff = </span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">6</span><span class="p">]</span>
+<span class="nv">anotherList = </span><span class="p">[</span>
+    <span class="mi">1</span><span class="p">,</span>
+    <span class="mi">3</span><span class="p">,</span>
+    <span class="mi">5</span>
+<span class="p">]</span>
+
+<span class="c1"># Functions are very coffeelike</span>
+<span class="nv">totallyRandomNumber = </span><span class="p">()</span> <span class="nf">-&gt;</span>
+    <span class="k">return</span> <span class="mi">4</span> <span class="c1"># guaranteed to be random</span></code></pre></div>
 
     </div>
     <div class="javascript-code col-xs-12 col-sm-6">
@@ -127,21 +138,33 @@ option parameter when running bailey from javascript.</p>
 <div class="highlight"><pre><code class="javascript"><span class="kd">var</span> <span class="nx">number</span> <span class="o">=</span> <span class="mi">42</span><span class="p">;</span>
 <span class="kd">var</span> <span class="nx">decimal</span> <span class="o">=</span> <span class="mf">3.14159265359</span><span class="p">;</span>
 
-<span class="c1">// booleans</span>
 <span class="kd">var</span> <span class="nx">yeah</span> <span class="o">=</span> <span class="kc">true</span><span class="p">;</span>
-<span class="kd">var</span> <span class="nx">hell_no</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">hellNo</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span>
 
+<span class="c1">// Strings are as you expect, plus string interpolation</span>
 <span class="kd">var</span> <span class="nx">string</span> <span class="o">=</span> <span class="s1">&#39;Hi!&#39;</span><span class="p">;</span>
-<span class="kd">var</span> <span class="nx">another_string</span> <span class="o">=</span> <span class="s2">&quot;Hi again!&quot;</span><span class="p">;</span>
-<span class="kd">var</span> <span class="nx">string_with_multiple_lines</span> <span class="o">=</span> <span class="s2">&quot;This is cool&quot;</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">anotherString</span> <span class="o">=</span> <span class="s2">&quot;The answer is &quot;</span> <span class="o">+</span> <span class="nx">number</span> <span class="o">+</span> <span class="s2">&quot;&quot;</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">stringWithMultipleLines</span> <span class="o">=</span> <span class="s2">&quot;Thisis cool&quot;</span><span class="p">;</span>
 
-<span class="kd">var</span> <span class="nx">object</span> <span class="o">=</span> <span class="p">{</span>
+<span class="c1">// Objects can be with commas...</span>
+<span class="kd">var</span> <span class="nx">obj</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s1">&#39;number&#39;</span><span class="o">:</span> <span class="mi">42</span><span class="p">,</span>
     <span class="s1">&#39;string&#39;</span><span class="o">:</span> <span class="s2">&quot;Wee&quot;</span>
 <span class="p">};</span>
 
-<span class="kd">var</span> <span class="nx">list_of_stuff</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">];</span>
-<span class="kd">var</span> <span class="nx">another_list</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">];</span></code></pre></div>
+<span class="c1">// ...or without</span>
+<span class="kd">var</span> <span class="nx">flavors</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;vanilla&#39;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="s1">&#39;chocolate&#39;</span><span class="o">:</span> <span class="kc">false</span>
+<span class="p">};</span>
+
+<span class="kd">var</span> <span class="nx">listOfStuff</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">];</span>
+<span class="kd">var</span> <span class="nx">anotherList</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">];</span>
+
+<span class="c1">// Functions are very coffeelike</span>
+<span class="kd">var</span> <span class="nx">totallyRandomNumber</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="mi">4</span><span class="p">;</span>
+<span class="p">};</span></code></pre></div>
 
     </div>
   </div>
@@ -168,17 +191,17 @@ option parameter when running bailey from javascript.</p>
       <h4>Bailey.js</h4>
       
 <div class="highlight"><pre><code class="coffeescript"><span class="k">if</span> <span class="s">&#39;chocolate&#39;</span> <span class="k">in</span> <span class="nx">apartment</span>
-  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&quot;Awesome!&quot;</span><span class="p">)</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&quot;Awesome!&quot;</span><span class="p">)</span>
 <span class="k">else</span>
-  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&quot;Too bad for you.&quot;</span><span class="p">)</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&quot;Too bad for you.&quot;</span><span class="p">)</span>
 
 <span class="k">if</span> <span class="nx">numberOfIceCreamsToday</span> <span class="o">==</span> <span class="mi">0</span>
-  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&quot;Go eat ice-cream&quot;</span><span class="p">)</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&quot;Go eat ice-cream&quot;</span><span class="p">)</span>
 <span class="nx">elif</span> <span class="nx">numberOfIceCreamsToday</span> <span class="o">&gt;</span> <span class="mi">2</span>
-  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&quot;Good!&quot;</span><span class="p">)</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&quot;Good!&quot;</span><span class="p">)</span>
 
-  <span class="k">if</span> <span class="nx">numberOfIceCreamsToday</span> <span class="o">&gt;</span> <span class="mi">5</span>
-    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&quot;Serously?&quot;</span><span class="p">)</span></code></pre></div>
+    <span class="k">if</span> <span class="nx">numberOfIceCreamsToday</span> <span class="o">&gt;</span> <span class="mi">5</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&quot;Serously?&quot;</span><span class="p">)</span></code></pre></div>
 
     </div>
     <div class="javascript-code col-xs-12 col-sm-6">
@@ -209,15 +232,15 @@ option parameter when running bailey from javascript.</p>
       <h4>Bailey.js</h4>
       
 <div class="highlight"><pre><code class="coffeescript"><span class="k">for</span> <span class="nx">item</span> <span class="k">in</span> <span class="nx">bagOfDelicousCandy</span>
-  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">item</span><span class="p">)</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">item</span><span class="p">)</span>
 
 <span class="k">for</span> <span class="nx">number</span> <span class="k">in</span> <span class="mi">0</span><span class="o">:</span><span class="mi">10</span><span class="o">:</span><span class="mi">2</span>
-  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">number</span><span class="p">)</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">number</span><span class="p">)</span>
 
 <span class="nv">chocolateCount = </span><span class="mi">4</span>
 <span class="k">while</span> <span class="nx">chocolateCount</span> <span class="o">&gt;</span> <span class="mi">0</span>
-  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&#39;Eat chocolate&#39;</span><span class="p">)</span>
-  <span class="nx">chocolateCount</span> <span class="o">-=</span> <span class="mi">1</span></code></pre></div>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&#39;Eat chocolate&#39;</span><span class="p">)</span>
+    <span class="nx">chocolateCount</span> <span class="o">-=</span> <span class="mi">1</span></code></pre></div>
 
     </div>
     <div class="javascript-code col-xs-12 col-sm-6">
@@ -248,37 +271,35 @@ option parameter when running bailey from javascript.</p>
       <h4>Bailey.js</h4>
       
 <div class="highlight"><pre><code class="coffeescript"><span class="k">class</span> <span class="nx">CandyStore</span>
+    <span class="nv">init: </span><span class="p">()</span> <span class="nf">-&gt;</span>
+        <span class="vi">@inventory = </span><span class="p">{}</span>
+        <span class="vi">@cashRegister = </span><span class="mi">0</span>
 
-  <span class="nv">init: </span><span class="p">()</span> <span class="nf">-&gt;</span>
-    <span class="vi">@inventory = </span><span class="p">{}</span>
-    <span class="vi">@cashRegister = </span><span class="mi">0</span>
+    <span class="nv">loadInventory: </span><span class="nf">(newLoad) -&gt;</span>
+        <span class="k">for</span> <span class="nx">item</span> <span class="k">in</span> <span class="nx">newLoad</span>
+            <span class="k">if</span> <span class="nx">item</span><span class="p">.</span><span class="nx">slug</span> <span class="k">in</span> <span class="nx">@inventory</span>
+                <span class="nx">@inventory</span><span class="p">[</span><span class="nx">item</span><span class="p">.</span><span class="nx">slug</span><span class="p">].</span><span class="nx">quantity</span> <span class="o">+=</span> <span class="nx">item</span><span class="p">.</span><span class="nx">quantity</span>
+            <span class="k">else</span>
+                <span class="nx">@inventory</span><span class="p">[</span><span class="nx">item</span><span class="p">.</span><span class="nx">slug</span><span class="p">]</span> <span class="o">=</span> <span class="nx">item</span>
 
-  <span class="nv">loadInventory: </span><span class="nf">(newLoad) -&gt;</span>
-    <span class="k">for</span> <span class="nx">item</span> <span class="k">in</span> <span class="nx">newLoad</span>
-      <span class="k">if</span> <span class="nx">item</span><span class="p">.</span><span class="nx">slug</span> <span class="k">in</span> <span class="nx">@inventory</span>
-        <span class="nx">@inventory</span><span class="p">[</span><span class="nx">item</span><span class="p">.</span><span class="nx">slug</span><span class="p">].</span><span class="nx">quantity</span> <span class="o">+=</span> <span class="nx">item</span><span class="p">.</span><span class="nx">quantity</span>
-      <span class="k">else</span>
-        <span class="nx">@inventory</span><span class="p">[</span><span class="nx">item</span><span class="p">.</span><span class="nx">slug</span><span class="p">]</span> <span class="o">=</span> <span class="nx">item</span>
+    <span class="nv">sell: </span><span class="nf">(item, quantity) -&gt;</span>
+        <span class="k">if</span> <span class="nx">quantity</span> <span class="o">&gt;</span> <span class="nx">@inventory</span><span class="p">[</span><span class="nx">item</span><span class="p">.</span><span class="nx">slug</span><span class="p">].</span><span class="nx">quantity</span>
+            <span class="k">throw</span> <span class="nx">SoldOutError</span>
 
-  <span class="nv">sell: </span><span class="nf">(item, quantity) -&gt;</span>
-    <span class="k">if</span> <span class="nx">quantity</span> <span class="o">&gt;</span> <span class="nx">@inventory</span><span class="p">[</span><span class="nx">item</span><span class="p">.</span><span class="nx">slug</span><span class="p">].</span><span class="nx">quantity</span>
-      <span class="k">throw</span> <span class="nx">SoldOutError</span>
-
-    <span class="nx">@inventory</span><span class="p">[</span><span class="nx">item</span><span class="p">.</span><span class="nx">slug</span><span class="p">].</span><span class="nx">quantity</span> <span class="o">-=</span> <span class="nx">quantity</span>
-    <span class="nx">@cashRegister</span> <span class="o">+=</span> <span class="nx">item</span><span class="p">.</span><span class="nx">price</span> <span class="o">*</span> <span class="nx">quantity</span>
-
+        <span class="nx">@inventory</span><span class="p">[</span><span class="nx">item</span><span class="p">.</span><span class="nx">slug</span><span class="p">].</span><span class="nx">quantity</span> <span class="o">-=</span> <span class="nx">quantity</span>
+        <span class="nx">@cashRegister</span> <span class="o">+=</span> <span class="nx">item</span><span class="p">.</span><span class="nx">price</span> <span class="o">*</span> <span class="nx">quantity</span>
 
 <span class="k">class</span> <span class="nx">Candy</span>
-  <span class="nv">title: </span><span class="s">&quot;&quot;</span>
-  <span class="nv">slug: </span><span class="s">&quot;&quot;</span>
-  <span class="nv">price: </span><span class="mi">0</span>
-  <span class="nv">quantity: </span><span class="mi">0</span>
+    <span class="nv">title: </span><span class="s">&quot;&quot;</span>
+    <span class="nv">slug: </span><span class="s">&quot;&quot;</span>
+    <span class="nv">price: </span><span class="mi">0</span>
+    <span class="nv">quantity: </span><span class="mi">0</span>
 
-  <span class="nv">init: </span><span class="nf">(title, price, quantity) -&gt;</span>
-    <span class="vi">@title = </span><span class="nx">title</span>
-    <span class="vi">@price = </span><span class="nx">price</span>
-    <span class="vi">@quantity = </span><span class="nx">quantity</span>
-    <span class="vi">@slug = </span><span class="nx">slugify</span><span class="p">(</span><span class="nx">title</span><span class="p">)</span></code></pre></div>
+    <span class="nv">init: </span><span class="nf">(title, price, quantity) -&gt;</span>
+        <span class="vi">@title = </span><span class="nx">title</span>
+        <span class="vi">@price = </span><span class="nx">price</span>
+        <span class="vi">@quantity = </span><span class="nx">quantity</span>
+        <span class="vi">@slug = </span><span class="nx">slugify</span><span class="p">(</span><span class="nx">title</span><span class="p">)</span></code></pre></div>
 
     </div>
     <div class="javascript-code col-xs-12 col-sm-6">
@@ -308,7 +329,6 @@ option parameter when running bailey from javascript.</p>
     <span class="k">this</span><span class="p">.</span><span class="nx">inventory</span><span class="p">[</span><span class="nx">item</span><span class="p">.</span><span class="nx">slug</span><span class="p">].</span><span class="nx">quantity</span> <span class="o">-=</span> <span class="nx">quantity</span><span class="p">;</span>
     <span class="k">this</span><span class="p">.</span><span class="nx">cashRegister</span> <span class="o">+=</span> <span class="nx">item</span><span class="p">.</span><span class="nx">price</span> <span class="o">*</span> <span class="nx">quantity</span><span class="p">;</span>
 <span class="p">};</span>
-
 
 <span class="kd">function</span> <span class="nx">Candy</span><span class="p">(</span><span class="nx">title</span><span class="p">,</span> <span class="nx">price</span><span class="p">,</span> <span class="nx">quantity</span><span class="p">)</span> <span class="p">{</span>
     <span class="k">this</span><span class="p">.</span><span class="nx">title</span> <span class="o">=</span> <span class="nx">title</span><span class="p">;</span>
