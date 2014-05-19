@@ -14,7 +14,6 @@ class CandyStore
   sell: (item, quantity) ->
     if quantity > @inventory[item.slug].quantity
       throw SoldOutError
-      return false
 
     @inventory[item.slug].quantity -= quantity
     @cashRegister += item.price * quantity
