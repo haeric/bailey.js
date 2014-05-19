@@ -1,32 +1,30 @@
 class CandyStore
+    init: () ->
+        @inventory = {}
+        @cashRegister = 0
 
-  init: () ->
-    @inventory = {}
-    @cashRegister = 0
+    loadInventory: (newLoad) ->
+        for item in newLoad
+            if item.slug in @inventory
+                @inventory[item.slug].quantity += item.quantity
+            else
+                @inventory[item.slug] = item
 
-  loadInventory: (newLoad) ->
-    for item in newLoad
-      if item.slug in @inventory
-        @inventory[item.slug].quantity += item.quantity
-      else
-        @inventory[item.slug] = item
+    sell: (item, quantity) ->
+        if quantity > @inventory[item.slug].quantity
+            throw SoldOutError
 
-  sell: (item, quantity) ->
-    if quantity > @inventory[item.slug].quantity
-      throw SoldOutError
-
-    @inventory[item.slug].quantity -= quantity
-    @cashRegister += item.price * quantity
-
+        @inventory[item.slug].quantity -= quantity
+        @cashRegister += item.price * quantity
 
 class Candy
-  title: ""
-  slug: ""
-  price: 0
-  quantity: 0
+    title: ""
+    slug: ""
+    price: 0
+    quantity: 0
 
-  init: (title, price, quantity) ->
-    @title = title
-    @price = price
-    @quantity = quantity
-    @slug = slugify(title)
+    init: (title, price, quantity) ->
+        @title = title
+        @price = price
+        @quantity = quantity
+        @slug = slugify(title)

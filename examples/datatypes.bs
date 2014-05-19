@@ -1,23 +1,34 @@
 number = 42
 decimal = 3.14159265359
 
-# booleans
 yeah = true
-hell_no = false
+hellNo = false
 
+# Strings are as you expect, plus string interpolation
 string = 'Hi!'
-another_string = "Hi again!"
-string_with_multiple_lines = "This 
+anotherString = "The answer is #{number}"
+stringWithMultipleLines = "This
 is cool"
 
-object = {
-  number: 42,
-  string: "Wee"
+# Objects can be with commas...
+obj = {
+    number: 42,
+    string: "Wee"
 }
 
-list_of_stuff = [0,2,4,6]
-another_list = [
-  1,
-  3,
-  5
+# ...or without
+flavors = {
+    vanilla: true
+    chocolate: false
+}
+
+listOfStuff = [0,2,4,6]
+anotherList = [
+    1,
+    3,
+    5
 ]
+
+# Functions are very coffeelike
+totallyRandomNumber = () ->
+    return 4 # guaranteed to be random
