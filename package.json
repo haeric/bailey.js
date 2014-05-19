@@ -11,12 +11,15 @@
     "esprima": "*",
     "colors": "*",
     "node-watch": "*"
-    },
+  },
   "devDependencies": {
-    "pegjs": "~0.8.0"
+    "pegjs": "~0.8.0",
+    "mocha": "^1.18.2",
+    "rimraf": "^2.2.8",
+    "should": "^3.3.1"
   },
   "scripts": {
-    "test": "node bailey.js examples/ build/ && node bailey.js examples/ build/ --node && node bailey.js examples/ build/ --remove-comments; rm -r build",
+    "test": "mocha",
     "make-parser": "./node_modules/pegjs/bin/pegjs --allowed-start-rules Program,Expression src/parser.peg src/parser.js"
   },
   "bin": "./bailey.js",

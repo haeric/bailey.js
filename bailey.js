@@ -15,8 +15,8 @@ var ALLOWED_ARGS = {
     '_': 1,
     '$0': 1,
     'node': 1,
-    'bare': 1, 
-    'verbose': 1, 
+    'bare': 1,
+    'verbose': 1,
     'remove-comments': 1,
     'watch': 1,
     'eval': 1,
@@ -151,7 +151,7 @@ function normalizeBlocks (input) {
         }
 
         if (chr !== ' ' || chr !== '\t') {
-            
+
             if (!thisLineContainsStuff) {
                 for (var j = 0; j < numberOfLinesToIndent; j++) {
                     out += thisLinesIndentation + '\n';
@@ -173,7 +173,7 @@ function normalizeBlocks (input) {
 }
 
 function parse (parser, input, options) {
-    
+
     input = normalizeBlocks(input);
 
     options = options || {};
@@ -215,7 +215,7 @@ function parseFiles (source, target, options, onFile, onError, onDone) {
     target = target.replace(/^\.\//, '');
 
     walker.on("file", function(root, fileStats, next) {
-        
+
         if (fileStats.name[0] == ".") {
             return next();
         }
@@ -227,20 +227,20 @@ function parseFiles (source, target, options, onFile, onError, onDone) {
         var sourcePath = path.join(root, fileStats.name);
         var targetRoot = root.replace(source, target);
         var targetPath = sourcePath.replace(source, target).replace('.bs', '.js');
-        
+
         mkdir.sync(targetRoot);
 
         fs.readFile(sourcePath, 'utf8', function (err, input) {
-            
-            if (err) { 
-                return console.error(err); 
+
+            if (err) {
+                return console.error(err);
             }
-            
+
             options.filePath = sourcePath;
             options.root = root;
 
             var parsed;
-          
+
             try {
                 parsed = parse(parser, input, options, onError);
             }
@@ -250,15 +250,16 @@ function parseFiles (source, target, options, onFile, onError, onDone) {
 
             if (parsed !== undefined) {
                 fs.writeFile(targetPath, parsed, function(err) {
-                    if (err) { 
-                        console.error(err); 
+                    if (err) {
+                        console.error(err);
+                        return;
                     }
-                    else if (onFile) {
+                    if (onFile) {
                         onFile(sourcePath, targetPath);
-                        next();
                     }
+                    next();
                 });
-                
+
             }
 
         });
@@ -282,7 +283,7 @@ function repeat (str, n) {
     return out;
 }
 
-function ParserError (error, input, options) {    
+function ParserError (error, input, options) {
     this.message  = error.message;
     this.expected = error.expected;
     this.found    = error.found;
@@ -297,7 +298,7 @@ function ParserError (error, input, options) {
             error.name + ' at ' + options.filePath + ' line ' + error.line + ', character ' + error.column + ':',
             error.line > 2 ? lines[error.line-2] : '',
             lines[error.line-1],
-            repeat(" ", error.column-1) + '^', 
+            repeat(" ", error.column-1) + '^',
             error.message,
         ].join('\n');
     };
