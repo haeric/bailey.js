@@ -482,11 +482,12 @@
     type('ImportStatement', {
         semicolon: false,
         init: function (path, name) {
+            this.path = path;
             if (path.indexOf('!') === -1) {
                 this.path = path.replace(/\./g, '/');
             }
-            else {
-                this.path = path;
+            if (this.path[0] === '/') {
+                this.path = '.' + this.path;
             }
             this.name = name || path.split('.')[path.split('.').length-1];
         },
