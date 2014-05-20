@@ -490,6 +490,13 @@
                 this.path = '.' + this.path;
             }
             this.name = name || path.split('.')[path.split('.').length-1];
+
+            if (this.name.indexOf('-') !== -1 && name === undefined) {
+                throw new SyntaxError(
+                    'Dashes in import statements make me sad, I do not know what to call the imported variable! \nUse "import ... as ..." to give it a name.', '-', '',
+                    offset(), line(), path.indexOf('-') + 8
+                )
+            }
         },
         toJS: function () {
             return '';
@@ -870,10 +877,10 @@ Statement
     / word:('break' / 'continue')
         { return new type.LoopControl(word) }
 
-    / 'import ' path:[a-zA-Z0-9._!/]+ ' as ' name:Identifier
+    / 'import ' path:[-a-zA-Z0-9._!/]+ ' as ' name:Identifier
         { return new type.ImportStatement(path.join(''), name); }
 
-    / 'import ' path:[a-zA-Z0-9._!/]+
+    / 'import ' path:[-a-zA-Z0-9._!/]+
         { return new type.ImportStatement(path.join('')); }
 
     / 'include ' path:[a-zA-Z0-9._-]+

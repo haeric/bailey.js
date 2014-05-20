@@ -1,5 +1,6 @@
 import a
 import foo as c
+import cookie-parser as cookieParser
 
 humbug = {
     a: 1,
