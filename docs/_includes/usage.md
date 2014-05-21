@@ -4,19 +4,19 @@
 {% highlight bash %}
   bailey sourceDir/ targetDir/
 {% endhighlight %}
+Converts all `.bs` files in sourceDir to a `.js` file in targetDir.
 
-### In javacscript
-There are two possible ways to utilise bailey in javascript. The first is to
+### In Javascript
+There are two possible ways to utilize bailey in Javascript. The first is to
 compile a string using `parseString` or compile the content of a folder like
 the command line example by using `parseFiles`.
 
 {% highlight javascript %}
-  var bailey = require('bailey');
+var bailey = require('bailey');
+var compiledString = bailey.parseString(sourceString, {});
 
-  var compiledString = bailey.parseString(sourceString, {});
-
-  // This is the equivalent of the command line example
-  bailey.parseFiles('sourceDir/', 'targetDir/', {}});
+// This is the equivalent of the command line example
+bailey.parseFiles('sourceDir/', 'targetDir/', {}});
 {% endhighlight %}
 
 

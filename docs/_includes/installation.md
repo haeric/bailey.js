@@ -1,8 +1,8 @@
 ## Installation
-Installing bailey.js requires you to have [node.js](http://nodejs.org/) installed. If you have those installed it is as simple as running the command below to install bailey.js globally.
+Assuming you already have [node.js](http://nodejs.org/), installation is as easy as:
 
 {% highlight bash %}
   $ npm install bailey -g
 {% endhighlight %}
 
-If you want to add it to your project dependencies run `npm install bailey --save`.
+This installs it globally, but of course you can put it in your project's package.json manually or by running `npm install bailey --save`.
