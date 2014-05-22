@@ -9,6 +9,7 @@ var mkdir = require('mkdirp');
 var beautify = require('js-beautify').js_beautify;
 
 require('colors');
+var version = require('./package.json').version;
 
 // Command-line use of bailey.js
 var ALLOWED_ARGS = {
@@ -36,7 +37,7 @@ function main () {
     }
 
     if (argv.version) {
-        return console.log(require('./package.json').version);
+        return console.log(version);
     }
 
     for (var key in argv) {
@@ -316,3 +317,4 @@ if (!module.parent) {
 module.exports.parseFiles = parseFiles;
 module.exports.parseString = parseString;
 module.exports.ParserError = ParserError;
+module.exports.version = version;
