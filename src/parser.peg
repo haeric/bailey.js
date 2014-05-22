@@ -867,7 +867,7 @@ Statement
     / 'while ' e:Expression _ IndentNewline body:Block IndentRemove
         { return new type.WhileLoop(e, body); }
 
-    / word:('break' / 'continue')
+    / word:('break' / 'continue') !AnyIdentifier
         { return new type.LoopControl(word) }
 
     / 'import ' path:[-a-zA-Z0-9._!/]+ ' as ' name:Identifier
@@ -892,7 +892,7 @@ Statement
     / 'throw' _ expr:Expression
         { return new type.Throw(expr); }
 
-    / 'pass'
+    / 'pass' !AnyIdentifier
         { return new type.Noop() }
 
     / 'class' _ ident:Identifier _ extender:('extends' _ AnyIdentifier)? IndentNewline
@@ -1110,7 +1110,7 @@ Value
     / a:Identifier
         { return new type.Variable(a); }
 
-    / 'super'
+    / 'super' !AnyIdentifier
         { return new type.SuperToken(); }
 
     / 'new' _ expr:Expression
@@ -1265,6 +1265,7 @@ Keyword
         / 'extends'
         / 'import'
         / 'super'
+        / 'pass'
     ) !IdentifierPart
 
 Literal

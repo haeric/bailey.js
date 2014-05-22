@@ -13,6 +13,10 @@ icecream = {
     clear: 3
 }
 
+continuer = 1
+breaker = 1
+passer = 1
+
 data = [
     true,
     false,
