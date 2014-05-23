@@ -1,6 +1,8 @@
 import a
 import foo as c
 import cookie-parser as cookieParser
+import models: User, Group, Permission
+import models: User1
 
 humbug = {
     a: 1,
