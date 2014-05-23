@@ -1110,7 +1110,7 @@ Value
     / a:Identifier
         { return new type.Variable(a); }
 
-    / 'super' !AnyIdentifier
+    / 'super' !IdentifierPart
         { return new type.SuperToken(); }
 
     / 'new' _ expr:Expression
