@@ -15,6 +15,11 @@ icecream = {
     clear: 3
 }
 
+try
+    blabla
+catch e
+    hummm
+
 continuer = 1
 breaker = 1
 passer = 1
@@ -104,3 +109,9 @@ c = f()
 
 for i, x in f()
     1
+
+class IceCream
+    init: (type) ->
+        @type = type
+    eat: () ->
+        return 1

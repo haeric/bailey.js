@@ -824,6 +824,7 @@
     });
 
     type('TryCatch', {
+        semicolon: false,
         init: function(tryBody, catchVar, catchBody) {
             this.tryBody = tryBody;
             this.catchVar = catchVar;
