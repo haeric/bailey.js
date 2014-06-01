@@ -13,8 +13,9 @@
     "node-watch": "*"
   },
   "devDependencies": {
-    "pegjs": "~0.8.0",
+    "jshint": "^2.5.1",
     "mocha": "^1.18.2",
+    "pegjs": "~0.8.0",
     "rimraf": "^2.2.8",
     "should": "^3.3.1"
   },
