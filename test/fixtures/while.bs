@@ -1,13 +1,13 @@
 iceCreamsEaten = 0
 
 while true
-	iceCreamsEaten++
-	if iceCreamsEaten == 10
-		break
-	else
-		continue 
-	iceCreamsEaten = 9000 # Should never get here...
+    iceCreamsEaten++
+    if iceCreamsEaten == 10
+        break
+    else
+        continue 
+    iceCreamsEaten = 9000 # Should never get here...
 while iceCreamsEaten < 42
-  	iceCreamsEaten += 2
+    iceCreamsEaten += 2
 
 iceCreamsEaten

@@ -1,19 +1,19 @@
 
 class Coffee
-	init: (flavor, size) ->
-		@flavor = flavor
-		@size = size
-		@calories = size or 10
+    init: (flavor, size) ->
+        @flavor = flavor
+        @size = size
+        @calories = size or 10
 
 class Latte extends Coffee
-	init: (size) ->
-		super.init("Latte", size)
-		@calories += size
+    init: (size) ->
+        super.init("Latte", size)
+        @calories += size
 
 class LowFatChaiLatte extends Latte
-	init: (size) ->
-		super.init(size)
-		@calories -= size
+    init: (size) ->
+        super.init(size)
+        @calories -= size
 
 new Coffee("Plain", 12).calories + 
 new Latte(10).calories + 
