@@ -2,7 +2,8 @@ require('mocha');
 var should = require('should'),
     bailey = require('../bailey.js'),
     fs = require('fs'),
-    rmdir = require('rimraf');
+    rmdir = require('rimraf'),
+    hint = require('./hint').hint;
 
 describe('bailey.js', function () {
   describe('parseString', function () {
@@ -36,6 +37,10 @@ describe('bailey.js', function () {
       data.toString().should.be.ok;
       result = eval(data.toString());
       should(result).equal(42);
+      should(hint(data.toString(), {
+          name: file,
+          hintOptions: { expr: true } // the "output;" on the last line that outputs 42 triggers this warning
+      })).be.empty;
     }
     function testHelper (options, done){
       options = options;
