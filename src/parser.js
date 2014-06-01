@@ -29,7 +29,7 @@ module.exports = (function() {
 
         peg$FAILED = {},
 
-        peg$startRuleFunctions = { Program: peg$parseProgram },
+        peg$startRuleFunctions = { Program: peg$parseProgram, Expression: peg$parseExpression },
         peg$startRuleFunction  = peg$parseProgram,
 
         peg$c0 = function(block) {
