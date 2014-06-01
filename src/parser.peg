@@ -691,7 +691,7 @@
             }
         },
         toJS: function () {
-            return 'function(' + this.params.join(', ') + ') {\n' + this.body.toJS() + '}';
+            return 'function(' + this.params.join(', ') + ') {\n' + this.body.toJS() + '\n}';
         }
     });
 
@@ -903,17 +903,17 @@ Statement
     / word:('break' / 'continue') !AnyIdentifier
         { return new type.LoopControl(word) }
 
-    / 'import ' path:[-a-zA-Z0-9._!/]+ 
+    / 'import ' path:[-a-zA-Z0-9._!/]+
        name:(' as ' Identifier)?
        subImports:(_ ':' _ Identifier _ (',' _ Identifier _)*)?
-        { 
+        {
             var subs = [];
             if (subImports) {
                 subs.push(new type.SubImportStatement(subImports[3]));
                 subs = subs.concat(subImports[5].map(function(group){
                     return new type.SubImportStatement(group[2])
                 }));
-            } 
+            }
             return new type.ImportStatement(path.join(''), name ? name[1] : undefined, subs);
         }
 
