@@ -6912,7 +6912,7 @@ module.exports = (function() {
             toJS: function () {
                 var name = this.name;
                 var out = 'function ' + this.name + ' ';
-                var errorIfNotNewed = 'if ((typeof window !== "undefined" && this === window) || this === self) { throw new TypeError("Tried to call class ' + name + ' as a regular function. Classes can only be called with the \'new\' keyword."); }';
+                var errorIfNotNewed = 'if ((typeof window !== "undefined" && this === window) || (typeof self !== "undefined" && this === self)) { throw new TypeError("Tried to call class ' + name + ' as a regular function. Classes can only be called with the \'new\' keyword."); }';
                 if (this.init !== null) {
                     out += '(' + this.init.params.join(', ') + ') ';
                     out += '{' + errorIfNotNewed + this.init.body.toJS() + '}'
