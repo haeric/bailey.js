@@ -1,0 +1,7 @@
+# Hi there
+
+truth = () ->
+  return 42
+  # yep
+
+truth()
