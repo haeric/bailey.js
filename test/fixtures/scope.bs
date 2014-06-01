@@ -1,0 +1,28 @@
+
+# Let's test that the scope identifiers @, @@ and @@@ work!
+
+run = (callback) ->
+	callback()
+
+class Human
+	init: () ->
+		@foods = 0
+	consume: () ->
+		run(() ->
+			@@foods++
+		)
+	eat: (foods) ->
+		foods.forEach(() ->
+			run(() ->
+				@@@foods++
+			)
+		)
+
+elon = new Human()
+
+for i in 0:10
+	elon.consume()
+for i in 0:16
+	elon.eat(["icecream", "fudge"])
+
+elon.foods
