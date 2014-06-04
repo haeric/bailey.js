@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-var argv = require('optimist').argv;
 var fs = require('fs');
 var walk = require('walk');
 var path = require('path');
@@ -11,45 +10,28 @@ var beautify = require('js-beautify').js_beautify;
 require('colors');
 var version = require('./package.json').version;
 
-// Command-line use of bailey.js
-var ALLOWED_ARGS = {
-    '_': 1,
-    '$0': 1,
-    'node': 1,
-    'bare': 1,
-    'verbose': 1,
-    'remove-comments': 1,
-    'watch': 1,
-    'eval': 1,
-    'stdio': 1,
-};
+var program = require('commander');
 
 function main () {
+    program
+        .version(version)
+        .usage('<source> <target>')
+        .option('-n, --node', 'Use node imports instead of requirejs-imports.')
+        .option('-b, --bare', 'Make the Javascript file without the wrapper function.')
+        .option('-w, --watch', 'Watch the source file or directory, recompiling when any file changes.')
+        .option('-v, --verbose', 'More detailed output')
+        .option('--remove-comments', 'Remove all comments in the compiled version.')
+        .option('--eval [input]', '')
+        .option('--stdio', '')
+        .parse(process.argv);
 
     var options = {
-        node: !!argv.node,
-        removeComments: !!argv['remove-comments'],
-        bare: !!argv.bare,
+        node: !!program.node,
+        removeComments: !!program['remove-comments'],
+        bare: !!program.bare,
     };
 
-    if (argv.help || argv.h) {
-        usage();
-    }
-
-    if (argv.version) {
-        return console.log(version);
-    }
-
-    for (var key in argv) {
-        if (argv._.length > 2) {
-            usage(argv._.length + ' positional arguments? That is surely a bit too many, I only take 2!');
-        }
-        if (!(key in ALLOWED_ARGS)) {
-            usage('I really have no idea what you mean by "' + key + '"...');
-        }
-    }
-
-    if (argv.stdio) {
+    if (program.stdio) {
         process.stdin.setEncoding('utf8');
 
         process.stdin.on('readable', function() {
@@ -60,15 +42,19 @@ function main () {
         return;
     }
 
-    if (argv.eval) {
-        return parseStringOrPrintError(argv.eval);
+    if (program.eval) {
+        return parseStringOrPrintError(program.eval);
     }
 
-    var source = argv._[0];
-    var target = argv._[1];
+    if (program.args.length != 2) {
+        program.help();
+    }
+
+    var source = program.args[0];
+    var target = program.args[1];
 
     if (!source || !target) {
-        usage();
+         program.help();
     }
 
     function parseStringOrPrintError(string) {
@@ -83,7 +69,7 @@ function main () {
 
     function compile(onDone) {
         parseFiles(source, target, options, function(sourcePath, targetPath) {
-            if (argv.verbose) {
+            if (program.verbose) {
                 console.log(sourcePath, "->", targetPath);
             }
         }, function(err) {
@@ -93,7 +79,7 @@ function main () {
     }
 
     function startWatching () {
-        argv.verbose = true;
+        program.verbose = true;
         console.log('Watching ' + source + ' for changes...');
         watch(source, function(filename) {
             console.log('\n' + filename + ' changed, recompiling...\n-----------');
@@ -104,7 +90,7 @@ function main () {
     }
 
     compile(function () {
-        if (argv.watch) {
+        if (program.watch) {
             startWatching();
         }
     });
