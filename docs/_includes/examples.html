@@ -2,10 +2,40 @@
   <div class="col-xs-12">
     <h2 id="examples">Learn by examples</h2>
     <ul class="nav nav-pills">
+      <li><a href="#Imports">Imports</a></li>
       {% for name in site.examples %}
       <li><a href="#{{ name }}">{{ name }}</a></li>
       {% endfor %}
     </ul>
+  </div>
+</div>
+
+<div id="Imports" class="example row">
+  <h3 class="col-xs-12">Imports</h3>
+  <div class="bailey-code col-xs-12 col-sm-12">
+    <h4>Bailey.js</h4>
+    {% highlight python %}
+import bailey
+import bailey as bs
+import bailey: parseString, parseFiles
+    {% endhighlight %}
+  </div>
+  <div class="javascript-code col-xs-12 col-sm-12">
+    <h4>Javascript</h4>
+    <h5>Regular imports</h5>
+    {% highlight javascript %}
+define(["bailey", "bailey", "bailey"], function(bailey, bs, bailey) {
+    var parseString = bailey.parseString;
+    var parseFiles = bailey.parseFiles;
+}
+    {% endhighlight %}
+    <h5>Node imports</h5>
+    {% highlight javascript %}
+var bailey = require('bailey');
+var bs = require('bailey');
+var parseString = require('bailey').parseString;
+var parseFiles = require('bailey').parseFiles;
+    {% endhighlight %}
   </div>
 </div>
 
