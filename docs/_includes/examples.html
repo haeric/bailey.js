@@ -17,6 +17,7 @@
     {% highlight python %}
 import bailey
 import bailey as bs
+import gulp-bailey as gulpBailey
 import bailey: parseString, parseFiles
     {% endhighlight %}
   </div>
@@ -24,7 +25,7 @@ import bailey: parseString, parseFiles
     <h4>Javascript</h4>
     <h5>Regular imports</h5>
     {% highlight javascript %}
-define(["bailey", "bailey", "bailey"], function(bailey, bs, bailey) {
+define(["bailey", "bailey", "gulp-bailey", "bailey"], function(bailey, bs, gulpBailey, bailey) {
     var parseString = bailey.parseString;
     var parseFiles = bailey.parseFiles;
 }
@@ -33,6 +34,7 @@ define(["bailey", "bailey", "bailey"], function(bailey, bs, bailey) {
     {% highlight javascript %}
 var bailey = require('bailey');
 var bs = require('bailey');
+var gulpBailey = require("gulp-bailey");
 var parseString = require('bailey').parseString;
 var parseFiles = require('bailey').parseFiles;
     {% endhighlight %}
