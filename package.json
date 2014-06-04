@@ -2,7 +2,7 @@
   "name": "bailey",
   "version": "0.0.8",
   "description": "A coffeescript without that bitter after-taste.",
-  "main": "bailey.js",
+  "main": "cli.js",
   "dependencies": {
     "colors": "*",
     "commander": "^2.2.0",
