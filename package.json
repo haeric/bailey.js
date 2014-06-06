@@ -4,13 +4,14 @@
   "description": "A coffeescript without that bitter after-taste.",
   "main": "bailey.js",
   "dependencies": {
-    "optimist": "*",
-    "walk": "*",
+    "colors": "*",
+    "commander": "^2.2.0",
+    "esprima": "*",
     "js-beautify": "*",
     "mkdirp": "*",
-    "esprima": "*",
-    "colors": "*",
-    "node-watch": "*"
+    "node-watch": "*",
+    "optimist": "*",
+    "walk": "*"
   },
   "devDependencies": {
     "jshint": "^2.5.1",

@@ -1,121 +1,13 @@
 #!/usr/bin/env node
 
-var argv = require('optimist').argv;
 var fs = require('fs');
 var walk = require('walk');
 var path = require('path');
-var watch = require('node-watch');
 var mkdir = require('mkdirp');
 var beautify = require('js-beautify').js_beautify;
 
 require('colors');
 var version = require('./package.json').version;
-
-// Command-line use of bailey.js
-var ALLOWED_ARGS = {
-    '_': 1,
-    '$0': 1,
-    'node': 1,
-    'bare': 1,
-    'verbose': 1,
-    'remove-comments': 1,
-    'watch': 1,
-    'eval': 1,
-    'stdio': 1,
-};
-
-function main () {
-
-    var options = {
-        node: !!argv.node,
-        removeComments: !!argv['remove-comments'],
-        bare: !!argv.bare,
-    };
-
-    if (argv.help || argv.h) {
-        usage();
-    }
-
-    if (argv.version) {
-        return console.log(version);
-    }
-
-    for (var key in argv) {
-        if (argv._.length > 2) {
-            usage(argv._.length + ' positional arguments? That is surely a bit too many, I only take 2!');
-        }
-        if (!(key in ALLOWED_ARGS)) {
-            usage('I really have no idea what you mean by "' + key + '"...');
-        }
-    }
-
-    if (argv.stdio) {
-        process.stdin.setEncoding('utf8');
-
-        process.stdin.on('readable', function() {
-            parseStringOrPrintError(process.stdin.read() || '');
-        });
-
-        process.stdin.resume();
-        return;
-    }
-
-    if (argv.eval) {
-        return parseStringOrPrintError(argv.eval);
-    }
-
-    var source = argv._[0];
-    var target = argv._[1];
-
-    if (!source || !target) {
-        usage();
-    }
-
-    function parseStringOrPrintError(string) {
-        try {
-            return console.log(parseString(string, options));
-        }
-        catch (e) {
-            console.error(e.toString().red);
-            process.exit(1);
-        }
-    }
-
-    function compile(onDone) {
-        parseFiles(source, target, options, function(sourcePath, targetPath) {
-            if (argv.verbose) {
-                console.log(sourcePath, "->", targetPath);
-            }
-        }, function(err) {
-            console.error(err.toString().red);
-            process.exit(1);
-        }, onDone);
-    }
-
-    function startWatching () {
-        argv.verbose = true;
-        console.log('Watching ' + source + ' for changes...');
-        watch(source, function(filename) {
-            console.log('\n' + filename + ' changed, recompiling...\n-----------');
-            compile(function(){
-                console.log('-----------\nDone! Looking for more changes...');
-            });
-        });
-    }
-
-    compile(function () {
-        if (argv.watch) {
-            startWatching();
-        }
-    });
-
-}
-
-function usage (err) {
-    if (err) console.error(err.red);
-    console.error('Usage: bailey sourcedir/ targetdir/ [--node] [--remove-comments] [--bare] [--watch] [--verbose]');
-    process.exit(1);
-}
 
 // Whenever we hit an indented block, make sure all preceding
 // empty lines are made to have this indentation level
@@ -308,13 +200,11 @@ function ParserError (error, input, options) {
 
 ParserError.prototype = Object.create(Error);
 
-
-
-if (!module.parent) {
-    main();
-}
-
 module.exports.parseFiles = parseFiles;
 module.exports.parseString = parseString;
 module.exports.ParserError = ParserError;
 module.exports.version = version;
+
+if (!module.parent) {
+    require('./src/cli')
+}
