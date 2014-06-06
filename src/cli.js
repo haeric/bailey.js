@@ -1,6 +1,5 @@
-#!/usr/bin/env node
 
-var bailey = require('./bailey'),
+var bailey = require('./../bailey'),
     watch = require('node-watch'),
     program = require('commander');
 

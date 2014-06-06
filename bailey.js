@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 var fs = require('fs');
 var walk = require('walk');
 var path = require('path');
@@ -198,13 +200,11 @@ function ParserError (error, input, options) {
 
 ParserError.prototype = Object.create(Error);
 
-
-
-if (!module.parent) {
-    main();
-}
-
 module.exports.parseFiles = parseFiles;
 module.exports.parseString = parseString;
 module.exports.ParserError = ParserError;
 module.exports.version = version;
+
+if (!module.parent) {
+    require('./src/cli')
+}
