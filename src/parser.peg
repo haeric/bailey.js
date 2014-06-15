@@ -615,7 +615,7 @@
 
             return out + this.statements.map(function (s) {
                 return s.toJS() + (s.semicolon !== false ? ';' : '');
-            }).join('\n');
+            }).join('\n') + '\n';
         },
         extractNodes: function (type) {
             var nodes = this.statements.filter(function(statement) {
