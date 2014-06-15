@@ -13,8 +13,14 @@ class Latte extends Coffee
 class LowFatChaiLatte extends Latte
     init: (size) ->
         super.init(size)
+        # Testing comment here
         @calories -= size
+        # Testing comment on last line of init
+    damn: () ->
+        return 1
+        # ...aaaand comment in function
 
-new Coffee("Plain", 12).calories + 
-new Latte(10).calories + 
-new LowFatChaiLatte(10).calories
+new Coffee("Plain", 11).calories + 
+new Latte(10).calories +
+new LowFatChaiLatte(10).calories +
+new LowFatChaiLatte(10).damn()
