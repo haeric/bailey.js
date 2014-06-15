@@ -246,8 +246,7 @@
             }
 
             var out = 'if (' + this.expression.toJS() + ') {\n    ';
-            out += this.ifBody.toJS() + '\n';
-            out += '}';
+            out += this.ifBody.toJS() + '}';
 
             for (var i = 0; i < this.elifs.length; i++) {
                 out += ' else ' + this.elifs[i].toJS();
@@ -255,8 +254,7 @@
 
             if (this.elseBody) {
                 out += ' else {\n    ';
-                out += this.elseBody.toJS() + '\n';
-                out += '}';
+                out += this.elseBody.toJS() + '}';
             }
 
             return out;
@@ -342,15 +340,13 @@
 
             return 'for (var ' + iterator + ' = ' + this.iterable.from.toJS() + '; ' +
                 iterator + comparator + this.iterable.to.toJS() + '; ' + step + ') {\n' +
-                this.body.toJS() + '\n' +
-                '}';
+                this.body.toJS() + '}';
         },
         toJSListed: function () {
 
             if (this.ofLoop) {
                 return 'for (var ' + this.item + ' in ' + this.iterable.toJS() + ') {' +
-                this.body.toJS() + '\n' +
-                '}';
+                this.body.toJS() + '}';
             }
 
             var out = '';
@@ -367,8 +363,7 @@
                 'for (var ' + this.iterator + ' = 0; ' +
                 this.iterator + ' < ' + this.iterableLength + '; ' + this.iterator + '++) { ' +
                 'var ' + this.item + ' = ' + this.iterableTemp + '[' + this.iterator + '];\n' +
-                this.body.toJS() + '\n' +
-                '}';
+                this.body.toJS() + '}';
         }
     });
 
@@ -381,8 +376,7 @@
         },
         toJS: function () {
             return 'while (' + this.expression.toJS() + ') {\n' +
-                   this.body.toJS() + '\n' +
-                   '}';
+                   this.body.toJS() + '}';
         }
     });
 
