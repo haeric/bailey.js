@@ -691,7 +691,7 @@
             }
         },
         toJS: function () {
-            return 'function(' + this.params.join(', ') + ') {\n' + this.body.toJS() + '\n}';
+            return 'function(' + this.params.join(', ') + ') {\n' + this.body.toJS() + '}';
         }
     });
 
