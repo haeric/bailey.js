@@ -504,7 +504,13 @@
             if (this.path[0] === '/') {
                 this.path = '.' + this.path;
             }
-            this.name = name || path.split('.')[path.split('.').length-1];
+
+            if (subImports && subImports.length > 0) {
+                this.name = '__module_' + path.replace(/\./g, '_');
+            }
+            else {
+                this.name = name || path.split('.')[path.split('.').length-1];
+            }
 
             if (this.name.indexOf('-') !== -1 && name === undefined) {
                 throw new SyntaxError(
