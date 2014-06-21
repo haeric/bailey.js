@@ -1,5 +1,13 @@
 
 {
+    function ImportError(message, line) {
+        this.message  = message;
+        this.line     = line;
+        this.name     = "ImportError";
+    }
+
+    peg$subclass(ImportError, Error);
+
     var fs = require('fs');
     var path = require('path');
     var extend = require('util')._extend;
@@ -55,17 +63,16 @@
         traverse: function () {
             var queue = [this];
 
-            // Propagate the imported symbols down to the scope below
-            this.block.copySymbols(this.block.getImports().map(function (item) {
-                return item.name;
-            }))
-
             while (queue.length) {
 
-                var item = queue.pop(0);
+                var item = queue.shift();
 
                 if (item.nodeType === 'Block' && item.isScope) {
                     item.scope = item;
+                }
+
+                if (item !== this && item.traverse) {
+                    item.traverse();
                 }
 
                 for (var i = 0; i < item.children.length; i++) {
@@ -81,10 +88,16 @@
                     queue.push(child);
                     child.parent = item;
                     child.scope = item.scope;
-                    child.traverse();
 
                 }
 
+                if (item.postChildren) {
+                    queue.push({
+                        traverse: item.postChildren.bind(item),
+                        children: [],
+                    });
+                }
+                
             }
 
         },
@@ -498,6 +511,8 @@
         init: function (path, name, subImports) {
             this.path = path;
             this.children = subImports || [];
+            this.subImports = subImports || [];
+            this.line = line();
             if (path.indexOf('!') === -1) {
                 this.path = path.replace(/\./g, '/');
             }
@@ -521,6 +536,22 @@
         },
         toJS: function () {
             return '';
+        },
+        traverse: function () {
+            if (this.scope.symbols[this.name]) {
+                if (this.subImports.length) {
+                    // This module has already been imported? Well cool, let's just forget us
+                    this.postChildren = function () {
+                        this.remove();
+                    }
+                    return;
+                }
+                throw new ImportError(
+                    'Import "' + this.name + '" conflicts with a previous import defined at line ' + this.scope.symbols[this.name],
+                    this.line
+                );
+            }
+            this.scope.symbols[this.name] = this.line;
         }
     });
 

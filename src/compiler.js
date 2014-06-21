@@ -75,15 +75,15 @@ function parse (parser, input, options) {
     options.bare = options.bare !== undefined ? options.bare : false;
     options.parse = parse;
 
-    var ast;
+    var js;
     try {
-        ast = parser.parse(input);
+        js = parser.parse(input).toJS(options);
     }
     catch (e) {
         throw new ParserError(e, input, options);
     }
 
-    return beautify(ast.toJS(options));
+    return beautify(js);
 
 }
 
@@ -183,17 +183,31 @@ function ParserError (error, input, options) {
     this.offset   = error.offset;
     this.line     = error.line;
     this.column   = error.column;
+    this.inner    = error;
     this.name     = 'ParserError';
 
     this.toString = function () {
         var lines = input.split('\n');
-        return [
-            error.name + ' at ' + options.filePath + ' line ' + error.line + ', character ' + error.column + ':',
-            error.line > 2 ? lines[error.line-2] : '',
-            lines[error.line-1],
-            repeat(" ", error.column-1) + '^',
-            error.message,
-        ].join('\n');
+        if (this.offset !== undefined) {
+            return [
+                error.name + ' at ' + options.filePath + ' line ' + error.line + ', character ' + error.column + ':',
+                error.line > 2 ? lines[error.line-2] : '',
+                lines[error.line-1],
+                repeat(" ", error.column-1) + '^',
+                error.message,
+            ].join('\n');
+        }
+        else if (this.line) {
+            return [
+                error.name + ' at ' + options.filePath + ' line ' + error.line + ':',
+                lines[error.line-1],
+                '',
+                error.message
+            ].join('\n');
+        }
+        else {
+            return this.inner.toString();
+        }
     };
 
 }
