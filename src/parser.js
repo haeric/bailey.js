@@ -6442,6 +6442,14 @@ module.exports = (function() {
     }
 
 
+        function ImportError(message, line) {
+            this.message  = message;
+            this.line     = line;
+            this.name     = "ImportError";
+        }
+
+        peg$subclass(ImportError, Error);
+
         var fs = require('fs');
         var path = require('path');
         var extend = require('util')._extend;
@@ -6497,17 +6505,16 @@ module.exports = (function() {
             traverse: function () {
                 var queue = [this];
 
-                // Propagate the imported symbols down to the scope below
-                this.block.copySymbols(this.block.getImports().map(function (item) {
-                    return item.name;
-                }))
-
                 while (queue.length) {
 
-                    var item = queue.pop(0);
+                    var item = queue.shift();
 
                     if (item.nodeType === 'Block' && item.isScope) {
                         item.scope = item;
+                    }
+
+                    if (item !== this && item.traverse) {
+                        item.traverse();
                     }
 
                     for (var i = 0; i < item.children.length; i++) {
@@ -6523,10 +6530,16 @@ module.exports = (function() {
                         queue.push(child);
                         child.parent = item;
                         child.scope = item.scope;
-                        child.traverse();
 
                     }
 
+                    if (item.postChildren) {
+                        queue.push({
+                            traverse: item.postChildren.bind(item),
+                            children: [],
+                        });
+                    }
+                    
                 }
 
             },
@@ -6688,8 +6701,7 @@ module.exports = (function() {
                 }
 
                 var out = 'if (' + this.expression.toJS() + ') {\n    ';
-                out += this.ifBody.toJS() + '\n';
-                out += '}';
+                out += this.ifBody.toJS() + '}';
 
                 for (var i = 0; i < this.elifs.length; i++) {
                     out += ' else ' + this.elifs[i].toJS();
@@ -6697,8 +6709,7 @@ module.exports = (function() {
 
                 if (this.elseBody) {
                     out += ' else {\n    ';
-                    out += this.elseBody.toJS() + '\n';
-                    out += '}';
+                    out += this.elseBody.toJS() + '}';
                 }
 
                 return out;
@@ -6784,15 +6795,13 @@ module.exports = (function() {
 
                 return 'for (var ' + iterator + ' = ' + this.iterable.from.toJS() + '; ' +
                     iterator + comparator + this.iterable.to.toJS() + '; ' + step + ') {\n' +
-                    this.body.toJS() + '\n' +
-                    '}';
+                    this.body.toJS() + '}';
             },
             toJSListed: function () {
 
                 if (this.ofLoop) {
                     return 'for (var ' + this.item + ' in ' + this.iterable.toJS() + ') {' +
-                    this.body.toJS() + '\n' +
-                    '}';
+                    this.body.toJS() + '}';
                 }
 
                 var out = '';
@@ -6809,8 +6818,7 @@ module.exports = (function() {
                     'for (var ' + this.iterator + ' = 0; ' +
                     this.iterator + ' < ' + this.iterableLength + '; ' + this.iterator + '++) { ' +
                     'var ' + this.item + ' = ' + this.iterableTemp + '[' + this.iterator + '];\n' +
-                    this.body.toJS() + '\n' +
-                    '}';
+                    this.body.toJS() + '}';
             }
         });
 
@@ -6823,8 +6831,7 @@ module.exports = (function() {
             },
             toJS: function () {
                 return 'while (' + this.expression.toJS() + ') {\n' +
-                       this.body.toJS() + '\n' +
-                       '}';
+                       this.body.toJS() + '}';
             }
         });
 
@@ -6946,13 +6953,21 @@ module.exports = (function() {
             init: function (path, name, subImports) {
                 this.path = path;
                 this.children = subImports || [];
+                this.subImports = subImports || [];
+                this.line = line();
                 if (path.indexOf('!') === -1) {
                     this.path = path.replace(/\./g, '/');
                 }
                 if (this.path[0] === '/') {
                     this.path = '.' + this.path;
                 }
-                this.name = name || path.split('.')[path.split('.').length-1];
+
+                if (subImports && subImports.length > 0) {
+                    this.name = '__module_' + path.replace(/\./g, '_');
+                }
+                else {
+                    this.name = name || path.split('.')[path.split('.').length-1];
+                }
 
                 if (this.name.indexOf('-') !== -1 && name === undefined) {
                     throw new SyntaxError(
@@ -6963,6 +6978,22 @@ module.exports = (function() {
             },
             toJS: function () {
                 return '';
+            },
+            traverse: function () {
+                if (this.scope.symbols[this.name]) {
+                    if (this.subImports.length) {
+                        // This module has already been imported? Well cool, let's just forget us
+                        this.postChildren = function () {
+                            this.remove();
+                        }
+                        return;
+                    }
+                    throw new ImportError(
+                        'Import "' + this.name + '" conflicts with a previous import defined at line ' + this.scope.symbols[this.name],
+                        this.line
+                    );
+                }
+                this.scope.symbols[this.name] = this.line;
             }
         });
 
@@ -7057,7 +7088,7 @@ module.exports = (function() {
 
                 return out + this.statements.map(function (s) {
                     return s.toJS() + (s.semicolon !== false ? ';' : '');
-                }).join('\n');
+                }).join('\n') + '\n';
             },
             extractNodes: function (type) {
                 var nodes = this.statements.filter(function(statement) {
@@ -7133,7 +7164,7 @@ module.exports = (function() {
                 }
             },
             toJS: function () {
-                return 'function(' + this.params.join(', ') + ') {\n' + this.body.toJS() + '\n}';
+                return 'function(' + this.params.join(', ') + ') {\n' + this.body.toJS() + '}';
             }
         });
 
@@ -7166,7 +7197,7 @@ module.exports = (function() {
                     start = 'call(this'
                 }
                 else if (this.superCall) {
-                    start = expr + '.call(this';
+                    start = 'prototype.' + expr + '.call(this';
                 }
                 else {
                     start = expr + '(';
