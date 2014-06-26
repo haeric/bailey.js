@@ -755,7 +755,7 @@
                 start = 'call(this'
             }
             else if (this.superCall) {
-                start = expr + '.call(this';
+                start = 'prototype.' + expr + '.call(this';
             }
             else {
                 start = expr + '(';
