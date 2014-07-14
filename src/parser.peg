@@ -484,7 +484,10 @@
             var out = 'function ' + this.name + ' ';
             var errorIfNotNewed = 'if ((typeof window !== "undefined" && this === window) || (typeof self !== "undefined" && this === self)) { throw new TypeError("Tried to call class ' + name + ' as a regular function. Classes can only be called with the \'new\' keyword."); }';
             if (this.init !== null) {
-                out += '(' + this.init.params.join(', ') + ') ';
+                var params = this.init.params.map(function(p) {
+                    return p.toJS();
+                });
+                out += '(' + params.join(', ') + ') ';
                 out += '{' + errorIfNotNewed + this.init.body.toJS() + '}'
             }
             else {
@@ -738,7 +741,9 @@
         },
         traverse: function () {
             if (this.body.nodeType === 'Block') {
-                this.body.copySymbols(this.params);
+                this.body.copySymbols(this.params.map(function(p) {
+                    return p.toJS();
+                }));
             }
         },
         toJS: function () {
@@ -926,6 +931,16 @@
         init: function (type, identifier) {
             this.type = type;
             this.identifier = identifier;
+        },
+        traverse: function () {
+            if (this.type === 'int') {
+                var node = parse(
+                    'if ~~' + this.identifier + ' != ' + this.identifier + '\n' +
+                    '    throw new Error("' + this.identifier + ' was not of expected type ' + this.type + '")',
+                    {startRule: 'Statement'}
+                );
+                this.parent.body.statements.unshift(node);
+            }
         },
         toJS: function () {
             return this.identifier;
@@ -1298,10 +1313,10 @@ AnyIdentifier
 
 TypedIdentifier
     = identifierType:(Type _)? identifier:Identifier
-     { return new type.TypedIdentifier(identifierType ? identifierType[1] : null, identifier); }
+     { return new type.TypedIdentifier(identifierType ? identifierType[0] : null, identifier); }
 
 Type
-    = 'int'
+    = $ 'int'
 
 IdentifierPart
     = (Digits / Letters / '_')+
@@ -1397,7 +1412,6 @@ StringLiteral "string"
     {
         var d = parts[0];
         var text = parts[1] !== null ? parts[1].join('') : "";
-
 
         // Is this a normal string?
         if (text.indexOf('#\x7b') === -1) {
