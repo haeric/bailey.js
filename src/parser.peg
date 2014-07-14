@@ -734,7 +734,7 @@
         init: function (params, body) {
             this.params = params;
             this.body = body;
-            this.children = [body];
+            this.children = params.concat([body]);
         },
         traverse: function () {
             if (this.body.nodeType === 'Block') {
@@ -742,7 +742,10 @@
             }
         },
         toJS: function () {
-            return 'function(' + this.params.join(', ') + ') {\n' + this.body.toJS() + '}';
+            var params = this.params.map(function (p) {
+                return p.toJS();
+            })
+            return 'function(' + params.join(', ') + ') {\n' + this.body.toJS() + '}';
         }
     });
 
@@ -918,6 +921,16 @@
             return this.cls.extendFrom;
         }
     });
+
+    type('TypedIdentifier', {
+        init: function (type, identifier) {
+            this.type = type;
+            this.identifier = identifier;
+        },
+        toJS: function () {
+            return this.identifier;
+        }
+    })
 
 }
 
@@ -1283,11 +1296,18 @@ Identifier
 AnyIdentifier
     =  $ (Digits / Letters / '_' / '\.')+
 
+TypedIdentifier
+    = identifierType:(Type _)? identifier:Identifier
+     { return new type.TypedIdentifier(identifierType ? identifierType[1] : null, identifier); }
+
+Type
+    = 'int'
+
 IdentifierPart
     = (Digits / Letters / '_')+
 
 IdentifierTuple
-    = head:Identifier tail:(_ ',' _ Identifier)* _
+    = head:TypedIdentifier tail:(_ ',' _ TypedIdentifier)* _
         {
             tail = tail.map(function(item) { return item[3]; });
             return [head].concat(tail);
