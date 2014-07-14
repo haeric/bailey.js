@@ -521,7 +521,9 @@
             this.line = line();
 
             // TODO: python style imports are deprecated, remove this replace soon    
-            this.path = this.path.replace(/\.(?![\.\/])/g, '/');
+            if (this.path.indexOf('/') === -1) {
+                this.path = this.path.replace(/\.(?![\.\/])/g, '/');
+            }
             if (this.path[0] === '/') {
                 this.path = '.' + this.path;
             }
@@ -543,7 +545,7 @@
             return '';
         },
         traverse: function () {
-            if (this.unalteredPath.match(/\.(?![\.\/])/)) {
+            if (this.unalteredPath.match(/\.(?![\.\/])/) && this.unalteredPath.indexOf('!') === -1) {
                 deprecationWarning('Using . instead of / in imports is deprecated, and will fail in future versions.', this.line);
             }
             if (this.scope.symbols[this.name]) {
@@ -591,9 +593,19 @@
 
     type('IncludeStatement', {
         init: function (path) {
-            this.path = path.replace(/\./g, '/');
+            // TODO: python style imports are deprecated, remove this replace soon    
+            this.path = path;
+            this.unalteredPath = path;
+            if (this.path.indexOf('/') === -1) {
+                this.path = this.path.replace(/\.(?![\.\/])/g, '/');
+            }
             if (this.path[0] === '/') {
                 this.path = '..' + this.path;
+            }
+        },
+        traverse: function () {
+            if (this.unalteredPath.match(/\.(?![\.\/])/) && this.unalteredPath.indexOf('!') === -1) {
+                deprecationWarning('Using . instead of / in includes is deprecated, and will fail in future versions.', this.line);
             }
         },
         toJS: function () {
@@ -956,7 +968,7 @@ Statement
             return new type.ImportStatement(path.join(''), name ? name[1] : undefined, subs);
         }
 
-    / 'include ' path:[a-zA-Z0-9._-]+
+    / 'include ' path:[a-zA-Z0-9._/-]+
         { return new type.IncludeStatement(path.join('')); }
 
     / 'export ' ident:Identifier
