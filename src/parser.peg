@@ -6,6 +6,11 @@
         this.name     = "ImportError";
     }
 
+    function deprecationWarning(message, line) {
+        var warning = 'Deprecation warning at ' + parser.options.filePath + ' line ' + line + ': ' + message;
+        console.log(warning.yellow);
+    }
+
     peg$subclass(ImportError, Error);
 
     var fs = require('fs');
@@ -509,22 +514,22 @@
     type('ImportStatement', {
         semicolon: false,
         init: function (path, name, subImports) {
+            this.unalteredPath = path;
             this.path = path;
             this.children = subImports || [];
             this.subImports = subImports || [];
             this.line = line();
-            if (path.indexOf('!') === -1) {
-                this.path = path.replace(/\./g, '/');
-            }
+
+            // TODO: python style imports are deprecated, remove this replace soon    
+            this.path = this.path.replace(/\.(?![\.\/])/g, '/');
             if (this.path[0] === '/') {
                 this.path = '.' + this.path;
             }
-
             if (subImports && subImports.length > 0) {
-                this.name = '__module_' + path.replace(/\./g, '_');
+                this.name = '__module_' + this.path.replace(/\//g, '_');
             }
             else {
-                this.name = name || path.split('.')[path.split('.').length-1];
+                this.name = name || this.path.split('/')[this.path.split('/').length-1];
             }
 
             if (this.name.indexOf('-') !== -1 && name === undefined) {
@@ -538,6 +543,9 @@
             return '';
         },
         traverse: function () {
+            if (this.unalteredPath.match(/\.(?![\.\/])/)) {
+                deprecationWarning('Using . instead of / in imports is deprecated, and will fail in future versions.', this.line);
+            }
             if (this.scope.symbols[this.name]) {
                 if (this.subImports.length) {
                     // This module has already been imported? Well cool, let's just forget us
