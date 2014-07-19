@@ -57,14 +57,14 @@ function parseStringOrPrintError(string) {
     }
 }
 
-function compile(onDone) {
+function compile(onDone, onError) {
     bailey.parseFiles(source, target, options, function(sourcePath, targetPath) {
         if (program.verbose) {
             console.log(sourcePath, "->", targetPath);
         }
     }, function(err) {
         console.error(err.toString().red);
-        process.exit(1);
+        onError && onError(err);
     }, onDone);
 }
 
@@ -85,4 +85,6 @@ compile(function () {
     if (program.watch) {
         startWatching();
     }
+}, function (err) {
+    process.exit(1);
 });
