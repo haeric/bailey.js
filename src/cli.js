@@ -72,10 +72,12 @@ function startWatching () {
     program.verbose = true;
     console.log('Watching ' + source + ' for changes...');
     watch(source, function(filename) {
-        console.log('\n' + filename + ' changed, recompiling...\n-----------');
-        compile(function(){
-            console.log('-----------\nDone! Looking for more changes...');
-        });
+        if (/(\.bs|\.bailey)$/.test(filename)) {
+            console.log('\n' + filename + ' changed, recompiling...\n-----------');
+            compile(function(){
+                console.log('-----------\nDone! Looking for more changes...');
+            });
+        }
     });
 }
 
