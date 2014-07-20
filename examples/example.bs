@@ -3,9 +3,10 @@ import foo as c
 import cookie-parser as cookieParser
 import models.users
 import .models.users1
-import ./models.users2
 import ../models/users3
 import ../../models/users4
+import hbs!templates
+import hbs!templates/SomeViewTemplate.lol as lal
 import models: User, Group, Permission
 import models: User1
 
