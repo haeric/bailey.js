@@ -6,9 +6,22 @@
         this.name     = "ImportError";
     }
 
+    function StyleError(message, line) {
+        this.message  = message;
+        this.line     = line;
+        this.name     = "StyleError";
+    }
+
     function deprecationWarning(message, line) {
         var warning = 'Deprecation warning at ' + parser.options.filePath + ' line ' + line + ': ' + message;
         console.log(warning.yellow);
+    }
+
+    function styleWarning(message, line) {
+        if (parser.options.strictStyleMode) {
+            var warning = 'Style warning at ' + parser.options.filePath + ' line ' + line + ': ' + message;
+            throw new StyleError(message, line);
+        }
     }
 
     peg$subclass(ImportError, Error);
@@ -254,6 +267,10 @@
             this.elifs = elifs || [];
             this.children = [expr, ifBody, elseBody].concat(this.elifs);
             this.ternary = !!ternary;
+
+            if (this.expression.nodeType === 'Group') {
+                styleWarning('If statements should not have parens in baileyjs, they are not needed.', line())
+            }
         },
         toJS: function () {
 
@@ -391,6 +408,10 @@
             this.expression = expression;
             this.body = body;
             this.children = [expression, body];
+
+            if (this.expression.nodeType === 'Group') {
+                styleWarning('While statements should not have parens in baileyjs, they are not needed.', line())
+            }
         },
         toJS: function () {
             return 'while (' + this.expression.toJS() + ') {\n' +

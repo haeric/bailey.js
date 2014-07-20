@@ -73,6 +73,7 @@ function parse (parser, input, options) {
     options.removeComments = options.removeComments !== undefined ? options.removeComments : false;
     options.node = options.node !== undefined ? options.node : false;
     options.bare = options.bare !== undefined ? options.bare : false;
+    options.strictStyleMode = options.strictStyleMode !== undefined ? options.strictStyleMode : true;
     options.parse = parse;
 
     var js;

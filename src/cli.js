@@ -11,6 +11,7 @@ program
     .option('-w, --watch', 'Watch the source file or directory, recompiling when any file changes.')
     .option('-v, --verbose', 'More detailed output')
     .option('--remove-comments', 'Remove all comments in the compiled version.')
+    .option('--carebear', 'Do not care about style guide errors. Shame on you.')
     .option('--eval [input]', '')
     .option('--stdio', '')
     .parse(process.argv);
@@ -18,6 +19,7 @@ program
 var options = {
     node: !!program.node,
     removeComments: !!program['remove-comments'],
+    strictStyleMode: !program['carebear'],
     bare: !!program.bare,
 };
 
