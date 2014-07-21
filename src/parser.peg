@@ -963,11 +963,14 @@
         },
         traverse: function () {
             if (this.type === 'int') {
-                var node = parse(
-                    'if ~~' + this.identifier + ' != ' + this.identifier + '\n' +
-                    '    throw new Error("' + this.identifier + ' was not of expected type ' + this.type + '")',
-                    {startRule: 'Statement'}
-                );
+                if (parser.options.optimize) {
+                    var code = this.identifier + ' = ' + this.identifier + '|0';
+                }
+                else {
+                    var code = 'if ~~' + this.identifier + ' != ' + this.identifier + '\n' +
+                    '    throw new Error("' + this.identifier + ' was not of expected type ' + this.type + '")';
+                }
+                var node = parse(code, {startRule: 'Statement'});
                 this.parent.body.statements.unshift(node);
             }
         },

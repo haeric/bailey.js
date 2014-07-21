@@ -74,6 +74,7 @@ function parse (parser, input, options) {
     options.node = options.node !== undefined ? options.node : false;
     options.bare = options.bare !== undefined ? options.bare : false;
     options.strictStyleMode = options.strictStyleMode !== undefined ? options.strictStyleMode : true;
+    options.optimize = options.optimize !== undefined ? options.optimize : true;
     options.parse = parse;
 
     var js;
