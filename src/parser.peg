@@ -500,6 +500,9 @@
                 this.values.push(val);
             }
         },
+        traverse: function() {
+            this.scope.symbols[this.name] = 1;
+        },
         toJS: function () {
             var name = this.name;
             var out = 'function ' + this.name + ' ';
