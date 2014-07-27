@@ -977,6 +977,16 @@
         toJS: function () {
             return this.identifier;
         }
+    });
+
+    type('Regex', {
+        init: function(pattern, flags) {
+            this.pattern = pattern;
+            this.flags = flags;
+        },
+        toJS: function() {
+            return '/' + this.pattern + '/' + this.flags;
+        }
     })
 
 }
@@ -1259,6 +1269,8 @@ Value
 
     / StringLiteral
 
+    / RegularExpressionLiteral
+
     / a:Identifier
         { return new type.Variable(a); }
 
@@ -1488,3 +1500,45 @@ NonEscapeCharacter
 
 EscapeCharacter
   = SingleEscapeCharacter
+
+RegularExpressionLiteral "regular expression"
+  = "/" pattern:RegularExpressionBody "/" flags:RegularExpressionFlags {
+      var value;
+
+      try {
+        value = new RegExp(pattern, flags);
+      } catch (e) {
+        error(e.message);
+      }
+
+      return new type.Regex(pattern, flags);
+    }
+
+RegularExpressionBody
+  = RegularExpressionFirstChar RegularExpressionChar* { return text(); }
+
+RegularExpressionFirstChar
+  = ![*\\/[] RegularExpressionNonTerminator
+  / RegularExpressionBackslashSequence
+  / RegularExpressionClass
+
+RegularExpressionChar
+  = ![\\/[] RegularExpressionNonTerminator
+  / RegularExpressionBackslashSequence
+  / RegularExpressionClass
+
+RegularExpressionBackslashSequence
+  = "\\" RegularExpressionNonTerminator
+
+RegularExpressionNonTerminator
+  = !EOL .
+
+RegularExpressionClass
+  = "[" RegularExpressionClassChar* "]"
+
+RegularExpressionClassChar
+  = ![\]\\] RegularExpressionNonTerminator
+  / RegularExpressionBackslashSequence
+
+RegularExpressionFlags
+  = IdentifierPart*

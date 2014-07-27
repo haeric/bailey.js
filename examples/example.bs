@@ -21,6 +21,8 @@ icecream = {
     clear: 3
 }
 
+reg = /(!\/)/.test('hi there')
+
 try
     blabla
 catch e
