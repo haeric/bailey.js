@@ -673,7 +673,7 @@
             this.string = string.replace(token, '\\' + token);
         },
         toJS: function () {
-            return this.token + this.string.split('\n').join('') + this.token;
+            return this.token + this.string + this.token;
         }
     });
 
@@ -1491,12 +1491,12 @@ SingleEscapeCharacter
   = "'"
   / '"'
   / "\\" { return "\\\\"; }
-  / "b"  { return "\b";   }
-  / "f"  { return "\f";   }
-  / "n"  { return "\n";   }
-  / "r"  { return "\r";   }
-  / "t"  { return "\t";   }
-  / "v"  { return "\x0B"; }   // IE does not recognize "\v".
+  / "b"  { return "\\b";   }
+  / "f"  { return "\\f";   }
+  / "n"  { return "\\n";   }
+  / "r"  { return "\\r";   }
+  / "t"  { return "\\t";   }
+  / "v"  { return "\\x0B"; }   // IE does not recognize "\v".
 
 NonEscapeCharacter
   = !(EscapeCharacter / EOL) . { return text(); }
