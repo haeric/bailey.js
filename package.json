@@ -1,6 +1,6 @@
 {
   "name": "bailey",
-  "version": "0.0.11",
+  "version": "0.0.12b",
   "description": "A coffeescript without that bitter after-taste.",
   "main": "bailey.js",
   "dependencies": {
