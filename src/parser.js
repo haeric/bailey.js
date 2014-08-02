@@ -92,7 +92,7 @@ module.exports = (function() {
         peg$c36 = function(path) { return new type.IncludeStatement(path.join('')); },
         peg$c37 = "export ",
         peg$c38 = { type: "literal", value: "export ", description: "\"export \"" },
-        peg$c39 = function(ident) { return new type.ExportStatement(ident); },
+        peg$c39 = function(expr) { return new type.ExportStatement(expr); },
         peg$c40 = "return",
         peg$c41 = { type: "literal", value: "return", description: "\"return\"" },
         peg$c42 = function(expr) { return new type.Return(expr); },
@@ -1397,7 +1397,7 @@ module.exports = (function() {
                   if (peg$silentFails === 0) { peg$fail(peg$c38); }
                 }
                 if (s1 !== peg$FAILED) {
-                  s2 = peg$parseIdentifier();
+                  s2 = peg$parseExpression();
                   if (s2 !== peg$FAILED) {
                     peg$reportedPos = s0;
                     s1 = peg$c39(s2);
@@ -7008,7 +7008,7 @@ module.exports = (function() {
                     out += this.block.toJS();
 
                     if (export_) {
-                        out += '\nmodule.exports = ' + export_.ident + ';';
+                        out += '\nmodule.exports = ' + export_.toJS() + ';';
                     }
                     else {
                         out += '\nmodule.exports = {' + this.block.getPublicSymbolsList().map(function(key) {
@@ -7034,7 +7034,7 @@ module.exports = (function() {
                     out += this.block.toJS();
 
                     if (export_) {
-                        out += '\nreturn ' + export_.ident + ';';
+                        out += '\nreturn ' + export_.toJS() + ';';
                     }
                     else {
                         out += '\nreturn {' + this.block.getPublicSymbolsList().map(function(key) {
@@ -7409,11 +7409,14 @@ module.exports = (function() {
                 if (this.path[0] === '/') {
                     this.path = '.' + this.path;
                 }
-                if (subImports && subImports.length > 0) {
-                    this.name = '__module_' + this.path.replace(/\//g, '_');
-                }
-                else if (!name) {
-                    this.name = name || this.path.match(/([^!\/]+)$/)[1];
+                
+                if (!name) {
+                    if (subImports && subImports.length > 0) {
+                        this.name = '__module_' + this.path.replace(/[\/\.]/g, '_');
+                    }
+                    else {
+                        this.name = name || this.path.match(/([^!\/]+)$/)[1];
+                    }
                 }
 
                 if (this.name.indexOf('-') !== -1 && name === undefined) {
@@ -7472,11 +7475,12 @@ module.exports = (function() {
 
         type('ExportStatement', {
             semicolon: false,
-            init: function (ident) {
-                this.ident = ident;
+            init: function (expr) {
+                this.expr = expr;
+                this.children = [expr];
             },
             toJS: function () {
-                return '';
+                return this.expr.toJS();
             }
         });
 
@@ -7524,7 +7528,7 @@ module.exports = (function() {
         type('StringLiteral', {
             init: function (token, string) {
                 this.token = token;
-                this.string = string.replace(token, '\\' + token);
+                this.string = string.replace(token, '\\' + token).replace(/\n/g, '\\n');
             },
             toJS: function () {
                 return this.token + this.string + this.token;
