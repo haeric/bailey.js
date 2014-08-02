@@ -673,7 +673,7 @@
     type('StringLiteral', {
         init: function (token, string) {
             this.token = token;
-            this.string = string.replace(token, '\\' + token);
+            this.string = string.replace(token, '\\' + token).replace(/\n/g, '\\n');
         },
         toJS: function () {
             return this.token + this.string + this.token;

@@ -1,3 +1,11 @@
 
+# Multiline strings: \n s
+a = "
+this
+is
+a string
+"
+
 # \n characters should come through unscathed...
 "\n\n\n".split('\n').length + 38
+
