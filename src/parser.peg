@@ -555,11 +555,14 @@
             if (this.path[0] === '/') {
                 this.path = '.' + this.path;
             }
-            if (subImports && subImports.length > 0) {
-                this.name = '__module_' + this.path.replace(/\//g, '_');
-            }
-            else if (!name) {
-                this.name = name || this.path.match(/([^!\/]+)$/)[1];
+            
+            if (!name) {
+                if (subImports && subImports.length > 0) {
+                    this.name = '__module_' + this.path.replace(/[\/\.]/g, '_');
+                }
+                else {
+                    this.name = name || this.path.match(/([^!\/]+)$/)[1];
+                }
             }
 
             if (this.name.indexOf('-') !== -1 && name === undefined) {
