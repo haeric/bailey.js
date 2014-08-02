@@ -154,7 +154,7 @@
                 out += this.block.toJS();
 
                 if (export_) {
-                    out += '\nmodule.exports = ' + export_.ident + ';';
+                    out += '\nmodule.exports = ' + export_.toJS() + ';';
                 }
                 else {
                     out += '\nmodule.exports = {' + this.block.getPublicSymbolsList().map(function(key) {
@@ -180,7 +180,7 @@
                 out += this.block.toJS();
 
                 if (export_) {
-                    out += '\nreturn ' + export_.ident + ';';
+                    out += '\nreturn ' + export_.toJS() + ';';
                 }
                 else {
                     out += '\nreturn {' + this.block.getPublicSymbolsList().map(function(key) {
@@ -621,11 +621,12 @@
 
     type('ExportStatement', {
         semicolon: false,
-        init: function (ident) {
-            this.ident = ident;
+        init: function (expr) {
+            this.expr = expr;
+            this.children = [expr];
         },
         toJS: function () {
-            return '';
+            return this.expr.toJS();
         }
     });
 
@@ -1047,8 +1048,8 @@ Statement
     / 'include ' path:[a-zA-Z0-9._/-]+
         { return new type.IncludeStatement(path.join('')); }
 
-    / 'export ' ident:Identifier
-        { return new type.ExportStatement(ident); }
+    / 'export ' expr:Expression
+        { return new type.ExportStatement(expr); }
 
     / 'return' _ expr:Expression?
         { return new type.Return(expr); }
