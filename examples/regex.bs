@@ -1,0 +1,1 @@
+/\d+/.test('We have 20 different sorts of IceCream')
