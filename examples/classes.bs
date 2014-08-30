@@ -14,12 +14,13 @@ class Candy
         return quantity * @price
 
 class Chocolate extends Candy
-    types: ['dark', 'milk', 'white'] 
+    types: ['dark', 'milk', 'white']
     type: 0
+    chocolateDiscount: 0.8
 
     init: (title, price, quantity, type) ->
-        @title = title
-        @price = price
-        @quantity = quantity
+        super.init(title, price, quantity)
         @type = type
-        @slug = slugify(title)
+
+    calculatePrice: (quantity) ->
+        return super.calculatePrice(quantity) * @chocolateDiscount
