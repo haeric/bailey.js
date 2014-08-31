@@ -1,0 +1,8 @@
+@sent = false
+
+request(url, (err, res, body) ->
+    if not err
+        # we can reach an outer scope by adding a @
+        # for each level out that we need to go
+        @@sent = true
+)

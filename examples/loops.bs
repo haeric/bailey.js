@@ -4,6 +4,9 @@ for item in bagOfDelicousCandy
 for number in 0:10:2
     console.log(number)
 
+for key of IceCreamObject
+    console.log('#{key}: #{IceCreamObject[key]}')
+
 chocolateCount = 4
 while chocolateCount > 0
     console.log('Eat chocolate')
