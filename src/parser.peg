@@ -115,7 +115,7 @@
                         children: [],
                     });
                 }
-                
+
             }
 
         },
@@ -548,14 +548,14 @@
             this.subImports = subImports || [];
             this.line = line();
 
-            // TODO: python style imports are deprecated, remove this replace soon    
+            // TODO: python style imports are deprecated, remove this replace soon
             if (this.path.indexOf('/') === -1) {
                 this.path = this.path.replace(/\.(?![\.\/])/g, '/');
             }
             if (this.path[0] === '/') {
                 this.path = '.' + this.path;
             }
-            
+
             if (!name) {
                 if (subImports && subImports.length > 0) {
                     this.name = '__module_' + this.path.replace(/[\/\.]/g, '_');
@@ -632,7 +632,7 @@
 
     type('IncludeStatement', {
         init: function (path) {
-            // TODO: python style imports are deprecated, remove this replace soon    
+            // TODO: python style imports are deprecated, remove this replace soon
             this.path = path;
             this.unalteredPath = path;
             if (this.path.indexOf('/') === -1) {
@@ -932,6 +932,11 @@
         }
     });
     type('SuperToken', {
+        init: function () {
+            this.offset = offset();
+            this.line = line();
+            this.column = column();
+        },
         traverse: function () {
 
             // Find the class in which this super resides
@@ -940,7 +945,10 @@
                 target = target.parent;
 
                 if (!target) {
-                    error("super can only be used inside a classStatement");
+                    throw new SyntaxError(
+                        'super can only be used inside a class statement', '.', '',
+                        this.offset, this.line, this.column
+                    )
                 }
             }
 
@@ -948,11 +956,17 @@
 
             // Find the function call
             if (this.parent.nodeType != 'PropertyAccess') {
-                expected('super.*');
+                throw new SyntaxError(
+                    'super can only be used to access the methods of the superclass like so: super.method()', '.', '',
+                    this.offset, this.line, this.column
+                )
             }
 
             if (this.parent.accessor.nodeType != 'FunctionCall') {
-                expected('super.func()');
+                throw new SyntaxError(
+                    'super only supports accessing methods: super.method()', '.', '',
+                    this.offset, this.line, this.column
+                )
             }
 
             this.parent.accessor.superCall = true;
@@ -1242,9 +1256,12 @@ PostfixExpression
 
 FunctionExpression
     = value:Value modifiers:(
-        '[' __ expr:Expression __ ']'      { return {type: '[]', expr: expr} }
-      / __ '.' __ expr:(Expression / IdentifierPart)          { return {type: '.', expr: expr} }
-      / '(' __ args:ExpressionTuple __ ')' { return args; }
+        '[' __ expr:Expression __ ']'
+            { return {type: '[]', expr: expr} }
+      / __ '.' __ expr:(FunctionExpression / IdentifierPart)
+            { return {type: '.', expr: expr} }
+      / '(' __ args:ExpressionTuple __ ')'
+            { return args; }
     )*
         {
             for (var i = 0; i < modifiers.length; i++) {
