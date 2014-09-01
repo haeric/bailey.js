@@ -7,7 +7,7 @@ clean:
 	rm src/parser.js
 
 test: src/parser.js
-	bailey ./test ./test --node
-	npm test
+	node bailey.js ./test ./test --node
+	mocha
 
 .PHONY: test clean parser
