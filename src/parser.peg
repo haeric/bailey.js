@@ -312,7 +312,7 @@
                 this.iterator = this.item;
             }
 
-            if (!this.ofLoop && !this.iterator) {
+            if (!this.iterator) {
                 var i = 1;
                 do {
                     this.iterator = '__i' + i++;
@@ -393,15 +393,9 @@
         toJSOfLoop: function () {
             var out = this.toJSBeforeLoop();
 
-            if (this.iterator) {
-                return out + 'for (var ' + this.iterator + ' in ' + this.iterableTemp + ') {' +
-                'var ' + this.item + ' = ' + this.iterableTemp + '[' + this.iterator + '];\n' +
-                this.body.toJS() + '}';
-            }
-            else {
-                return out + 'for (var ' + this.item + ' in ' + this.iterableTemp + ') {' +
-                this.body.toJS() + '}';
-            }
+            return out + 'for (var ' + this.iterator + ' in ' + this.iterableTemp + ') {' +
+            'var ' + this.item + ' = ' + this.iterableTemp + '[' + this.iterator + '];\n' +
+            this.body.toJS() + '}';
         },
 
         toJSBeforeLoop: function () {

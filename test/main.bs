@@ -48,7 +48,6 @@ describe('bailey.js', () ->
             })).be.empty
 
         testHelper = (options, done) ->
-            options = options
             bailey.parseFiles('test/fixtures/', 'test/build/', options, null, errorCallback, () ->
                 fs.readdir('test/fixtures/', (err, files) ->
                     errorCallback(err)

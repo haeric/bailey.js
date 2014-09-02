@@ -4,8 +4,8 @@ for item in bagOfDelicousCandy
 for number in 0:10:2
     console.log(number)
 
-for key of IceCreamObject
-    console.log('#{key}: #{IceCreamObject[key]}')
+for value of IceCreamObject
+    console.log(value)
 
 for key, value of IceCreamObject
     console.log('#{key}: #{value}')

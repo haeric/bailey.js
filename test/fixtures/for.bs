@@ -15,7 +15,8 @@ for z in 0:2
 
 obj = { 1: -2 2: -3 3: -4 }
 
-for key of obj
-    s +=  parseInt(key, 10) + obj[key]
-
+for val of obj
+    s += val
+for key, val of obj
+    s += parseInt(key, 10)
 s
