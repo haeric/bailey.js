@@ -312,7 +312,7 @@
                 this.iterator = this.item;
             }
 
-            if (!this.iterator) {
+            if (!this.ofLoop && !this.iterator) {
                 var i = 1;
                 do {
                     this.iterator = '__i' + i++;
@@ -338,6 +338,9 @@
             this.scope.symbols[this.iterableLength] = 1;
         },
         toJS: function () {
+            if (this.ofLoop) {
+                return this.toJSOfLoop();
+            }
             if (this.iterable.nodeType === 'Range') {
                 return this.toJSRanged();
             }
@@ -378,20 +381,7 @@
                 this.body.toJS() + '}';
         },
         toJSListed: function () {
-
-            if (this.ofLoop) {
-                return 'for (var ' + this.item + ' in ' + this.iterable.toJS() + ') {' +
-                this.body.toJS() + '}';
-            }
-
-            var out = '';
-
-            if (this.iterable.nodeType === 'Variable') {
-                this.iterableTemp = this.iterable.toJS();
-            }
-            else {
-                out += 'var ' + this.iterableTemp + ' = ' + this.iterable.toJS() + ';'
-            }
+            var out = this.toJSBeforeLoop();
 
             return out +
                 'var ' + this.iterableLength + ' = ' + this.iterableTemp + '.length;' +
@@ -399,6 +389,29 @@
                 this.iterator + ' < ' + this.iterableLength + '; ' + this.iterator + '++) { ' +
                 'var ' + this.item + ' = ' + this.iterableTemp + '[' + this.iterator + '];\n' +
                 this.body.toJS() + '}';
+        },
+        toJSOfLoop: function () {
+            var out = this.toJSBeforeLoop();
+
+            if (this.iterator) {
+                return out + 'for (var ' + this.iterator + ' in ' + this.iterableTemp + ') {' +
+                'var ' + this.item + ' = ' + this.iterableTemp + '[' + this.iterator + '];\n' +
+                this.body.toJS() + '}';
+            }
+            else {
+                return out + 'for (var ' + this.item + ' in ' + this.iterableTemp + ') {' +
+                this.body.toJS() + '}';
+            }
+        },
+
+        toJSBeforeLoop: function () {
+            if (this.iterable.nodeType === 'Variable') {
+                this.iterableTemp = this.iterable.toJS();
+            }
+            else {
+                return 'var ' + this.iterableTemp + ' = ' + this.iterable.toJS() + ';'
+            }
+            return '';
         }
     });
 
@@ -1103,24 +1116,19 @@ Statement
     / { return new type.Noop() }
 
 ForStatement
-    = 'for ' iterator:Identifier ', ' item:Identifier ' in ' iterable:Expression IndentNewline body:Block IndentRemove
-        { return new type.ForLoop(iterator, item, iterable, body); }
-
-    / 'for ' item:Identifier ' in ' iterable:(Range / Expression) IndentNewline body:Block IndentRemove
-        { return new type.ForLoop(null, item, iterable, body); }
-
-    / 'for ' item:Identifier ' of ' iterable:Expression IndentNewline body:Block IndentRemove
-        { return new type.ForLoop(null, item, iterable, body, true); }
-
-    // Let's allow forloops to NOT indent, if there's a forloop beneath
-    / 'for ' iterator:Identifier ', ' item:Identifier ' in ' iterable:Expression EOL Indent body:ForStatement
-        { return new type.ForLoop(iterator, item, iterable, body); }
-
-    / 'for ' item:Identifier ' in ' iterable:(Range / Expression) EOL Indent body:ForStatement
-        { return new type.ForLoop(null, item, iterable, body); }
-
-    / 'for ' item:Identifier ' of ' iterable:Expression EOL Indent body:ForStatement
-        { return new type.ForLoop(null, item, iterable, body, true); }
+    = 'for ' iterator:(Identifier ',')? _ item:Identifier _
+      op:('in' / 'of') _
+      iterable:(Range / Expression)
+      body:(
+          IndentNewline body:Block IndentRemove { return body; }
+          / EOL Indent body:ForStatement { return body; }
+      )
+        {
+            if (op === 'of' && iterable.nodeType === 'Range') {
+                error('for ... of cannot be used with a range, only objects.')
+            }
+            return new type.ForLoop(iterator ? iterator[0] : null, item, iterable, body, op === 'of');
+        }
 
 IndentedBlockOrThenPlusExpresssion
   = IndentNewline block:Block IndentRemove { return block; }

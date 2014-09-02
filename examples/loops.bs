@@ -7,6 +7,9 @@ for number in 0:10:2
 for key of IceCreamObject
     console.log('#{key}: #{IceCreamObject[key]}')
 
+for key, value of IceCreamObject
+    console.log('#{key}: #{value}')
+
 chocolateCount = 4
 while chocolateCount > 0
     console.log('Eat chocolate')
