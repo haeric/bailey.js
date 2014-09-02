@@ -1,4 +1,4 @@
-parser: src/parser.js
+parser: clean src/parser.js
 
 src/parser.js:
 	./node_modules/pegjs/bin/pegjs --allowed-start-rules Program,Expression,Statement src/parser.peg src/parser.js

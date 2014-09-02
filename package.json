@@ -21,8 +21,7 @@
     "should": "^3.3.1"
   },
   "scripts": {
-    "test": "make test",
-    "make-parser": "make parser"
+    "test": "make test"
   },
   "bin": "./bailey.js",
   "repository": {
