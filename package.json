@@ -21,8 +21,8 @@
     "should": "^3.3.1"
   },
   "scripts": {
-    "test": "mocha",
-    "make-parser": "./node_modules/pegjs/bin/pegjs --allowed-start-rules Program,Expression,Statement src/parser.peg src/parser.js"
+    "test": "make test",
+    "make-parser": "make parser"
   },
   "bin": "./bailey.js",
   "repository": {

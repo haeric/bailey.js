@@ -1,0 +1,25 @@
+import jshint: JSHINT
+
+export (source, options) ->
+    makeErrorsList = (results) ->
+        if not ('errors' in results)
+            return []
+        list = []
+        for error in results.errors
+            list.push({
+                error: 'In #{results.sourceName} on line #{error.line}: #{error.reason} (#{error.code})'
+                lineToBlame: source.split('\n')[error.line - 1]
+            })
+        return list
+
+    if typeof source != 'string'
+        throw new Error('source must be a string')
+
+    result = JSHINT(source, options.hintOptions)
+    lintdata = JSHINT.data()
+    lintdata = lintdata or {}
+
+    if options.name
+        lintdata.sourceName = options.name
+
+    return makeErrorsList(lintdata)

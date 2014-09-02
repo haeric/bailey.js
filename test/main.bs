@@ -1,0 +1,74 @@
+import should
+import fs
+import rimraf as rmdir
+
+import ../bailey
+import ./hint
+
+describe('bailey.js', () ->
+    describe('parseString', () ->
+        it('should parse bare', (done) ->
+            bailey.parseString('console.log("wee")', {bare: true}).should.equal('console.log("wee");')
+            done()
+        )
+
+        it('should parse without comments', (done) ->
+            bailey.parseString('# Chocolate', {removeComments: true}).should.not.containEql('//')
+            done()
+        )
+
+        it('should parse with node imports', (done) ->
+            bailey.parseString('import color\nconsole.log("wee")', {node: true}).should.containEql('require("color")')
+            done()
+        )
+
+        it('should parse with normal imports', (done) ->
+            bailey.parseString('import color\nconsole.log("wee")', {}).should.containEql('define(["color"]')
+            done()
+        )
+    )
+
+    describe('parseFiles', () ->
+        clean = () ->
+            rmdir.sync('test/build')
+
+        errorCallback = (err) ->
+            if err
+                throw err
+
+        evalFile = (file) ->
+            file = 'test/build/' + file.replace('.bs', '.js')
+            data = fs.readFileSync(file)
+            data.toString().should.be.ok
+            result = eval(data.toString())
+            should(result).equal(42)
+            should(hint(data.toString(), {
+                name: file
+                hintOptions: { expr: true } # the "output;" on the last line that outputs 42 triggers this warning
+            })).be.empty
+
+        testHelper = (options, done) ->
+            options = options
+            bailey.parseFiles('test/fixtures/', 'test/build/', options, null, errorCallback, () ->
+                fs.readdir('test/fixtures/', (err, files) ->
+                    errorCallback(err)
+                    files.forEach(evalFile)
+                    done()
+                )
+            )
+
+        beforeEach(clean)
+
+        it('should parse examples with bare option', (done) ->
+            testHelper({bare: true}, done)
+        )
+
+        it('should parse examples with remove comments option', (done) ->
+            testHelper({bare: true, removeComments: true}, done)
+        )
+
+        it('should parse examples with node option', (done) ->
+            testHelper({bare: true, node: true}, done)
+        )
+    )
+)
