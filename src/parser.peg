@@ -1386,7 +1386,7 @@ AnyIdentifier
     =  $ (Digits / Letters / '_' / '\.')+
 
 TypedIdentifier
-    = identifierType:(Type _)? identifier:Identifier
+    = identifierType:(Type ' '+)? identifier:Identifier
      { return new type.TypedIdentifier(identifierType ? identifierType[0] : null, identifier); }
 
 Type
