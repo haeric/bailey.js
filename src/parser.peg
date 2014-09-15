@@ -267,9 +267,11 @@
             this.elifs = elifs || [];
             this.children = [expr, ifBody, elseBody].concat(this.elifs);
             this.ternary = !!ternary;
-
+            this.line = line();
+        },
+        traverse: function() {
             if (this.expression.nodeType === 'Group') {
-                styleWarning('If statements should not have parens in baileyjs, they are not needed.', line())
+                styleWarning('If statements should not have parens in baileyjs, they are not needed.', this.line);
             }
         },
         toJS: function () {
@@ -415,9 +417,11 @@
             this.expression = expression;
             this.body = body;
             this.children = [expression, body];
-
+            this.line = line();
+        },
+        traverse: function () {
             if (this.expression.nodeType === 'Group') {
-                styleWarning('While statements should not have parens in baileyjs, they are not needed.', line())
+                styleWarning('While statements should not have parens in baileyjs, they are not needed.', this.line);
             }
         },
         toJS: function () {
