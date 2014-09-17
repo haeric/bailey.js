@@ -13,4 +13,10 @@ for y in 0:2
 for z in 0:2
     s += x + y + z
 
-s - 3
+obj = { 1: -2 2: -3 3: -4 }
+
+for val of obj
+    s += val
+for key, val of obj
+    s += parseInt(key, 10)
+s

@@ -121,7 +121,12 @@ b = ((a, b, c) ->
 c = f()
 
 for i, x in f()
+for j, y of f()
+for z in 1:2
     1
+
+for k, v of obj
+    console.log(k, v)
 
 class IceCream
     init: (type) ->

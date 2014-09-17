@@ -115,7 +115,7 @@
                         children: [],
                     });
                 }
-                
+
             }
 
         },
@@ -267,9 +267,11 @@
             this.elifs = elifs || [];
             this.children = [expr, ifBody, elseBody].concat(this.elifs);
             this.ternary = !!ternary;
-
+            this.line = line();
+        },
+        traverse: function() {
             if (this.expression.nodeType === 'Group') {
-                styleWarning('If statements should not have parens in baileyjs, they are not needed.', line())
+                styleWarning('If statements should not have parens in baileyjs, they are not needed.', this.line);
             }
         },
         toJS: function () {
@@ -338,6 +340,9 @@
             this.scope.symbols[this.iterableLength] = 1;
         },
         toJS: function () {
+            if (this.ofLoop) {
+                return this.toJSOfLoop();
+            }
             if (this.iterable.nodeType === 'Range') {
                 return this.toJSRanged();
             }
@@ -378,20 +383,7 @@
                 this.body.toJS() + '}';
         },
         toJSListed: function () {
-
-            if (this.ofLoop) {
-                return 'for (var ' + this.item + ' in ' + this.iterable.toJS() + ') {' +
-                this.body.toJS() + '}';
-            }
-
-            var out = '';
-
-            if (this.iterable.nodeType === 'Variable') {
-                this.iterableTemp = this.iterable.toJS();
-            }
-            else {
-                out += 'var ' + this.iterableTemp + ' = ' + this.iterable.toJS() + ';'
-            }
+            var out = this.toJSBeforeLoop();
 
             return out +
                 'var ' + this.iterableLength + ' = ' + this.iterableTemp + '.length;' +
@@ -399,6 +391,23 @@
                 this.iterator + ' < ' + this.iterableLength + '; ' + this.iterator + '++) { ' +
                 'var ' + this.item + ' = ' + this.iterableTemp + '[' + this.iterator + '];\n' +
                 this.body.toJS() + '}';
+        },
+        toJSOfLoop: function () {
+            var out = this.toJSBeforeLoop();
+
+            return out + 'for (var ' + this.iterator + ' in ' + this.iterableTemp + ') {' +
+            'var ' + this.item + ' = ' + this.iterableTemp + '[' + this.iterator + '];\n' +
+            this.body.toJS() + '}';
+        },
+
+        toJSBeforeLoop: function () {
+            if (this.iterable.nodeType === 'Variable') {
+                this.iterableTemp = this.iterable.toJS();
+            }
+            else {
+                return 'var ' + this.iterableTemp + ' = ' + this.iterable.toJS() + ';'
+            }
+            return '';
         }
     });
 
@@ -408,9 +417,11 @@
             this.expression = expression;
             this.body = body;
             this.children = [expression, body];
-
+            this.line = line();
+        },
+        traverse: function () {
             if (this.expression.nodeType === 'Group') {
-                styleWarning('While statements should not have parens in baileyjs, they are not needed.', line())
+                styleWarning('While statements should not have parens in baileyjs, they are not needed.', this.line);
             }
         },
         toJS: function () {
@@ -548,14 +559,14 @@
             this.subImports = subImports || [];
             this.line = line();
 
-            // TODO: python style imports are deprecated, remove this replace soon    
+            // TODO: python style imports are deprecated, remove this replace soon
             if (this.path.indexOf('/') === -1) {
                 this.path = this.path.replace(/\.(?![\.\/])/g, '/');
             }
             if (this.path[0] === '/') {
                 this.path = '.' + this.path;
             }
-            
+
             if (!name) {
                 if (subImports && subImports.length > 0) {
                     this.name = '__module_' + this.path.replace(/[\/\.]/g, '_');
@@ -632,7 +643,7 @@
 
     type('IncludeStatement', {
         init: function (path) {
-            // TODO: python style imports are deprecated, remove this replace soon    
+            // TODO: python style imports are deprecated, remove this replace soon
             this.path = path;
             this.unalteredPath = path;
             if (this.path.indexOf('/') === -1) {
@@ -932,6 +943,11 @@
         }
     });
     type('SuperToken', {
+        init: function () {
+            this.offset = offset();
+            this.line = line();
+            this.column = column();
+        },
         traverse: function () {
 
             // Find the class in which this super resides
@@ -940,7 +956,10 @@
                 target = target.parent;
 
                 if (!target) {
-                    error("super can only be used inside a classStatement");
+                    throw new SyntaxError(
+                        'super can only be used inside a class statement', '.', '',
+                        this.offset, this.line, this.column
+                    )
                 }
             }
 
@@ -948,11 +967,17 @@
 
             // Find the function call
             if (this.parent.nodeType != 'PropertyAccess') {
-                expected('super.*');
+                throw new SyntaxError(
+                    'super can only be used to access the methods of the superclass like so: super.method()', '.', '',
+                    this.offset, this.line, this.column
+                )
             }
 
             if (this.parent.accessor.nodeType != 'FunctionCall') {
-                expected('super.func()');
+                throw new SyntaxError(
+                    'super only supports accessing methods: super.method()', '.', '',
+                    this.offset, this.line, this.column
+                )
             }
 
             this.parent.accessor.superCall = true;
@@ -1089,24 +1114,19 @@ Statement
     / { return new type.Noop() }
 
 ForStatement
-    = 'for ' iterator:Identifier ', ' item:Identifier ' in ' iterable:Expression IndentNewline body:Block IndentRemove
-        { return new type.ForLoop(iterator, item, iterable, body); }
-
-    / 'for ' item:Identifier ' in ' iterable:(Range / Expression) IndentNewline body:Block IndentRemove
-        { return new type.ForLoop(null, item, iterable, body); }
-
-    / 'for ' item:Identifier ' of ' iterable:Expression IndentNewline body:Block IndentRemove
-        { return new type.ForLoop(null, item, iterable, body, true); }
-
-    // Let's allow forloops to NOT indent, if there's a forloop beneath
-    / 'for ' iterator:Identifier ', ' item:Identifier ' in ' iterable:Expression EOL Indent body:ForStatement
-        { return new type.ForLoop(iterator, item, iterable, body); }
-
-    / 'for ' item:Identifier ' in ' iterable:(Range / Expression) EOL Indent body:ForStatement
-        { return new type.ForLoop(null, item, iterable, body); }
-
-    / 'for ' item:Identifier ' of ' iterable:Expression EOL Indent body:ForStatement
-        { return new type.ForLoop(null, item, iterable, body, true); }
+    = 'for ' iterator:(Identifier ',')? _ item:Identifier _
+      op:('in' / 'of') _
+      iterable:(Range / Expression)
+      body:(
+          IndentNewline body:Block IndentRemove { return body; }
+          / EOL Indent body:ForStatement { return body; }
+      )
+        {
+            if (op === 'of' && iterable.nodeType === 'Range') {
+                error('for ... of cannot be used with a range, only objects.')
+            }
+            return new type.ForLoop(iterator ? iterator[0] : null, item, iterable, body, op === 'of');
+        }
 
 IndentedBlockOrThenPlusExpresssion
   = IndentNewline block:Block IndentRemove { return block; }
@@ -1242,9 +1262,12 @@ PostfixExpression
 
 FunctionExpression
     = value:Value modifiers:(
-        '[' __ expr:Expression __ ']'      { return {type: '[]', expr: expr} }
-      / __ '.' __ expr:(Expression / IdentifierPart)          { return {type: '.', expr: expr} }
-      / '(' __ args:ExpressionTuple __ ')' { return args; }
+        '[' __ expr:Expression __ ']'
+            { return {type: '[]', expr: expr} }
+      / __ '.' __ expr:(FunctionExpression / IdentifierPart)
+            { return {type: '.', expr: expr} }
+      / '(' __ args:ExpressionTuple __ ')'
+            { return args; }
     )*
         {
             for (var i = 0; i < modifiers.length; i++) {
@@ -1363,7 +1386,7 @@ AnyIdentifier
     =  $ (Digits / Letters / '_' / '\.')+
 
 TypedIdentifier
-    = identifierType:(Type _)? identifier:Identifier
+    = identifierType:(Type ' '+)? identifier:Identifier
      { return new type.TypedIdentifier(identifierType ? identifierType[0] : null, identifier); }
 
 Type

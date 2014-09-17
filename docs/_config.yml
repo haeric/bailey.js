@@ -15,3 +15,5 @@ examples:
   - If-statements
   - Loops
   - Classes
+  - Scope
+  - Regex

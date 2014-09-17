@@ -7,7 +7,7 @@ before_script:
   - gem install jekyll
 
 script:
-  - npm run-script make-parser && npm test
+  - make clean && make test
   - cd docs/ && jekyll build
 
 notifications:
