@@ -21,16 +21,21 @@ code
 
 .navbar
   margin-bottom: 0
-  .container
-    max-width: 675px
+  .navbar-nav
+    text-align: center
+    width: 100%
 
-  li>a
-    border-bottom: 3px solid #f8f8f8
-    padding-bottom: 12px
+  li
+    display: inline-block
+    float: none
 
-  li.active>a
-    background-color: transparent !important
-    border-bottom: 3px solid $blue
+    &>a
+      border-bottom: 3px solid #f8f8f8
+      padding-bottom: 12px
+
+    &.active>a
+      background-color: transparent !important
+      border-bottom: 3px solid $blue
 
 .jumbotron
   background: #fafafa
