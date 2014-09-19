@@ -1,0 +1,31 @@
+<script src="http://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.14/require.min.js" type="text/javascript"></script>
+<script src="http://bailey.lkng.me/javascripts/preview.min.js" type="text/javascript"></script>
+
+<div class="row">
+  <div class="col-xs-12">
+    <h2 id="try-it-out">Try it yourself</h2>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-xs-6">
+    <form role="form">
+      <div class="form-group">
+        <label for="bs">Write something in bailey.js:</label>
+        <textarea name="bs" rows="10" class="form-control"></textarea>
+      </div>
+    </form>
+  </div>
+  <div id="preview" class="col-xs-6">
+    <p class="lead">...and watch it appear here as javascript</p>
+  </div>
+</div>
+
+{% raw %}
+<script type="text/javascript">
+  require(['preview'], function (Preview) {
+      var template = '<p class="lead">...and watch it appear here as javascript</p>{{#if error}}<div class="alert alert-danger">{{error}}</div>{{/if}}{{#if bare}}<label>--bare </label><pre><code id="barePreview" class="language-coffeescript">{{bare}}</code></pre>{{/if}}{{#if node}}<label>--node</label><pre><code id="nodePreview" class="language-coffeescript">{{node}}</code></pre>{{/if}}{{#if default}}<label>default options </label><pre><code id="defaultPreview" class="language-coffeescript">{{default}}</code></pre>{{/if}}';
+    Preview('http://bailey.lkng.me', template)
+  });
+</script>
+{% endraw %}

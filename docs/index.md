@@ -6,6 +6,7 @@ title: bailey.js
 {% include installation.md %}
 {% include usage.md %}
 {% include examples.html %}
+{% include try.html %}
 
 ## Tools
 * [Atom highlighting](https://atom.io/packages/language-bailey), because Atom is an awesome editor.
