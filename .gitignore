@@ -7,3 +7,4 @@ docs/assets/*.js
 docs/bailey.tgz
 docs/bailey.docset
 src/parser.js
+js/

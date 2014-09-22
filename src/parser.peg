@@ -569,7 +569,7 @@
 
             if (!name) {
                 if (subImports && subImports.length > 0) {
-                    this.name = '__module_' + this.path.replace(/[\/\.]/g, '_');
+                    this.name = '__module_' + this.path.replace(/[\/\.\-]/g, '_');
                 }
                 else {
                     this.name = name || this.path.match(/([^!\/]+)$/)[1];
