@@ -127,11 +127,11 @@
 
             var out = this.block.extractPreImportStatements().map(function(item) {
                 return item.toJS() + '\n';
-            });
+            }).join('');
 
             out += this.block.extractNodes('IncludeStatement').map(function(item) {
                 return item.toJS() + '\n';
-            });
+            }).join('');
 
             var imports = this.block.extractNodes('ImportStatement');
             var export_ = this.block.extractNodes('ExportStatement');
