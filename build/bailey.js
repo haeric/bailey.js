@@ -10793,13 +10793,13 @@ module.exports = (function() {
 
                 this.traverse();
 
-                var out =  this.block.extractPreImportStatements().map(function(item) {
-                    return item.toJS();
-                }).join('\n');
+                var out = this.block.extractPreImportStatements().map(function(item) {
+                    return item.toJS() + '\n';
+                }).join('');
 
                 out += this.block.extractNodes('IncludeStatement').map(function(item) {
-                    return item.toJS();
-                }).join('\n');
+                    return item.toJS() + '\n';
+                }).join('');
 
                 var imports = this.block.extractNodes('ImportStatement');
                 var export_ = this.block.extractNodes('ExportStatement');
@@ -11237,7 +11237,7 @@ module.exports = (function() {
 
                 if (!name) {
                     if (subImports && subImports.length > 0) {
-                        this.name = '__module_' + this.path.replace(/[\/\.]/g, '_');
+                        this.name = '__module_' + this.path.replace(/[\/\.\-]/g, '_');
                     }
                     else {
                         this.name = name || this.path.match(/([^!\/]+)$/)[1];
