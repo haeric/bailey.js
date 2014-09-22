@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-var compiler = require('./src/compiler');
+var compiler = require('./src/compiler-node');
 var pkg = require('./package.json');
 
 module.exports.parseFiles = compiler.parseFiles;
