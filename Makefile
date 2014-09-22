@@ -17,7 +17,8 @@ clean:
 	rm -f src/parser.js
 
 clean-build:
-	rm -f build/
+	rm -rf build/
+	mkdir build
 
 test: src/parser.js
 	node bailey.js ./test ./test --node
