@@ -1,6 +1,6 @@
 default: parser browser
 
-browser: build/bailey.js build/bailey.min.js
+browser: clean-build build/bailey.js build/bailey.min.js
 
 parser: clean src/parser.js
 
@@ -15,6 +15,9 @@ src/parser.js:
 
 clean:
 	rm -f src/parser.js
+
+clean-build:
+	rm -f build/
 
 test: src/parser.js
 	node bailey.js ./test ./test --node
