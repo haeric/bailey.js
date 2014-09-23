@@ -37,15 +37,16 @@ describe('bailey.js', () ->
                 throw err
 
         evalFile = (file) ->
-            file = 'test/build/' + file.replace('.bs', '.js')
-            data = fs.readFileSync(file)
-            data.toString().should.be.ok
-            result = eval(data.toString())
-            should(result).equal(42)
-            should(hint(data.toString(), {
-                name: file
-                hintOptions: { expr: true } # the "output;" on the last line that outputs 42 triggers this warning
-            })).be.empty
+            if /\.bs$/.test(file)
+                file = 'test/build/' + file.replace('.bs', '.js')
+                data = fs.readFileSync(file)
+                data.toString().should.be.ok
+                result = eval(data.toString())
+                should(result).equal(42)
+                should(hint(data.toString(), {
+                    name: file
+                    hintOptions: { expr: true } # the "output;" on the last line that outputs 42 triggers this warning
+                })).be.empty
 
         testHelper = (options, done) ->
             bailey.parseFiles('test/fixtures/', 'test/build/', options, null, errorCallback, () ->
