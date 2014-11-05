@@ -21,6 +21,16 @@ bailey examples/ build/
 ### Documentation
 [haeric.github.io/bailey.js](http://haeric.github.io/bailey.js)
 
+#### Helpful make commands
+```
+$ make help
+    browser - make browser version
+    parser  - create the peg parser if it does not exist
+    clean   - delete the peg parser
+    test    - run this often
+```
+
+
 ### Contribute
 Pull requests are welcome! The following commit conventions have been established, with more to come...
 * :boom: for backwards incompatible changes. Uh-oh.
