@@ -1,9 +1,11 @@
 bailey.js
 =========
-[![Build status](https://ci.frigg.io/badges/haeric/bailey.js/)](https://ci.frigg.io/haeric/bailey.js/)
+  
 [bailey.js](http://haeric.github.io/bailey.js) is a pragmatic language that parses to javascript. Sort of like coffeescript, but a lot more inspired by python than ruby, with a focus on creating a cleaner, saner language with less flaws.
 
 bailey.js is currently very, very work in progress, and backwards-incompatible changes can occur without much warning.
+
+[![Build status](https://ci.frigg.io/badges/haeric/bailey.js/)](https://ci.frigg.io/haeric/bailey.js/)
 
 ### Installation
 ```
