@@ -3,6 +3,11 @@ var bailey = require('./../bailey'),
     program = require('commander'),
     fs = require('fs');
 
+var EXIT_CODES = {
+    PARSER_ERROR: 1,
+    CONFIGURATION_ERROR: 2
+};
+
 program
     .version(bailey.version)
     .usage('<source> <target>')
@@ -37,6 +42,7 @@ function runTasks(program) {
         } catch (err) {
             console.error('Could not parse .baileyrc'.red)
             console.error(err.toString().red);
+            process.exit(EXIT_CODES.CONFIGURATION_ERROR);
         }
         if (program.config) {
             configs = program.config.split(',');
@@ -73,7 +79,7 @@ function runTask(program, options, configFromFile) {
     compile(options.source, options.target, options, function () {
         if (program.watch) startWatching(options);
     }, function (err) {
-        process.exit(1);
+        process.exit(EXIT_CODES.PARSER_ERROR);
     });
 }
 
@@ -94,7 +100,7 @@ function parseStringOrPrintError(string, options) {
     }
     catch (e) {
         console.error(e.toString().red);
-        process.exit(1);
+        process.exit(EXIT_CODES.PARSER_ERROR);
     }
 }
 
