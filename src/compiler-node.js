@@ -10,7 +10,13 @@ require('colors');
 function parseFiles (source, target, options, onFile, onError, onDone) {
 
     var sourceStat = fs.lstatSync(source);
-    var targetStat = fs.lstatSync(target);
+    try {
+      var targetStat = fs.lstatSync(target);
+    }
+    catch (e) {
+      mkdir.sync(target);
+      var targetStat = fs.lstatSync(target);
+    }
 
     // Make sure the source and target are properly formatted
     if (sourceStat.isDirectory() && source[source.length-1] !== '/') {
