@@ -39,3 +39,30 @@ Watch the source file or directory, recompiling when any file changes.
 
 #### `--version`
 Output the current version.
+
+### Configurationfile `.baileyrc`
+Bailey.js has support for configuration through a json file called `.baileyrc`.
+It can be used in order to shorten the parse command or to define several
+configurations for a project. This can often be the use case in an web project
+with a node or io.js backend. The configuration file can define multiple sets
+of options like the example below. Any options passed in the cli will override
+the configuration file and if positional arguments are passed in the cli bailey
+will not read the configuration file.
+
+{% highlight json %}
+{
+  "server": {
+    "source": "src/server",
+    "target": "dist/server",
+    "node": true
+  },
+  "frontend": {
+    "source": "src/frontend",
+    "target": "dist/server/public"
+  }
+}
+{% endhighlight %}
+
+The example above will compile the server code as node and the frontend code
+as require.js when you run `bailey`. It is also possible to run `bailey -c frontend`
+or `bailey --config frontend` in order to compile only the frontend code.

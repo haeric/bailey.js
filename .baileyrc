@@ -1,0 +1,12 @@
+{
+  "examples": {
+    "source": "examples",
+    "target": "build",
+    "node": true
+  },
+  "tests": {
+    "source": "test",
+    "target": "test",
+    "node": true
+  }
+}
