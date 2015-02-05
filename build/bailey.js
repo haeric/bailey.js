@@ -11332,7 +11332,7 @@ module.exports = (function() {
                 if (fs.existsSync(filePath + '.bs')) {
                     var options = extend({}, parser.options);
                     options.path = filePath + '.bs';
-                    return parser.options.parse(parser, fs.readFileSync(filePath + '.bs', 'utf8'), options );
+                    return parser.options.parse(fs.readFileSync(filePath + '.bs', 'utf8'), options );
                 }
                 if (fs.existsSync(filePath + '.js')) {
                     return fs.readFileSync(filePath + '.js', 'utf8');
