@@ -1,0 +1,4 @@
+tasks:
+  - npm install
+  - make test
+  - node ./bailey.js examples dist --bare && cat dist/*
