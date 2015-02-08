@@ -84,9 +84,11 @@ function runTask(program, options, configFromFile) {
 }
 
 function compile(source, target, options, onDone, onError) {
+    var lastParse = Date.now();
     bailey.parseFiles(source, target, options, function(sourcePath, targetPath) {
         if (program.verbose) {
-            console.log(sourcePath, "->", targetPath);
+            console.log(sourcePath, "->", targetPath, Date.now() - lastParse + 'ms');
+            lastParse = Date.now();
         }
     }, function(err) {
         console.error(err.toString().red);
