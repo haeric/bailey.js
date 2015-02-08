@@ -5,7 +5,7 @@ default: parser browser
 help:
 	@echo "browser - make browser version"
 	@echo "parser  - create the peg parser if it does not exist"
-	@echo "clean   - delete the peg parser" 
+	@echo "clean   - delete the peg parser"
 	@echo "test    - run this often"
 
 browser: clean-build build/bailey.js build/bailey.min.js
@@ -19,7 +19,7 @@ build/bailey.min.js: parser
 	$(BIN)/browserify src/compiler.js -s bailey -g uglifyify -o build/bailey.min.js
 
 src/parser.js: node_modules
-	$(BIN)/pegjs --allowed-start-rules Program,Expression,Statement src/parser.peg src/parser.js
+	$(BIN)/pegjs --allowed-start-rules Program,Expression,Statement src/parser.pegjs src/parser.js
 
 clean:
 	rm -f src/parser.js
