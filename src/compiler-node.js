@@ -69,6 +69,8 @@ function parseFiles (source, target, options, onFile, onError, onDone) {
 }
 
 function parseFile (root, sourcePath, targetPath, options, onFile, onError, onDone) {
+  var startTime = Date.now();
+
   fs.readFile(sourcePath, 'utf8', function (err, input) {
 
     if (err) {
@@ -94,7 +96,7 @@ function parseFile (root, sourcePath, targetPath, options, onFile, onError, onDo
           if (onError) onError(err);
           return;
         }
-        if (onFile) onFile(sourcePath, targetPath);
+        if (onFile) onFile(sourcePath, targetPath, Date.now() - startTime);
         if (onDone) onDone();
       });
 
