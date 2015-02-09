@@ -17,10 +17,10 @@
         console.log(warning.yellow);
     }
 
-    function styleWarning(message, line) {
+    function styleWarning(message, start, end) {
         if (parser.options.strictStyleMode) {
-            var warning = 'Style warning at ' + parser.options.filePath + ' line ' + line + ': ' + message;
-            throw new StyleError(message, line);
+            var warning = 'Style warning at ' + parser.options.filePath + ', line/column ' + start.line + '/' + start.column + ' to ' + end.line + '/' + end.column + ': ' + message;
+            throw new StyleError(message, start.line);
         }
     }
 
@@ -68,6 +68,19 @@
             this.parent = null;
             this.scope = null;
             this.children = [];
+            this.offset = offset();
+
+            var start = peg$computePosDetails(peg$reportedPos);
+            var end = peg$computePosDetails(peg$currPos);
+            this.start = {
+              line: start.line,
+              column: start.column,
+            }
+            this.end = {
+              line: end.line,
+              column: end.column,
+            }
+
             functions.init.apply(this, arguments);
         }
         type[name].prototype = functions;
@@ -267,11 +280,10 @@
             this.elifs = elifs || [];
             this.children = [expr, ifBody, elseBody].concat(this.elifs);
             this.ternary = !!ternary;
-            this.line = line();
         },
         traverse: function() {
             if (this.expression.nodeType === 'Group') {
-                styleWarning('If statements should not have parens in baileyjs, they are not needed.', this.line);
+                styleWarning('If statements should not have parens in baileyjs, they are not needed.', this.expression.start, this.expression.end);
             }
         },
         toJS: function () {
@@ -417,11 +429,10 @@
             this.expression = expression;
             this.body = body;
             this.children = [expression, body];
-            this.line = line();
         },
         traverse: function () {
             if (this.expression.nodeType === 'Group') {
-                styleWarning('While statements should not have parens in baileyjs, they are not needed.', this.line);
+                styleWarning('While statements should not have parens in baileyjs, they are not needed.', this.expression.start, this.expression.end);
             }
         },
         toJS: function () {
@@ -558,7 +569,6 @@
             this.path = path;
             this.children = subImports || [];
             this.subImports = subImports || [];
-            this.line = line();
 
             // TODO: python style imports are deprecated, remove this replace soon
             if (this.path.indexOf('/') === -1) {
@@ -580,14 +590,14 @@
             if (this.name.indexOf('-') !== -1 && name === undefined) {
                 throw new SyntaxError(
                     'Dashes in import statements make me sad, I do not know what to call the imported variable! \nUse "import ... as ..." to give it a name.', '-', '',
-                    offset(), line(), path.indexOf('-') + 8
+                    this.offset, this.start.line, path.indexOf('-') + 8
                 )
             }
 
             if (this.name.indexOf('.') !== -1 && name === undefined) {
                 throw new SyntaxError(
                     'Dots in plugin import statements make me sad, I do not know what to call the imported variable! \nUse "import ... as ..." to give it a name.', '.', '',
-                    offset(), line(), this.path.indexOf('.') + 8
+                    this.offset, this.start.line, this.path.indexOf('.') + 8
                 )
             }
         },
@@ -596,7 +606,7 @@
         },
         traverse: function () {
             if (this.unalteredPath.match(/\.(?![\.\/])/) && this.unalteredPath.indexOf('!') === -1) {
-                deprecationWarning('Using . instead of / in imports is deprecated, and will fail in future versions.', this.line);
+                deprecationWarning('Using . instead of / in imports is deprecated, and will fail in future versions.', this.start.line);
             }
             if (this.scope.symbols[this.name]) {
                 if (this.subImports.length) {
@@ -608,10 +618,10 @@
                 }
                 throw new ImportError(
                     'Import "' + this.name + '" conflicts with a previous import defined at line ' + this.scope.symbols[this.name],
-                    this.line
+                    this.start.line
                 );
             }
-            this.scope.symbols[this.name] = this.line;
+            this.scope.symbols[this.name] = this.start.line;
         }
     });
 
@@ -656,7 +666,7 @@
         },
         traverse: function () {
             if (this.unalteredPath.match(/\.(?![\.\/])/) && this.unalteredPath.indexOf('!') === -1) {
-                deprecationWarning('Using . instead of / in includes is deprecated, and will fail in future versions.', this.line);
+                deprecationWarning('Using . instead of / in includes is deprecated, and will fail in future versions.', this.start.line);
             }
         },
         toJS: function () {
@@ -949,11 +959,6 @@
         }
     });
     type('SuperToken', {
-        init: function () {
-            this.offset = offset();
-            this.line = line();
-            this.column = column();
-        },
         traverse: function () {
 
             // Find the class in which this super resides
@@ -964,7 +969,7 @@
                 if (!target) {
                     throw new SyntaxError(
                         'super can only be used inside a class statement', '.', '',
-                        this.offset, this.line, this.column
+                        this.offset, this.start.line, this.start.column
                     )
                 }
             }
@@ -975,14 +980,14 @@
             if (this.parent.nodeType != 'PropertyAccess') {
                 throw new SyntaxError(
                     'super can only be used to access the methods of the superclass like so: super.method()', '.', '',
-                    this.offset, this.line, this.column
+                    this.offset, this.start.line, this.start.column
                 )
             }
 
             if (this.parent.accessor.nodeType != 'FunctionCall') {
                 throw new SyntaxError(
                     'super only supports accessing methods: super.method()', '.', '',
-                    this.offset, this.line, this.column
+                    this.offset, this.start.line, this.start.column
                 )
             }
 
