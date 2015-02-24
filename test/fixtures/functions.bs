@@ -1,0 +1,11 @@
+a = {
+  iceCream: (n) -> 2 * n
+  chocolate: (n) ->
+    return 5 * n
+}
+
+a.caramel = (n) -> n
+a.cookies = (n) ->
+  return n + 1
+
+a.iceCream(5) + a.chocolate(10) + a.caramel(10) + a.cookies(1)
