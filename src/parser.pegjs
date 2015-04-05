@@ -802,6 +802,12 @@
                 return p.toJS();
             })
 
+            if(typeof this.name === 'object') {
+              if (this.name.nodeType === 'PropertyAccess') {
+                this.name = this.name.accessor.name;
+              }
+            }
+
             return 'function' + (this.name ? ' ' + this.name : '') +
                    '(' + params.join(', ') + ') {\n' + this.body.toJS() + '}';
         }

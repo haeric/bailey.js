@@ -8,5 +8,10 @@
     "source": "test",
     "target": "test",
     "node": true
+  },
+  "tests-fixtures": {
+    "source": "test/fixtures",
+    "target": "test/fixtures",
+    "node": true
   }
 }
