@@ -10,3 +10,5 @@ elif numberOfIceCreamsToday > 2
 
     if numberOfIceCreamsToday > 5
         console.log("Serously?")
+
+if 'chocolate' in apartment then console.log("Awesome!")
