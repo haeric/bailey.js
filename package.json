@@ -9,6 +9,7 @@
     "js-beautify": "*",
     "mkdirp": "*",
     "node-watch": "*",
+    "stdin": "0.0.1",
     "walk": "*"
   },
   "devDependencies": {
