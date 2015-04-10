@@ -1,4 +1,3 @@
-
 var navBar = document.getElementById('nav-ul');
 var __a1 = document.getElementsByTagName('h2');
 var __l1 = __a1.length;
