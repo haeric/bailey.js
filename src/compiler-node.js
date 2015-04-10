@@ -39,7 +39,8 @@ function parseFiles (source, target, options, onFile, onError, onDone) {
 
     // It's a directory, let's walk though it all
     var walker = walk.walk(source, {
-        followLinks: false
+        followLinks: false,
+        filters: ['node_modules']
     });
 
     // From here on we need a ./ from the start to be removed
