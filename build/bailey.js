@@ -11170,6 +11170,7 @@ module.exports = (function() {
                 this.init = null;
             },
             add: function (val) {
+                val.value.name = val.key;
                 this.children.push(val.value);
 
                 if (val.key === 'init') {
@@ -11460,12 +11461,23 @@ module.exports = (function() {
                         return p.toJS();
                     }));
                 }
+                if (!this.name && this.parent.left) {
+                    this.name = this.parent.left;
+                }
             },
             toJS: function () {
                 var params = this.params.map(function (p) {
                     return p.toJS();
                 })
-                return 'function(' + params.join(', ') + ') {\n' + this.body.toJS() + '}';
+
+                if(typeof this.name === 'object') {
+                  if (this.name.nodeType === 'PropertyAccess') {
+                    this.name = this.name.accessor.name;
+                  }
+                }
+
+                return 'function' + (this.name ? ' ' + this.name : '') +
+                       '(' + params.join(', ') + ') {\n' + this.body.toJS() + '}';
             }
         });
 
