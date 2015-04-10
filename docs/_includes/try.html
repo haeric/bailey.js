@@ -1,5 +1,4 @@
-<script src="http://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.14/require.min.js" type="text/javascript"></script>
-<script src="http://bailey.lkng.me/javascripts/preview.min.js" type="text/javascript"></script>
+<script src="/assets/preview.min.js" type="text/javascript"></script>
 
 <div class="row">
   <div class="col-xs-12">
@@ -18,14 +17,14 @@
   </div>
   <div id="preview" class="col-xs-6">
     <p class="lead">...and watch it appear here as javascript</p>
+    <div class="errors"></div>
+    <div class="outputs">
+      <label>--bare </label>
+      <pre><code id="bare-preview" class="language-javascript">{{bare}}</code></pre>
+      <label>--node</label>
+      <pre><code id="node-preview" class="language-javascript">{{node}}</code></pre>
+      <label>default options </label>
+      <pre><code id="default-preview" class="language-javascript">{{default}}</code></pre>
+    </div>
   </div>
 </div>
-
-{% raw %}
-<script type="text/javascript">
-  require(['preview'], function (Preview) {
-      var template = '<p class="lead">...and watch it appear here as javascript</p>{{#if error}}<div class="alert alert-danger">{{error}}</div>{{/if}}{{#if bare}}<label>--bare </label><pre><code id="barePreview" class="language-coffeescript">{{bare}}</code></pre>{{/if}}{{#if node}}<label>--node</label><pre><code id="nodePreview" class="language-coffeescript">{{node}}</code></pre>{{/if}}{{#if default}}<label>default options </label><pre><code id="defaultPreview" class="language-coffeescript">{{default}}</code></pre>{{/if}}';
-    Preview('http://bailey.lkng.me', template)
-  });
-</script>
-{% endraw %}

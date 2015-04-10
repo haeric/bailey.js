@@ -1,3 +1,5 @@
+BIN = ../node_modules/.bin
+
 default:
 	@echo "Build all the docs"
 	@echo "make setup- install dependencies"
@@ -10,11 +12,15 @@ setup:
 	gem install jekyll execjs
 	pip install ghp-import
 
-build:
+build: assets/preview.min.js
 	jekyll build
 
-serve:
+serve: assets/preview.min.js
 	jekyll serve -w
+
+assets/preview.min.js:
+	../bailey.js try try-dist --node
+	$(BIN)/browserify try-dist/index.js -g uglifyify -o assets/preview.min.js
 
 publish: build docset
 	rm -rf _site/dash _site/bailey.docset _site/dash-docset-generation
@@ -29,4 +35,6 @@ docset: build
 	python dash-docset-generation/generate-index.py
 	tar --exclude='.DS_Store' -cvzf bailey.tgz bailey.docset
 
+clean:
+	rm -rf assets/preview.min.js
 test: build

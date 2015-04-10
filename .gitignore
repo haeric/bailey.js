@@ -8,3 +8,5 @@ docs/bailey.tgz
 docs/bailey.docset
 src/parser.js
 js/
+dist/
+docs/try-dist/
