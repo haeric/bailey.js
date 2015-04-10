@@ -6,6 +6,7 @@
   "dependencies": {
     "colors": "*",
     "commander": "^2.2.0",
+    "jquery": "^2.1.3",
     "js-beautify": "*",
     "mkdirp": "*",
     "node-watch": "*",

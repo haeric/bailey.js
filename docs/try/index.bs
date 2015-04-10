@@ -1,0 +1,21 @@
+import jquery as $
+
+import ../../src/compiler as bailey
+
+
+$(document).ready(() ->
+  preview = $('#preview')
+  $('textarea[name=bs]').keyup((event) ->
+    try
+      bs = $(@).val()
+      preview.find('#default-preview').html(bailey.parse(bs))
+      preview.find('#node-preview').html(bailey.parse(bs, {node: true}))
+      preview.find('#bare-preview').html(bailey.parse(bs, {bare: true}))
+      preview.find('.errors').html('').addClass('hidden')
+      preview.find('.outputs').removeClass('hidden')
+
+    catch e
+      preview.find('.outputs').addClass('hidden')
+      preview.find('.errors').html('<pre>' + e.message + '</pre>').removeClass('hidden')
+  )
+)
