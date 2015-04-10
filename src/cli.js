@@ -1,7 +1,8 @@
 var bailey = require('./../bailey'),
     watch = require('node-watch'),
     program = require('commander'),
-    fs = require('fs');
+    fs = require('fs'),
+    stdin = require('stdin');
 
 var EXIT_CODES = {
     PARSER_ERROR: 1,
@@ -118,9 +119,7 @@ function startWatching(options) {
 }
 
 function stdio(options) {
-    process.stdin.setEncoding('utf8');
-    process.stdin.on('readable', function() {
-        parseStringOrPrintError(process.stdin.read() || '', options);
+    stdin(function(str) {
+        parseStringOrPrintError(str || '', options);
     });
-    process.stdin.resume();
 }
