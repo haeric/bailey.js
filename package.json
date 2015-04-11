@@ -3,6 +3,7 @@
   "version": "0.0.16",
   "description": "A coffeescript without that bitter after-taste.",
   "main": "bailey.js",
+  "browser": "./src/compiler.js",
   "dependencies": {
     "colors": "*",
     "commander": "^2.2.0",
