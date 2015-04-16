@@ -9,7 +9,7 @@ rmdir = bluebird.promisify(rmdir)
 import ../bailey
 import ./hint
 
-describe('bailey.js', () ->
+describe('bailey:parsing', () ->
   describe('parseString', () ->
     it('should parse bare', (done) ->
       bailey.parseString('console.log("wee")', {bare: true}).should.equal('console.log("wee");')
@@ -51,33 +51,26 @@ describe('bailey.js', () ->
 
 
     testHelper = (options, done) ->
-      bailey.parseFiles(
-        'test/fixtures/',
-        'test/build/',
-        options,
-        null,
-        (err) ->
-          throw err
-        , () ->
-          fs.readdirAsync('test/fixtures/')
-            .each((fileName) ->
-              return evalFile(fileName)
-            )
-            .nodeify(done)
-      )
+      return bailey.parseFiles('test/fixtures/', 'test/build/', options)
+        .then(() ->
+          return fs.readdirAsync('test/fixtures/')
+        )
+        .each((fileName) ->
+          return evalFile(fileName)
+        )
 
     beforeEach(() -> rmdir('test/build'))
 
-    it('should parse examples with bare option', (done) ->
-      testHelper({bare: true}, done)
+    it('should parse examples with bare option', () ->
+      return testHelper({bare: true})
     )
 
-    it('should parse examples with remove comments option', (done) ->
-      testHelper({bare: true, removeComments: true}, done)
+    it('should parse examples with remove comments option', () ->
+      return testHelper({bare: true, removeComments: true})
     )
 
-    it('should parse examples with node option', (done) ->
-      testHelper({bare: true, node: true}, done)
+    it('should parse examples with node option', () ->
+      return testHelper({bare: true, node: true})
     )
   )
 )

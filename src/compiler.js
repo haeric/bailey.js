@@ -1,6 +1,6 @@
-
 var beautify = require('js-beautify').js_beautify;
 var parser = require('./parser');
+var utils = require('./utils');
 
 // Whenever we hit an indented block, make sure all preceding
 // empty lines are made to have this indentation level
@@ -82,14 +82,6 @@ function parse (input, options) {
 
 }
 
-function repeat (str, n) {
-    var out = "";
-    for (var i = 0; i < n; i++) {
-        out += str;
-    }
-    return out;
-}
-
 function ParserError (error, input, options) {
     this.message  = error.message;
     this.expected = error.expected;
@@ -107,7 +99,7 @@ function ParserError (error, input, options) {
                 error.name + ' at ' + options.filePath + ' line ' + error.line + ', character ' + error.column + ':',
                 error.line > 2 ? lines[error.line-2] : '',
                 lines[error.line-1],
-                repeat(" ", error.column-1) + '^',
+                utils.repeat(" ", error.column-1) + '^',
                 error.message,
             ].join('\n');
         }

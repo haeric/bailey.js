@@ -1,0 +1,46 @@
+import bluebird
+import should
+import ../src/utils
+
+describe('bailey:utils', () ->
+  describe('repeat(str, n)', () ->
+    it('should return string "yyyy"', () ->
+      utils.repeat('y', 4).should.equal('yyyy')
+    )
+  )
+  describe('readDirAsync(dirName, filter)', () ->
+    it('should resolve a list of files', () ->
+      return utils.readDirAsync('./docs')
+        .then((files) ->
+          files.indexOf('docs/index.md').should.be.above(0)
+          files.indexOf('docs/try/index.bs').should.be.above(0)
+        )
+    )
+
+    it('should filter with filter function', () ->
+      filter = (path) ->
+        return path.match(/assets/)
+
+      return utils.readDirAsync('./docs', filter)
+        .then((files) ->
+          files.indexOf('docs/index.md').should.be.above(0)
+          files.indexOf('docs/try/index.bs').should.be.above(0)
+          files.indexOf('docs/assets/nav.bs').should.equal(-1)
+          files.indexOf(undefined).should.equal(-1)
+        )
+    )
+  )
+
+  describe('fileFilter(filePath)', () ->
+    it('should return false for accepted filepaths', () ->
+      utils.fileFilter('index.bs').should.be.false
+      utils.fileFilter('src/cli.bs').should.be.false
+      utils.fileFilter('./src/cli.bs').should.be.false
+    )
+    it('should return true for unaccepted filepaths', () ->
+      utils.fileFilter('index.sbs').should.be.true
+      utils.fileFilter('src/.cli.bs').should.be.true
+      utils.fileFilter('./src/cli.js').should.be.true
+    )
+  )
+)

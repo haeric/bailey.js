@@ -6,10 +6,13 @@
 {% endhighlight %}
 Converts all `.bs` files in sourceDir to a `.js` file in targetDir.
 
-### In Javascript
+### In Node.js
 There are two possible ways to utilize bailey in Javascript. The first is to
-compile a string using `parseString` or compile the content of a folder like
-the command line example by using `parseFiles`.
+compile a string using `parseString`, a file using `parseFile` or compile the
+content of a folder like the command line example by using `parseFiles`.
+
+`parseFile` and `parseFiles` returns a bluebird promise but also supports
+error-first callback.
 
 {% highlight javascript %}
 var bailey = require('bailey');
