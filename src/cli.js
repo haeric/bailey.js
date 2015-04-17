@@ -1,8 +1,10 @@
-var bailey = require('./../bailey'),
-    watch = require('node-watch'),
-    program = require('commander'),
-    fs = require('fs'),
-    stdin = require('stdin');
+var bailey = require('./../bailey');
+var watch = require('node-watch');
+var program = require('commander');
+var stdin = require('stdin');
+var Bluebird = require('bluebird');
+var fs = Bluebird.promisifyAll(require('fs'));
+var utils = require('./utils');
 
 var EXIT_CODES = {
     PARSER_ERROR: 1,
@@ -24,10 +26,13 @@ program
     .option('--stdio', '')
     .parse(process.argv);
 
+if (program.verbose) {
+  Bluebird.longStackTraces();
+}
+
 runTasks(program);
 
 function runTasks(program) {
-    var baileyrcPath = process.cwd() + '/.baileyrc';
     var options = {
         node: false,
         bare: false,
@@ -37,24 +42,25 @@ function runTasks(program) {
         config: 'default'
     };
 
-    if (!program.args.length && fs.existsSync(baileyrcPath)) {
-        try {
-            var baileyrc = JSON.parse(fs.readFileSync(baileyrcPath));
-        } catch (err) {
-            console.error('Could not parse .baileyrc'.red)
-            console.error(err.toString().red);
-            process.exit(EXIT_CODES.CONFIGURATION_ERROR);
-        }
-        if (program.config) {
-            configs = program.config.split(',');
-            configs.forEach(function(config) {
-                runTask(program, options, baileyrc[configs]);
+    if (!program.args.length){
+        loadBaileyrcFile()
+            .then(function(baileyrc) {
+                if (program.config) {
+                    configs = program.config.split(',');
+                    configs.forEach(function(config) {
+                        runTask(program, options, baileyrc[configs]);
+                    });
+                } else {
+                    for (var key in baileyrc) {
+                        runTask(program, options, baileyrc[key]);
+                    }
+                }
             })
-        } else {
-            for (var key in baileyrc) {
-                runTask(program, options, baileyrc[key]);
-            }
-        }
+            .catch(function(err) {
+                console.error('Could not parse .baileyrc'.red);
+                console.error(err.toString().red);
+                process.exit(EXIT_CODES.CONFIGURATION_ERROR);
+            });
     } else {
         options.source = program.args[0];
         options.target = program.args[1];
@@ -77,22 +83,22 @@ function runTask(program, options, configFromFile) {
     if (program.eval) return parseStringOrPrintError(program.eval, options);
     if (!options.source || !options.target) return program.help();
 
-    compile(options.source, options.target, options, function () {
+    return compile(options.source, options.target, options)
+      .then(function () {
         if (program.watch) startWatching(options);
-    }, function (err) {
-        process.exit(EXIT_CODES.PARSER_ERROR);
-    });
+      })
+      .catch(function (err) {
+          process.exit(EXIT_CODES.PARSER_ERROR);
+      });
 }
 
-function compile(source, target, options, onDone, onError) {
-    bailey.parseFiles(source, target, options, function(sourcePath, targetPath, compileTime) {
-        if (program.verbose) {
-            console.log(sourcePath, "->", targetPath, compileTime + 'ms');
-        }
-    }, function(err) {
+function compile(source, target, options) {
+    if (program.verbose) options.onFile = onFileVerbose;
+    return bailey.parseFiles(source, target, options)
+      .catch(function(err) {
         console.error(err.toString().red);
-        onError && onError(err);
-    }, onDone);
+        if (onError) onError(err);
+      });
 }
 
 function parseStringOrPrintError(string, options) {
@@ -108,14 +114,30 @@ function parseStringOrPrintError(string, options) {
 function startWatching(options) {
     program.verbose = true;
     console.log('Watching ' + options.source + ' for changes...');
-    watch(options.source, function(filename) {
-        if (/(\.bs|\.bailey)$/.test(filename)) {
-            console.log('\n' + filename + ' changed, recompiling...\n-----------');
-            compile(options.source, options.target, options, function(){
-                console.log('-----------\nDone! Looking for more changes...');
-            });
-        }
-    });
+    function done() {
+        console.log('-----------\nDone! Looking for more changes...');
+    }
+
+    watch(options.source, utils.watchFilter(function(filename) {
+        console.log('\n' + filename + ' changed, recompiling...\n-----------');
+        compile(options.source, options.target, options).then(done);
+    }));
+}
+
+function onFileVerbose(sourcePath, targetPath) {
+    console.log(sourcePath, '->', targetPath);
+}
+
+function loadBaileyrcFile(baileyrcPath) {
+    baileyrcPath = baileyrcPath || process.cwd() + '/.baileyrc';
+    return fs.lstatAsync(baileyrcPath)
+        .then(function(stat) {
+            if (stat.isFile()) return fs.readFileAsync(baileyrcPath);
+        })
+        .then(function(content) {
+            if(content) return JSON.parse(content);
+            return null;
+        });
 }
 
 function stdio(options) {

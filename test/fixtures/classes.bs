@@ -20,7 +20,7 @@ class LowFatChaiLatte extends Latte
         return 1
         # ...aaaand comment in function
 
-new Coffee("Plain", 11).calories + 
+new Coffee("Plain", 11).calories +
 new Latte(10).calories +
 new LowFatChaiLatte(10).calories +
 new LowFatChaiLatte(10).damn()

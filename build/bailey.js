@@ -1,6 +1,5104 @@
 !function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),f.bailey=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function (process,global){
+/* @preserve
+ * The MIT License (MIT)
+ * 
+ * Copyright (c) 2014 Petka Antonov
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:</p>
+ * 
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ * 
+ */
+/**
+ * bluebird build version 2.9.24
+ * Features enabled: core, race, call_get, generators, map, nodeify, promisify, props, reduce, settle, some, cancel, using, filter, any, each, timers
+*/
+!function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),f.Promise=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof _dereq_=="function"&&_dereq_;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof _dereq_=="function"&&_dereq_;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function(Promise) {
+var SomePromiseArray = Promise._SomePromiseArray;
+function any(promises) {
+    var ret = new SomePromiseArray(promises);
+    var promise = ret.promise();
+    ret.setHowMany(1);
+    ret.setUnwrap();
+    ret.init();
+    return promise;
+}
 
-},{}],2:[function(require,module,exports){
+Promise.any = function (promises) {
+    return any(promises);
+};
+
+Promise.prototype.any = function () {
+    return any(this);
+};
+
+};
+
+},{}],2:[function(_dereq_,module,exports){
+"use strict";
+var firstLineError;
+try {throw new Error(); } catch (e) {firstLineError = e;}
+var schedule = _dereq_("./schedule.js");
+var Queue = _dereq_("./queue.js");
+var util = _dereq_("./util.js");
+
+function Async() {
+    this._isTickUsed = false;
+    this._lateQueue = new Queue(16);
+    this._normalQueue = new Queue(16);
+    this._trampolineEnabled = true;
+    var self = this;
+    this.drainQueues = function () {
+        self._drainQueues();
+    };
+    this._schedule =
+        schedule.isStatic ? schedule(this.drainQueues) : schedule;
+}
+
+Async.prototype.disableTrampolineIfNecessary = function() {
+    if (util.hasDevTools) {
+        this._trampolineEnabled = false;
+    }
+};
+
+Async.prototype.enableTrampoline = function() {
+    if (!this._trampolineEnabled) {
+        this._trampolineEnabled = true;
+        this._schedule = function(fn) {
+            setTimeout(fn, 0);
+        };
+    }
+};
+
+Async.prototype.haveItemsQueued = function () {
+    return this._normalQueue.length() > 0;
+};
+
+Async.prototype.throwLater = function(fn, arg) {
+    if (arguments.length === 1) {
+        arg = fn;
+        fn = function () { throw arg; };
+    }
+    var domain = this._getDomain();
+    if (domain !== undefined) fn = domain.bind(fn);
+    if (typeof setTimeout !== "undefined") {
+        setTimeout(function() {
+            fn(arg);
+        }, 0);
+    } else try {
+        this._schedule(function() {
+            fn(arg);
+        });
+    } catch (e) {
+        throw new Error("No async scheduler available\u000a\u000a    See http://goo.gl/m3OTXk\u000a");
+    }
+};
+
+Async.prototype._getDomain = function() {};
+
+if (util.isNode) {
+    var EventsModule = _dereq_("events");
+
+    var domainGetter = function() {
+        var domain = process.domain;
+        if (domain === null) return undefined;
+        return domain;
+    };
+
+    if (EventsModule.usingDomains) {
+        Async.prototype._getDomain = domainGetter;
+    } else {
+        var descriptor =
+            Object.getOwnPropertyDescriptor(EventsModule, "usingDomains");
+
+        if (!descriptor.configurable) {
+            process.on("domainsActivated", function() {
+                Async.prototype._getDomain = domainGetter;
+            });
+        } else {
+            var usingDomains = false;
+            Object.defineProperty(EventsModule, "usingDomains", {
+                configurable: false,
+                enumerable: true,
+                get: function() {
+                    return usingDomains;
+                },
+                set: function(value) {
+                    if (usingDomains || !value) return;
+                    usingDomains = true;
+                    Async.prototype._getDomain = domainGetter;
+                    util.toFastProperties(process);
+                    process.emit("domainsActivated");
+                }
+            });
+        }
+
+
+    }
+}
+
+function AsyncInvokeLater(fn, receiver, arg) {
+    var domain = this._getDomain();
+    if (domain !== undefined) fn = domain.bind(fn);
+    this._lateQueue.push(fn, receiver, arg);
+    this._queueTick();
+}
+
+function AsyncInvoke(fn, receiver, arg) {
+    var domain = this._getDomain();
+    if (domain !== undefined) fn = domain.bind(fn);
+    this._normalQueue.push(fn, receiver, arg);
+    this._queueTick();
+}
+
+function AsyncSettlePromises(promise) {
+    var domain = this._getDomain();
+    if (domain !== undefined) {
+        var fn = domain.bind(promise._settlePromises);
+        this._normalQueue.push(fn, promise, undefined);
+    } else {
+        this._normalQueue._pushOne(promise);
+    }
+    this._queueTick();
+}
+
+if (!util.hasDevTools) {
+    Async.prototype.invokeLater = AsyncInvokeLater;
+    Async.prototype.invoke = AsyncInvoke;
+    Async.prototype.settlePromises = AsyncSettlePromises;
+} else {
+    Async.prototype.invokeLater = function (fn, receiver, arg) {
+        if (this._trampolineEnabled) {
+            AsyncInvokeLater.call(this, fn, receiver, arg);
+        } else {
+            setTimeout(function() {
+                fn.call(receiver, arg);
+            }, 100);
+        }
+    };
+
+    Async.prototype.invoke = function (fn, receiver, arg) {
+        if (this._trampolineEnabled) {
+            AsyncInvoke.call(this, fn, receiver, arg);
+        } else {
+            setTimeout(function() {
+                fn.call(receiver, arg);
+            }, 0);
+        }
+    };
+
+    Async.prototype.settlePromises = function(promise) {
+        if (this._trampolineEnabled) {
+            AsyncSettlePromises.call(this, promise);
+        } else {
+            setTimeout(function() {
+                promise._settlePromises();
+            }, 0);
+        }
+    };
+}
+
+Async.prototype.invokeFirst = function (fn, receiver, arg) {
+    var domain = this._getDomain();
+    if (domain !== undefined) fn = domain.bind(fn);
+    this._normalQueue.unshift(fn, receiver, arg);
+    this._queueTick();
+};
+
+Async.prototype._drainQueue = function(queue) {
+    while (queue.length() > 0) {
+        var fn = queue.shift();
+        if (typeof fn !== "function") {
+            fn._settlePromises();
+            continue;
+        }
+        var receiver = queue.shift();
+        var arg = queue.shift();
+        fn.call(receiver, arg);
+    }
+};
+
+Async.prototype._drainQueues = function () {
+    this._drainQueue(this._normalQueue);
+    this._reset();
+    this._drainQueue(this._lateQueue);
+};
+
+Async.prototype._queueTick = function () {
+    if (!this._isTickUsed) {
+        this._isTickUsed = true;
+        this._schedule(this.drainQueues);
+    }
+};
+
+Async.prototype._reset = function () {
+    this._isTickUsed = false;
+};
+
+module.exports = new Async();
+module.exports.firstLineError = firstLineError;
+
+},{"./queue.js":28,"./schedule.js":31,"./util.js":38,"events":39}],3:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function(Promise, INTERNAL, tryConvertToPromise) {
+var rejectThis = function(_, e) {
+    this._reject(e);
+};
+
+var targetRejected = function(e, context) {
+    context.promiseRejectionQueued = true;
+    context.bindingPromise._then(rejectThis, rejectThis, null, this, e);
+};
+
+var bindingResolved = function(thisArg, context) {
+    this._setBoundTo(thisArg);
+    if (this._isPending()) {
+        this._resolveCallback(context.target);
+    }
+};
+
+var bindingRejected = function(e, context) {
+    if (!context.promiseRejectionQueued) this._reject(e);
+};
+
+Promise.prototype.bind = function (thisArg) {
+    var maybePromise = tryConvertToPromise(thisArg);
+    var ret = new Promise(INTERNAL);
+    ret._propagateFrom(this, 1);
+    var target = this._target();
+    if (maybePromise instanceof Promise) {
+        var context = {
+            promiseRejectionQueued: false,
+            promise: ret,
+            target: target,
+            bindingPromise: maybePromise
+        };
+        target._then(INTERNAL, targetRejected, ret._progress, ret, context);
+        maybePromise._then(
+            bindingResolved, bindingRejected, ret._progress, ret, context);
+    } else {
+        ret._setBoundTo(thisArg);
+        ret._resolveCallback(target);
+    }
+    return ret;
+};
+
+Promise.prototype._setBoundTo = function (obj) {
+    if (obj !== undefined) {
+        this._bitField = this._bitField | 131072;
+        this._boundTo = obj;
+    } else {
+        this._bitField = this._bitField & (~131072);
+    }
+};
+
+Promise.prototype._isBound = function () {
+    return (this._bitField & 131072) === 131072;
+};
+
+Promise.bind = function (thisArg, value) {
+    var maybePromise = tryConvertToPromise(thisArg);
+    var ret = new Promise(INTERNAL);
+
+    if (maybePromise instanceof Promise) {
+        maybePromise._then(function(thisArg) {
+            ret._setBoundTo(thisArg);
+            ret._resolveCallback(value);
+        }, ret._reject, ret._progress, ret, null);
+    } else {
+        ret._setBoundTo(thisArg);
+        ret._resolveCallback(value);
+    }
+    return ret;
+};
+};
+
+},{}],4:[function(_dereq_,module,exports){
+"use strict";
+var old;
+if (typeof Promise !== "undefined") old = Promise;
+function noConflict() {
+    try { if (Promise === bluebird) Promise = old; }
+    catch (e) {}
+    return bluebird;
+}
+var bluebird = _dereq_("./promise.js")();
+bluebird.noConflict = noConflict;
+module.exports = bluebird;
+
+},{"./promise.js":23}],5:[function(_dereq_,module,exports){
+"use strict";
+var cr = Object.create;
+if (cr) {
+    var callerCache = cr(null);
+    var getterCache = cr(null);
+    callerCache[" size"] = getterCache[" size"] = 0;
+}
+
+module.exports = function(Promise) {
+var util = _dereq_("./util.js");
+var canEvaluate = util.canEvaluate;
+var isIdentifier = util.isIdentifier;
+
+var getMethodCaller;
+var getGetter;
+if (!true) {
+var makeMethodCaller = function (methodName) {
+    return new Function("ensureMethod", "                                    \n\
+        return function(obj) {                                               \n\
+            'use strict'                                                     \n\
+            var len = this.length;                                           \n\
+            ensureMethod(obj, 'methodName');                                 \n\
+            switch(len) {                                                    \n\
+                case 1: return obj.methodName(this[0]);                      \n\
+                case 2: return obj.methodName(this[0], this[1]);             \n\
+                case 3: return obj.methodName(this[0], this[1], this[2]);    \n\
+                case 0: return obj.methodName();                             \n\
+                default:                                                     \n\
+                    return obj.methodName.apply(obj, this);                  \n\
+            }                                                                \n\
+        };                                                                   \n\
+        ".replace(/methodName/g, methodName))(ensureMethod);
+};
+
+var makeGetter = function (propertyName) {
+    return new Function("obj", "                                             \n\
+        'use strict';                                                        \n\
+        return obj.propertyName;                                             \n\
+        ".replace("propertyName", propertyName));
+};
+
+var getCompiled = function(name, compiler, cache) {
+    var ret = cache[name];
+    if (typeof ret !== "function") {
+        if (!isIdentifier(name)) {
+            return null;
+        }
+        ret = compiler(name);
+        cache[name] = ret;
+        cache[" size"]++;
+        if (cache[" size"] > 512) {
+            var keys = Object.keys(cache);
+            for (var i = 0; i < 256; ++i) delete cache[keys[i]];
+            cache[" size"] = keys.length - 256;
+        }
+    }
+    return ret;
+};
+
+getMethodCaller = function(name) {
+    return getCompiled(name, makeMethodCaller, callerCache);
+};
+
+getGetter = function(name) {
+    return getCompiled(name, makeGetter, getterCache);
+};
+}
+
+function ensureMethod(obj, methodName) {
+    var fn;
+    if (obj != null) fn = obj[methodName];
+    if (typeof fn !== "function") {
+        var message = "Object " + util.classString(obj) + " has no method '" +
+            util.toString(methodName) + "'";
+        throw new Promise.TypeError(message);
+    }
+    return fn;
+}
+
+function caller(obj) {
+    var methodName = this.pop();
+    var fn = ensureMethod(obj, methodName);
+    return fn.apply(obj, this);
+}
+Promise.prototype.call = function (methodName) {
+    var $_len = arguments.length;var args = new Array($_len - 1); for(var $_i = 1; $_i < $_len; ++$_i) {args[$_i - 1] = arguments[$_i];}
+    if (!true) {
+        if (canEvaluate) {
+            var maybeCaller = getMethodCaller(methodName);
+            if (maybeCaller !== null) {
+                return this._then(
+                    maybeCaller, undefined, undefined, args, undefined);
+            }
+        }
+    }
+    args.push(methodName);
+    return this._then(caller, undefined, undefined, args, undefined);
+};
+
+function namedGetter(obj) {
+    return obj[this];
+}
+function indexedGetter(obj) {
+    var index = +this;
+    if (index < 0) index = Math.max(0, index + obj.length);
+    return obj[index];
+}
+Promise.prototype.get = function (propertyName) {
+    var isIndex = (typeof propertyName === "number");
+    var getter;
+    if (!isIndex) {
+        if (canEvaluate) {
+            var maybeGetter = getGetter(propertyName);
+            getter = maybeGetter !== null ? maybeGetter : namedGetter;
+        } else {
+            getter = namedGetter;
+        }
+    } else {
+        getter = indexedGetter;
+    }
+    return this._then(getter, undefined, undefined, propertyName, undefined);
+};
+};
+
+},{"./util.js":38}],6:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function(Promise) {
+var errors = _dereq_("./errors.js");
+var async = _dereq_("./async.js");
+var CancellationError = errors.CancellationError;
+
+Promise.prototype._cancel = function (reason) {
+    if (!this.isCancellable()) return this;
+    var parent;
+    var promiseToReject = this;
+    while ((parent = promiseToReject._cancellationParent) !== undefined &&
+        parent.isCancellable()) {
+        promiseToReject = parent;
+    }
+    this._unsetCancellable();
+    promiseToReject._target()._rejectCallback(reason, false, true);
+};
+
+Promise.prototype.cancel = function (reason) {
+    if (!this.isCancellable()) return this;
+    if (reason === undefined) reason = new CancellationError();
+    async.invokeLater(this._cancel, this, reason);
+    return this;
+};
+
+Promise.prototype.cancellable = function () {
+    if (this._cancellable()) return this;
+    async.enableTrampoline();
+    this._setCancellable();
+    this._cancellationParent = undefined;
+    return this;
+};
+
+Promise.prototype.uncancellable = function () {
+    var ret = this.then();
+    ret._unsetCancellable();
+    return ret;
+};
+
+Promise.prototype.fork = function (didFulfill, didReject, didProgress) {
+    var ret = this._then(didFulfill, didReject, didProgress,
+                         undefined, undefined);
+
+    ret._setCancellable();
+    ret._cancellationParent = undefined;
+    return ret;
+};
+};
+
+},{"./async.js":2,"./errors.js":13}],7:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function() {
+var async = _dereq_("./async.js");
+var util = _dereq_("./util.js");
+var bluebirdFramePattern =
+    /[\\\/]bluebird[\\\/]js[\\\/](main|debug|zalgo|instrumented)/;
+var stackFramePattern = null;
+var formatStack = null;
+var indentStackFrames = false;
+var warn;
+
+function CapturedTrace(parent) {
+    this._parent = parent;
+    var length = this._length = 1 + (parent === undefined ? 0 : parent._length);
+    captureStackTrace(this, CapturedTrace);
+    if (length > 32) this.uncycle();
+}
+util.inherits(CapturedTrace, Error);
+
+CapturedTrace.prototype.uncycle = function() {
+    var length = this._length;
+    if (length < 2) return;
+    var nodes = [];
+    var stackToIndex = {};
+
+    for (var i = 0, node = this; node !== undefined; ++i) {
+        nodes.push(node);
+        node = node._parent;
+    }
+    length = this._length = i;
+    for (var i = length - 1; i >= 0; --i) {
+        var stack = nodes[i].stack;
+        if (stackToIndex[stack] === undefined) {
+            stackToIndex[stack] = i;
+        }
+    }
+    for (var i = 0; i < length; ++i) {
+        var currentStack = nodes[i].stack;
+        var index = stackToIndex[currentStack];
+        if (index !== undefined && index !== i) {
+            if (index > 0) {
+                nodes[index - 1]._parent = undefined;
+                nodes[index - 1]._length = 1;
+            }
+            nodes[i]._parent = undefined;
+            nodes[i]._length = 1;
+            var cycleEdgeNode = i > 0 ? nodes[i - 1] : this;
+
+            if (index < length - 1) {
+                cycleEdgeNode._parent = nodes[index + 1];
+                cycleEdgeNode._parent.uncycle();
+                cycleEdgeNode._length =
+                    cycleEdgeNode._parent._length + 1;
+            } else {
+                cycleEdgeNode._parent = undefined;
+                cycleEdgeNode._length = 1;
+            }
+            var currentChildLength = cycleEdgeNode._length + 1;
+            for (var j = i - 2; j >= 0; --j) {
+                nodes[j]._length = currentChildLength;
+                currentChildLength++;
+            }
+            return;
+        }
+    }
+};
+
+CapturedTrace.prototype.parent = function() {
+    return this._parent;
+};
+
+CapturedTrace.prototype.hasParent = function() {
+    return this._parent !== undefined;
+};
+
+CapturedTrace.prototype.attachExtraTrace = function(error) {
+    if (error.__stackCleaned__) return;
+    this.uncycle();
+    var parsed = CapturedTrace.parseStackAndMessage(error);
+    var message = parsed.message;
+    var stacks = [parsed.stack];
+
+    var trace = this;
+    while (trace !== undefined) {
+        stacks.push(cleanStack(trace.stack.split("\n")));
+        trace = trace._parent;
+    }
+    removeCommonRoots(stacks);
+    removeDuplicateOrEmptyJumps(stacks);
+    util.notEnumerableProp(error, "stack", reconstructStack(message, stacks));
+    util.notEnumerableProp(error, "__stackCleaned__", true);
+};
+
+function reconstructStack(message, stacks) {
+    for (var i = 0; i < stacks.length - 1; ++i) {
+        stacks[i].push("From previous event:");
+        stacks[i] = stacks[i].join("\n");
+    }
+    if (i < stacks.length) {
+        stacks[i] = stacks[i].join("\n");
+    }
+    return message + "\n" + stacks.join("\n");
+}
+
+function removeDuplicateOrEmptyJumps(stacks) {
+    for (var i = 0; i < stacks.length; ++i) {
+        if (stacks[i].length === 0 ||
+            ((i + 1 < stacks.length) && stacks[i][0] === stacks[i+1][0])) {
+            stacks.splice(i, 1);
+            i--;
+        }
+    }
+}
+
+function removeCommonRoots(stacks) {
+    var current = stacks[0];
+    for (var i = 1; i < stacks.length; ++i) {
+        var prev = stacks[i];
+        var currentLastIndex = current.length - 1;
+        var currentLastLine = current[currentLastIndex];
+        var commonRootMeetPoint = -1;
+
+        for (var j = prev.length - 1; j >= 0; --j) {
+            if (prev[j] === currentLastLine) {
+                commonRootMeetPoint = j;
+                break;
+            }
+        }
+
+        for (var j = commonRootMeetPoint; j >= 0; --j) {
+            var line = prev[j];
+            if (current[currentLastIndex] === line) {
+                current.pop();
+                currentLastIndex--;
+            } else {
+                break;
+            }
+        }
+        current = prev;
+    }
+}
+
+function cleanStack(stack) {
+    var ret = [];
+    for (var i = 0; i < stack.length; ++i) {
+        var line = stack[i];
+        var isTraceLine = stackFramePattern.test(line) ||
+            "    (No stack trace)" === line;
+        var isInternalFrame = isTraceLine && shouldIgnore(line);
+        if (isTraceLine && !isInternalFrame) {
+            if (indentStackFrames && line.charAt(0) !== " ") {
+                line = "    " + line;
+            }
+            ret.push(line);
+        }
+    }
+    return ret;
+}
+
+function stackFramesAsArray(error) {
+    var stack = error.stack.replace(/\s+$/g, "").split("\n");
+    for (var i = 0; i < stack.length; ++i) {
+        var line = stack[i];
+        if ("    (No stack trace)" === line || stackFramePattern.test(line)) {
+            break;
+        }
+    }
+    if (i > 0) {
+        stack = stack.slice(i);
+    }
+    return stack;
+}
+
+CapturedTrace.parseStackAndMessage = function(error) {
+    var stack = error.stack;
+    var message = error.toString();
+    stack = typeof stack === "string" && stack.length > 0
+                ? stackFramesAsArray(error) : ["    (No stack trace)"];
+    return {
+        message: message,
+        stack: cleanStack(stack)
+    };
+};
+
+CapturedTrace.formatAndLogError = function(error, title) {
+    if (typeof console !== "undefined") {
+        var message;
+        if (typeof error === "object" || typeof error === "function") {
+            var stack = error.stack;
+            message = title + formatStack(stack, error);
+        } else {
+            message = title + String(error);
+        }
+        if (typeof warn === "function") {
+            warn(message);
+        } else if (typeof console.log === "function" ||
+            typeof console.log === "object") {
+            console.log(message);
+        }
+    }
+};
+
+CapturedTrace.unhandledRejection = function (reason) {
+    CapturedTrace.formatAndLogError(reason, "^--- With additional stack trace: ");
+};
+
+CapturedTrace.isSupported = function () {
+    return typeof captureStackTrace === "function";
+};
+
+CapturedTrace.fireRejectionEvent =
+function(name, localHandler, reason, promise) {
+    var localEventFired = false;
+    try {
+        if (typeof localHandler === "function") {
+            localEventFired = true;
+            if (name === "rejectionHandled") {
+                localHandler(promise);
+            } else {
+                localHandler(reason, promise);
+            }
+        }
+    } catch (e) {
+        async.throwLater(e);
+    }
+
+    var globalEventFired = false;
+    try {
+        globalEventFired = fireGlobalEvent(name, reason, promise);
+    } catch (e) {
+        globalEventFired = true;
+        async.throwLater(e);
+    }
+
+    var domEventFired = false;
+    if (fireDomEvent) {
+        try {
+            domEventFired = fireDomEvent(name.toLowerCase(), {
+                reason: reason,
+                promise: promise
+            });
+        } catch (e) {
+            domEventFired = true;
+            async.throwLater(e);
+        }
+    }
+
+    if (!globalEventFired && !localEventFired && !domEventFired &&
+        name === "unhandledRejection") {
+        CapturedTrace.formatAndLogError(reason, "Unhandled rejection ");
+    }
+};
+
+function formatNonError(obj) {
+    var str;
+    if (typeof obj === "function") {
+        str = "[function " +
+            (obj.name || "anonymous") +
+            "]";
+    } else {
+        str = obj.toString();
+        var ruselessToString = /\[object [a-zA-Z0-9$_]+\]/;
+        if (ruselessToString.test(str)) {
+            try {
+                var newStr = JSON.stringify(obj);
+                str = newStr;
+            }
+            catch(e) {
+
+            }
+        }
+        if (str.length === 0) {
+            str = "(empty array)";
+        }
+    }
+    return ("(<" + snip(str) + ">, no stack trace)");
+}
+
+function snip(str) {
+    var maxChars = 41;
+    if (str.length < maxChars) {
+        return str;
+    }
+    return str.substr(0, maxChars - 3) + "...";
+}
+
+var shouldIgnore = function() { return false; };
+var parseLineInfoRegex = /[\/<\(]([^:\/]+):(\d+):(?:\d+)\)?\s*$/;
+function parseLineInfo(line) {
+    var matches = line.match(parseLineInfoRegex);
+    if (matches) {
+        return {
+            fileName: matches[1],
+            line: parseInt(matches[2], 10)
+        };
+    }
+}
+CapturedTrace.setBounds = function(firstLineError, lastLineError) {
+    if (!CapturedTrace.isSupported()) return;
+    var firstStackLines = firstLineError.stack.split("\n");
+    var lastStackLines = lastLineError.stack.split("\n");
+    var firstIndex = -1;
+    var lastIndex = -1;
+    var firstFileName;
+    var lastFileName;
+    for (var i = 0; i < firstStackLines.length; ++i) {
+        var result = parseLineInfo(firstStackLines[i]);
+        if (result) {
+            firstFileName = result.fileName;
+            firstIndex = result.line;
+            break;
+        }
+    }
+    for (var i = 0; i < lastStackLines.length; ++i) {
+        var result = parseLineInfo(lastStackLines[i]);
+        if (result) {
+            lastFileName = result.fileName;
+            lastIndex = result.line;
+            break;
+        }
+    }
+    if (firstIndex < 0 || lastIndex < 0 || !firstFileName || !lastFileName ||
+        firstFileName !== lastFileName || firstIndex >= lastIndex) {
+        return;
+    }
+
+    shouldIgnore = function(line) {
+        if (bluebirdFramePattern.test(line)) return true;
+        var info = parseLineInfo(line);
+        if (info) {
+            if (info.fileName === firstFileName &&
+                (firstIndex <= info.line && info.line <= lastIndex)) {
+                return true;
+            }
+        }
+        return false;
+    };
+};
+
+var captureStackTrace = (function stackDetection() {
+    var v8stackFramePattern = /^\s*at\s*/;
+    var v8stackFormatter = function(stack, error) {
+        if (typeof stack === "string") return stack;
+
+        if (error.name !== undefined &&
+            error.message !== undefined) {
+            return error.toString();
+        }
+        return formatNonError(error);
+    };
+
+    if (typeof Error.stackTraceLimit === "number" &&
+        typeof Error.captureStackTrace === "function") {
+        Error.stackTraceLimit = Error.stackTraceLimit + 6;
+        stackFramePattern = v8stackFramePattern;
+        formatStack = v8stackFormatter;
+        var captureStackTrace = Error.captureStackTrace;
+
+        shouldIgnore = function(line) {
+            return bluebirdFramePattern.test(line);
+        };
+        return function(receiver, ignoreUntil) {
+            Error.stackTraceLimit = Error.stackTraceLimit + 6;
+            captureStackTrace(receiver, ignoreUntil);
+            Error.stackTraceLimit = Error.stackTraceLimit - 6;
+        };
+    }
+    var err = new Error();
+
+    if (typeof err.stack === "string" &&
+        err.stack.split("\n")[0].indexOf("stackDetection@") >= 0) {
+        stackFramePattern = /@/;
+        formatStack = v8stackFormatter;
+        indentStackFrames = true;
+        return function captureStackTrace(o) {
+            o.stack = new Error().stack;
+        };
+    }
+
+    var hasStackAfterThrow;
+    try { throw new Error(); }
+    catch(e) {
+        hasStackAfterThrow = ("stack" in e);
+    }
+    if (!("stack" in err) && hasStackAfterThrow) {
+        stackFramePattern = v8stackFramePattern;
+        formatStack = v8stackFormatter;
+        return function captureStackTrace(o) {
+            Error.stackTraceLimit = Error.stackTraceLimit + 6;
+            try { throw new Error(); }
+            catch(e) { o.stack = e.stack; }
+            Error.stackTraceLimit = Error.stackTraceLimit - 6;
+        };
+    }
+
+    formatStack = function(stack, error) {
+        if (typeof stack === "string") return stack;
+
+        if ((typeof error === "object" ||
+            typeof error === "function") &&
+            error.name !== undefined &&
+            error.message !== undefined) {
+            return error.toString();
+        }
+        return formatNonError(error);
+    };
+
+    return null;
+
+})([]);
+
+var fireDomEvent;
+var fireGlobalEvent = (function() {
+    if (util.isNode) {
+        return function(name, reason, promise) {
+            if (name === "rejectionHandled") {
+                return process.emit(name, promise);
+            } else {
+                return process.emit(name, reason, promise);
+            }
+        };
+    } else {
+        var customEventWorks = false;
+        var anyEventWorks = true;
+        try {
+            var ev = new self.CustomEvent("test");
+            customEventWorks = ev instanceof CustomEvent;
+        } catch (e) {}
+        if (!customEventWorks) {
+            try {
+                var event = document.createEvent("CustomEvent");
+                event.initCustomEvent("testingtheevent", false, true, {});
+                self.dispatchEvent(event);
+            } catch (e) {
+                anyEventWorks = false;
+            }
+        }
+        if (anyEventWorks) {
+            fireDomEvent = function(type, detail) {
+                var event;
+                if (customEventWorks) {
+                    event = new self.CustomEvent(type, {
+                        detail: detail,
+                        bubbles: false,
+                        cancelable: true
+                    });
+                } else if (self.dispatchEvent) {
+                    event = document.createEvent("CustomEvent");
+                    event.initCustomEvent(type, false, true, detail);
+                }
+
+                return event ? !self.dispatchEvent(event) : false;
+            };
+        }
+
+        var toWindowMethodNameMap = {};
+        toWindowMethodNameMap["unhandledRejection"] = ("on" +
+            "unhandledRejection").toLowerCase();
+        toWindowMethodNameMap["rejectionHandled"] = ("on" +
+            "rejectionHandled").toLowerCase();
+
+        return function(name, reason, promise) {
+            var methodName = toWindowMethodNameMap[name];
+            var method = self[methodName];
+            if (!method) return false;
+            if (name === "rejectionHandled") {
+                method.call(self, promise);
+            } else {
+                method.call(self, reason, promise);
+            }
+            return true;
+        };
+    }
+})();
+
+if (typeof console !== "undefined" && typeof console.warn !== "undefined") {
+    warn = function (message) {
+        console.warn(message);
+    };
+    if (util.isNode && process.stderr.isTTY) {
+        warn = function(message) {
+            process.stderr.write("\u001b[31m" + message + "\u001b[39m\n");
+        };
+    } else if (!util.isNode && typeof (new Error().stack) === "string") {
+        warn = function(message) {
+            console.warn("%c" + message, "color: red");
+        };
+    }
+}
+
+return CapturedTrace;
+};
+
+},{"./async.js":2,"./util.js":38}],8:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function(NEXT_FILTER) {
+var util = _dereq_("./util.js");
+var errors = _dereq_("./errors.js");
+var tryCatch = util.tryCatch;
+var errorObj = util.errorObj;
+var keys = _dereq_("./es5.js").keys;
+var TypeError = errors.TypeError;
+
+function CatchFilter(instances, callback, promise) {
+    this._instances = instances;
+    this._callback = callback;
+    this._promise = promise;
+}
+
+function safePredicate(predicate, e) {
+    var safeObject = {};
+    var retfilter = tryCatch(predicate).call(safeObject, e);
+
+    if (retfilter === errorObj) return retfilter;
+
+    var safeKeys = keys(safeObject);
+    if (safeKeys.length) {
+        errorObj.e = new TypeError("Catch filter must inherit from Error or be a simple predicate function\u000a\u000a    See http://goo.gl/o84o68\u000a");
+        return errorObj;
+    }
+    return retfilter;
+}
+
+CatchFilter.prototype.doFilter = function (e) {
+    var cb = this._callback;
+    var promise = this._promise;
+    var boundTo = promise._boundTo;
+    for (var i = 0, len = this._instances.length; i < len; ++i) {
+        var item = this._instances[i];
+        var itemIsErrorType = item === Error ||
+            (item != null && item.prototype instanceof Error);
+
+        if (itemIsErrorType && e instanceof item) {
+            var ret = tryCatch(cb).call(boundTo, e);
+            if (ret === errorObj) {
+                NEXT_FILTER.e = ret.e;
+                return NEXT_FILTER;
+            }
+            return ret;
+        } else if (typeof item === "function" && !itemIsErrorType) {
+            var shouldHandle = safePredicate(item, e);
+            if (shouldHandle === errorObj) {
+                e = errorObj.e;
+                break;
+            } else if (shouldHandle) {
+                var ret = tryCatch(cb).call(boundTo, e);
+                if (ret === errorObj) {
+                    NEXT_FILTER.e = ret.e;
+                    return NEXT_FILTER;
+                }
+                return ret;
+            }
+        }
+    }
+    NEXT_FILTER.e = e;
+    return NEXT_FILTER;
+};
+
+return CatchFilter;
+};
+
+},{"./errors.js":13,"./es5.js":14,"./util.js":38}],9:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function(Promise, CapturedTrace, isDebugging) {
+var contextStack = [];
+function Context() {
+    this._trace = new CapturedTrace(peekContext());
+}
+Context.prototype._pushContext = function () {
+    if (!isDebugging()) return;
+    if (this._trace !== undefined) {
+        contextStack.push(this._trace);
+    }
+};
+
+Context.prototype._popContext = function () {
+    if (!isDebugging()) return;
+    if (this._trace !== undefined) {
+        contextStack.pop();
+    }
+};
+
+function createContext() {
+    if (isDebugging()) return new Context();
+}
+
+function peekContext() {
+    var lastIndex = contextStack.length - 1;
+    if (lastIndex >= 0) {
+        return contextStack[lastIndex];
+    }
+    return undefined;
+}
+
+Promise.prototype._peekContext = peekContext;
+Promise.prototype._pushContext = Context.prototype._pushContext;
+Promise.prototype._popContext = Context.prototype._popContext;
+
+return createContext;
+};
+
+},{}],10:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function(Promise, CapturedTrace) {
+var async = _dereq_("./async.js");
+var Warning = _dereq_("./errors.js").Warning;
+var util = _dereq_("./util.js");
+var canAttachTrace = util.canAttachTrace;
+var unhandledRejectionHandled;
+var possiblyUnhandledRejection;
+var debugging = false || (util.isNode &&
+                    (!!process.env["BLUEBIRD_DEBUG"] ||
+                     process.env["NODE_ENV"] === "development"));
+
+if (debugging) {
+    async.disableTrampolineIfNecessary();
+}
+
+Promise.prototype._ensurePossibleRejectionHandled = function () {
+    this._setRejectionIsUnhandled();
+    async.invokeLater(this._notifyUnhandledRejection, this, undefined);
+};
+
+Promise.prototype._notifyUnhandledRejectionIsHandled = function () {
+    CapturedTrace.fireRejectionEvent("rejectionHandled",
+                                  unhandledRejectionHandled, undefined, this);
+};
+
+Promise.prototype._notifyUnhandledRejection = function () {
+    if (this._isRejectionUnhandled()) {
+        var reason = this._getCarriedStackTrace() || this._settledValue;
+        this._setUnhandledRejectionIsNotified();
+        CapturedTrace.fireRejectionEvent("unhandledRejection",
+                                      possiblyUnhandledRejection, reason, this);
+    }
+};
+
+Promise.prototype._setUnhandledRejectionIsNotified = function () {
+    this._bitField = this._bitField | 524288;
+};
+
+Promise.prototype._unsetUnhandledRejectionIsNotified = function () {
+    this._bitField = this._bitField & (~524288);
+};
+
+Promise.prototype._isUnhandledRejectionNotified = function () {
+    return (this._bitField & 524288) > 0;
+};
+
+Promise.prototype._setRejectionIsUnhandled = function () {
+    this._bitField = this._bitField | 2097152;
+};
+
+Promise.prototype._unsetRejectionIsUnhandled = function () {
+    this._bitField = this._bitField & (~2097152);
+    if (this._isUnhandledRejectionNotified()) {
+        this._unsetUnhandledRejectionIsNotified();
+        this._notifyUnhandledRejectionIsHandled();
+    }
+};
+
+Promise.prototype._isRejectionUnhandled = function () {
+    return (this._bitField & 2097152) > 0;
+};
+
+Promise.prototype._setCarriedStackTrace = function (capturedTrace) {
+    this._bitField = this._bitField | 1048576;
+    this._fulfillmentHandler0 = capturedTrace;
+};
+
+Promise.prototype._isCarryingStackTrace = function () {
+    return (this._bitField & 1048576) > 0;
+};
+
+Promise.prototype._getCarriedStackTrace = function () {
+    return this._isCarryingStackTrace()
+        ? this._fulfillmentHandler0
+        : undefined;
+};
+
+Promise.prototype._captureStackTrace = function () {
+    if (debugging) {
+        this._trace = new CapturedTrace(this._peekContext());
+    }
+    return this;
+};
+
+Promise.prototype._attachExtraTrace = function (error, ignoreSelf) {
+    if (debugging && canAttachTrace(error)) {
+        var trace = this._trace;
+        if (trace !== undefined) {
+            if (ignoreSelf) trace = trace._parent;
+        }
+        if (trace !== undefined) {
+            trace.attachExtraTrace(error);
+        } else if (!error.__stackCleaned__) {
+            var parsed = CapturedTrace.parseStackAndMessage(error);
+            util.notEnumerableProp(error, "stack",
+                parsed.message + "\n" + parsed.stack.join("\n"));
+            util.notEnumerableProp(error, "__stackCleaned__", true);
+        }
+    }
+};
+
+Promise.prototype._warn = function(message) {
+    var warning = new Warning(message);
+    var ctx = this._peekContext();
+    if (ctx) {
+        ctx.attachExtraTrace(warning);
+    } else {
+        var parsed = CapturedTrace.parseStackAndMessage(warning);
+        warning.stack = parsed.message + "\n" + parsed.stack.join("\n");
+    }
+    CapturedTrace.formatAndLogError(warning, "");
+};
+
+Promise.onPossiblyUnhandledRejection = function (fn) {
+    possiblyUnhandledRejection = typeof fn === "function" ? fn : undefined;
+};
+
+Promise.onUnhandledRejectionHandled = function (fn) {
+    unhandledRejectionHandled = typeof fn === "function" ? fn : undefined;
+};
+
+Promise.longStackTraces = function () {
+    if (async.haveItemsQueued() &&
+        debugging === false
+   ) {
+        throw new Error("cannot enable long stack traces after promises have been created\u000a\u000a    See http://goo.gl/DT1qyG\u000a");
+    }
+    debugging = CapturedTrace.isSupported();
+    if (debugging) {
+        async.disableTrampolineIfNecessary();
+    }
+};
+
+Promise.hasLongStackTraces = function () {
+    return debugging && CapturedTrace.isSupported();
+};
+
+if (!CapturedTrace.isSupported()) {
+    Promise.longStackTraces = function(){};
+    debugging = false;
+}
+
+return function() {
+    return debugging;
+};
+};
+
+},{"./async.js":2,"./errors.js":13,"./util.js":38}],11:[function(_dereq_,module,exports){
+"use strict";
+var util = _dereq_("./util.js");
+var isPrimitive = util.isPrimitive;
+var wrapsPrimitiveReceiver = util.wrapsPrimitiveReceiver;
+
+module.exports = function(Promise) {
+var returner = function () {
+    return this;
+};
+var thrower = function () {
+    throw this;
+};
+
+var wrapper = function (value, action) {
+    if (action === 1) {
+        return function () {
+            throw value;
+        };
+    } else if (action === 2) {
+        return function () {
+            return value;
+        };
+    }
+};
+
+
+Promise.prototype["return"] =
+Promise.prototype.thenReturn = function (value) {
+    if (wrapsPrimitiveReceiver && isPrimitive(value)) {
+        return this._then(
+            wrapper(value, 2),
+            undefined,
+            undefined,
+            undefined,
+            undefined
+       );
+    }
+    return this._then(returner, undefined, undefined, value, undefined);
+};
+
+Promise.prototype["throw"] =
+Promise.prototype.thenThrow = function (reason) {
+    if (wrapsPrimitiveReceiver && isPrimitive(reason)) {
+        return this._then(
+            wrapper(reason, 1),
+            undefined,
+            undefined,
+            undefined,
+            undefined
+       );
+    }
+    return this._then(thrower, undefined, undefined, reason, undefined);
+};
+};
+
+},{"./util.js":38}],12:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function(Promise, INTERNAL) {
+var PromiseReduce = Promise.reduce;
+
+Promise.prototype.each = function (fn) {
+    return PromiseReduce(this, fn, null, INTERNAL);
+};
+
+Promise.each = function (promises, fn) {
+    return PromiseReduce(promises, fn, null, INTERNAL);
+};
+};
+
+},{}],13:[function(_dereq_,module,exports){
+"use strict";
+var es5 = _dereq_("./es5.js");
+var Objectfreeze = es5.freeze;
+var util = _dereq_("./util.js");
+var inherits = util.inherits;
+var notEnumerableProp = util.notEnumerableProp;
+
+function subError(nameProperty, defaultMessage) {
+    function SubError(message) {
+        if (!(this instanceof SubError)) return new SubError(message);
+        notEnumerableProp(this, "message",
+            typeof message === "string" ? message : defaultMessage);
+        notEnumerableProp(this, "name", nameProperty);
+        if (Error.captureStackTrace) {
+            Error.captureStackTrace(this, this.constructor);
+        } else {
+            Error.call(this);
+        }
+    }
+    inherits(SubError, Error);
+    return SubError;
+}
+
+var _TypeError, _RangeError;
+var Warning = subError("Warning", "warning");
+var CancellationError = subError("CancellationError", "cancellation error");
+var TimeoutError = subError("TimeoutError", "timeout error");
+var AggregateError = subError("AggregateError", "aggregate error");
+try {
+    _TypeError = TypeError;
+    _RangeError = RangeError;
+} catch(e) {
+    _TypeError = subError("TypeError", "type error");
+    _RangeError = subError("RangeError", "range error");
+}
+
+var methods = ("join pop push shift unshift slice filter forEach some " +
+    "every map indexOf lastIndexOf reduce reduceRight sort reverse").split(" ");
+
+for (var i = 0; i < methods.length; ++i) {
+    if (typeof Array.prototype[methods[i]] === "function") {
+        AggregateError.prototype[methods[i]] = Array.prototype[methods[i]];
+    }
+}
+
+es5.defineProperty(AggregateError.prototype, "length", {
+    value: 0,
+    configurable: false,
+    writable: true,
+    enumerable: true
+});
+AggregateError.prototype["isOperational"] = true;
+var level = 0;
+AggregateError.prototype.toString = function() {
+    var indent = Array(level * 4 + 1).join(" ");
+    var ret = "\n" + indent + "AggregateError of:" + "\n";
+    level++;
+    indent = Array(level * 4 + 1).join(" ");
+    for (var i = 0; i < this.length; ++i) {
+        var str = this[i] === this ? "[Circular AggregateError]" : this[i] + "";
+        var lines = str.split("\n");
+        for (var j = 0; j < lines.length; ++j) {
+            lines[j] = indent + lines[j];
+        }
+        str = lines.join("\n");
+        ret += str + "\n";
+    }
+    level--;
+    return ret;
+};
+
+function OperationalError(message) {
+    if (!(this instanceof OperationalError))
+        return new OperationalError(message);
+    notEnumerableProp(this, "name", "OperationalError");
+    notEnumerableProp(this, "message", message);
+    this.cause = message;
+    this["isOperational"] = true;
+
+    if (message instanceof Error) {
+        notEnumerableProp(this, "message", message.message);
+        notEnumerableProp(this, "stack", message.stack);
+    } else if (Error.captureStackTrace) {
+        Error.captureStackTrace(this, this.constructor);
+    }
+
+}
+inherits(OperationalError, Error);
+
+var errorTypes = Error["__BluebirdErrorTypes__"];
+if (!errorTypes) {
+    errorTypes = Objectfreeze({
+        CancellationError: CancellationError,
+        TimeoutError: TimeoutError,
+        OperationalError: OperationalError,
+        RejectionError: OperationalError,
+        AggregateError: AggregateError
+    });
+    notEnumerableProp(Error, "__BluebirdErrorTypes__", errorTypes);
+}
+
+module.exports = {
+    Error: Error,
+    TypeError: _TypeError,
+    RangeError: _RangeError,
+    CancellationError: errorTypes.CancellationError,
+    OperationalError: errorTypes.OperationalError,
+    TimeoutError: errorTypes.TimeoutError,
+    AggregateError: errorTypes.AggregateError,
+    Warning: Warning
+};
+
+},{"./es5.js":14,"./util.js":38}],14:[function(_dereq_,module,exports){
+var isES5 = (function(){
+    "use strict";
+    return this === undefined;
+})();
+
+if (isES5) {
+    module.exports = {
+        freeze: Object.freeze,
+        defineProperty: Object.defineProperty,
+        getDescriptor: Object.getOwnPropertyDescriptor,
+        keys: Object.keys,
+        names: Object.getOwnPropertyNames,
+        getPrototypeOf: Object.getPrototypeOf,
+        isArray: Array.isArray,
+        isES5: isES5,
+        propertyIsWritable: function(obj, prop) {
+            var descriptor = Object.getOwnPropertyDescriptor(obj, prop);
+            return !!(!descriptor || descriptor.writable || descriptor.set);
+        }
+    };
+} else {
+    var has = {}.hasOwnProperty;
+    var str = {}.toString;
+    var proto = {}.constructor.prototype;
+
+    var ObjectKeys = function (o) {
+        var ret = [];
+        for (var key in o) {
+            if (has.call(o, key)) {
+                ret.push(key);
+            }
+        }
+        return ret;
+    };
+
+    var ObjectGetDescriptor = function(o, key) {
+        return {value: o[key]};
+    };
+
+    var ObjectDefineProperty = function (o, key, desc) {
+        o[key] = desc.value;
+        return o;
+    };
+
+    var ObjectFreeze = function (obj) {
+        return obj;
+    };
+
+    var ObjectGetPrototypeOf = function (obj) {
+        try {
+            return Object(obj).constructor.prototype;
+        }
+        catch (e) {
+            return proto;
+        }
+    };
+
+    var ArrayIsArray = function (obj) {
+        try {
+            return str.call(obj) === "[object Array]";
+        }
+        catch(e) {
+            return false;
+        }
+    };
+
+    module.exports = {
+        isArray: ArrayIsArray,
+        keys: ObjectKeys,
+        names: ObjectKeys,
+        defineProperty: ObjectDefineProperty,
+        getDescriptor: ObjectGetDescriptor,
+        freeze: ObjectFreeze,
+        getPrototypeOf: ObjectGetPrototypeOf,
+        isES5: isES5,
+        propertyIsWritable: function() {
+            return true;
+        }
+    };
+}
+
+},{}],15:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function(Promise, INTERNAL) {
+var PromiseMap = Promise.map;
+
+Promise.prototype.filter = function (fn, options) {
+    return PromiseMap(this, fn, options, INTERNAL);
+};
+
+Promise.filter = function (promises, fn, options) {
+    return PromiseMap(promises, fn, options, INTERNAL);
+};
+};
+
+},{}],16:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function(Promise, NEXT_FILTER, tryConvertToPromise) {
+var util = _dereq_("./util.js");
+var wrapsPrimitiveReceiver = util.wrapsPrimitiveReceiver;
+var isPrimitive = util.isPrimitive;
+var thrower = util.thrower;
+
+function returnThis() {
+    return this;
+}
+function throwThis() {
+    throw this;
+}
+function return$(r) {
+    return function() {
+        return r;
+    };
+}
+function throw$(r) {
+    return function() {
+        throw r;
+    };
+}
+function promisedFinally(ret, reasonOrValue, isFulfilled) {
+    var then;
+    if (wrapsPrimitiveReceiver && isPrimitive(reasonOrValue)) {
+        then = isFulfilled ? return$(reasonOrValue) : throw$(reasonOrValue);
+    } else {
+        then = isFulfilled ? returnThis : throwThis;
+    }
+    return ret._then(then, thrower, undefined, reasonOrValue, undefined);
+}
+
+function finallyHandler(reasonOrValue) {
+    var promise = this.promise;
+    var handler = this.handler;
+
+    var ret = promise._isBound()
+                    ? handler.call(promise._boundTo)
+                    : handler();
+
+    if (ret !== undefined) {
+        var maybePromise = tryConvertToPromise(ret, promise);
+        if (maybePromise instanceof Promise) {
+            maybePromise = maybePromise._target();
+            return promisedFinally(maybePromise, reasonOrValue,
+                                    promise.isFulfilled());
+        }
+    }
+
+    if (promise.isRejected()) {
+        NEXT_FILTER.e = reasonOrValue;
+        return NEXT_FILTER;
+    } else {
+        return reasonOrValue;
+    }
+}
+
+function tapHandler(value) {
+    var promise = this.promise;
+    var handler = this.handler;
+
+    var ret = promise._isBound()
+                    ? handler.call(promise._boundTo, value)
+                    : handler(value);
+
+    if (ret !== undefined) {
+        var maybePromise = tryConvertToPromise(ret, promise);
+        if (maybePromise instanceof Promise) {
+            maybePromise = maybePromise._target();
+            return promisedFinally(maybePromise, value, true);
+        }
+    }
+    return value;
+}
+
+Promise.prototype._passThroughHandler = function (handler, isFinally) {
+    if (typeof handler !== "function") return this.then();
+
+    var promiseAndHandler = {
+        promise: this,
+        handler: handler
+    };
+
+    return this._then(
+            isFinally ? finallyHandler : tapHandler,
+            isFinally ? finallyHandler : undefined, undefined,
+            promiseAndHandler, undefined);
+};
+
+Promise.prototype.lastly =
+Promise.prototype["finally"] = function (handler) {
+    return this._passThroughHandler(handler, true);
+};
+
+Promise.prototype.tap = function (handler) {
+    return this._passThroughHandler(handler, false);
+};
+};
+
+},{"./util.js":38}],17:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function(Promise,
+                          apiRejection,
+                          INTERNAL,
+                          tryConvertToPromise) {
+var errors = _dereq_("./errors.js");
+var TypeError = errors.TypeError;
+var util = _dereq_("./util.js");
+var errorObj = util.errorObj;
+var tryCatch = util.tryCatch;
+var yieldHandlers = [];
+
+function promiseFromYieldHandler(value, yieldHandlers, traceParent) {
+    for (var i = 0; i < yieldHandlers.length; ++i) {
+        traceParent._pushContext();
+        var result = tryCatch(yieldHandlers[i])(value);
+        traceParent._popContext();
+        if (result === errorObj) {
+            traceParent._pushContext();
+            var ret = Promise.reject(errorObj.e);
+            traceParent._popContext();
+            return ret;
+        }
+        var maybePromise = tryConvertToPromise(result, traceParent);
+        if (maybePromise instanceof Promise) return maybePromise;
+    }
+    return null;
+}
+
+function PromiseSpawn(generatorFunction, receiver, yieldHandler, stack) {
+    var promise = this._promise = new Promise(INTERNAL);
+    promise._captureStackTrace();
+    this._stack = stack;
+    this._generatorFunction = generatorFunction;
+    this._receiver = receiver;
+    this._generator = undefined;
+    this._yieldHandlers = typeof yieldHandler === "function"
+        ? [yieldHandler].concat(yieldHandlers)
+        : yieldHandlers;
+}
+
+PromiseSpawn.prototype.promise = function () {
+    return this._promise;
+};
+
+PromiseSpawn.prototype._run = function () {
+    this._generator = this._generatorFunction.call(this._receiver);
+    this._receiver =
+        this._generatorFunction = undefined;
+    this._next(undefined);
+};
+
+PromiseSpawn.prototype._continue = function (result) {
+    if (result === errorObj) {
+        return this._promise._rejectCallback(result.e, false, true);
+    }
+
+    var value = result.value;
+    if (result.done === true) {
+        this._promise._resolveCallback(value);
+    } else {
+        var maybePromise = tryConvertToPromise(value, this._promise);
+        if (!(maybePromise instanceof Promise)) {
+            maybePromise =
+                promiseFromYieldHandler(maybePromise,
+                                        this._yieldHandlers,
+                                        this._promise);
+            if (maybePromise === null) {
+                this._throw(
+                    new TypeError(
+                        "A value %s was yielded that could not be treated as a promise\u000a\u000a    See http://goo.gl/4Y4pDk\u000a\u000a".replace("%s", value) +
+                        "From coroutine:\u000a" +
+                        this._stack.split("\n").slice(1, -7).join("\n")
+                    )
+                );
+                return;
+            }
+        }
+        maybePromise._then(
+            this._next,
+            this._throw,
+            undefined,
+            this,
+            null
+       );
+    }
+};
+
+PromiseSpawn.prototype._throw = function (reason) {
+    this._promise._attachExtraTrace(reason);
+    this._promise._pushContext();
+    var result = tryCatch(this._generator["throw"])
+        .call(this._generator, reason);
+    this._promise._popContext();
+    this._continue(result);
+};
+
+PromiseSpawn.prototype._next = function (value) {
+    this._promise._pushContext();
+    var result = tryCatch(this._generator.next).call(this._generator, value);
+    this._promise._popContext();
+    this._continue(result);
+};
+
+Promise.coroutine = function (generatorFunction, options) {
+    if (typeof generatorFunction !== "function") {
+        throw new TypeError("generatorFunction must be a function\u000a\u000a    See http://goo.gl/6Vqhm0\u000a");
+    }
+    var yieldHandler = Object(options).yieldHandler;
+    var PromiseSpawn$ = PromiseSpawn;
+    var stack = new Error().stack;
+    return function () {
+        var generator = generatorFunction.apply(this, arguments);
+        var spawn = new PromiseSpawn$(undefined, undefined, yieldHandler,
+                                      stack);
+        spawn._generator = generator;
+        spawn._next(undefined);
+        return spawn.promise();
+    };
+};
+
+Promise.coroutine.addYieldHandler = function(fn) {
+    if (typeof fn !== "function") throw new TypeError("fn must be a function\u000a\u000a    See http://goo.gl/916lJJ\u000a");
+    yieldHandlers.push(fn);
+};
+
+Promise.spawn = function (generatorFunction) {
+    if (typeof generatorFunction !== "function") {
+        return apiRejection("generatorFunction must be a function\u000a\u000a    See http://goo.gl/6Vqhm0\u000a");
+    }
+    var spawn = new PromiseSpawn(generatorFunction, this);
+    var ret = spawn.promise();
+    spawn._run(Promise.spawn);
+    return ret;
+};
+};
+
+},{"./errors.js":13,"./util.js":38}],18:[function(_dereq_,module,exports){
+"use strict";
+module.exports =
+function(Promise, PromiseArray, tryConvertToPromise, INTERNAL) {
+var util = _dereq_("./util.js");
+var canEvaluate = util.canEvaluate;
+var tryCatch = util.tryCatch;
+var errorObj = util.errorObj;
+var reject;
+
+if (!true) {
+if (canEvaluate) {
+    var thenCallback = function(i) {
+        return new Function("value", "holder", "                             \n\
+            'use strict';                                                    \n\
+            holder.pIndex = value;                                           \n\
+            holder.checkFulfillment(this);                                   \n\
+            ".replace(/Index/g, i));
+    };
+
+    var caller = function(count) {
+        var values = [];
+        for (var i = 1; i <= count; ++i) values.push("holder.p" + i);
+        return new Function("holder", "                                      \n\
+            'use strict';                                                    \n\
+            var callback = holder.fn;                                        \n\
+            return callback(values);                                         \n\
+            ".replace(/values/g, values.join(", ")));
+    };
+    var thenCallbacks = [];
+    var callers = [undefined];
+    for (var i = 1; i <= 5; ++i) {
+        thenCallbacks.push(thenCallback(i));
+        callers.push(caller(i));
+    }
+
+    var Holder = function(total, fn) {
+        this.p1 = this.p2 = this.p3 = this.p4 = this.p5 = null;
+        this.fn = fn;
+        this.total = total;
+        this.now = 0;
+    };
+
+    Holder.prototype.callers = callers;
+    Holder.prototype.checkFulfillment = function(promise) {
+        var now = this.now;
+        now++;
+        var total = this.total;
+        if (now >= total) {
+            var handler = this.callers[total];
+            promise._pushContext();
+            var ret = tryCatch(handler)(this);
+            promise._popContext();
+            if (ret === errorObj) {
+                promise._rejectCallback(ret.e, false, true);
+            } else {
+                promise._resolveCallback(ret);
+            }
+        } else {
+            this.now = now;
+        }
+    };
+
+    var reject = function (reason) {
+        this._reject(reason);
+    };
+}
+}
+
+Promise.join = function () {
+    var last = arguments.length - 1;
+    var fn;
+    if (last > 0 && typeof arguments[last] === "function") {
+        fn = arguments[last];
+        if (!true) {
+            if (last < 6 && canEvaluate) {
+                var ret = new Promise(INTERNAL);
+                ret._captureStackTrace();
+                var holder = new Holder(last, fn);
+                var callbacks = thenCallbacks;
+                for (var i = 0; i < last; ++i) {
+                    var maybePromise = tryConvertToPromise(arguments[i], ret);
+                    if (maybePromise instanceof Promise) {
+                        maybePromise = maybePromise._target();
+                        if (maybePromise._isPending()) {
+                            maybePromise._then(callbacks[i], reject,
+                                               undefined, ret, holder);
+                        } else if (maybePromise._isFulfilled()) {
+                            callbacks[i].call(ret,
+                                              maybePromise._value(), holder);
+                        } else {
+                            ret._reject(maybePromise._reason());
+                        }
+                    } else {
+                        callbacks[i].call(ret, maybePromise, holder);
+                    }
+                }
+                return ret;
+            }
+        }
+    }
+    var $_len = arguments.length;var args = new Array($_len); for(var $_i = 0; $_i < $_len; ++$_i) {args[$_i] = arguments[$_i];}
+    if (fn) args.pop();
+    var ret = new PromiseArray(args).promise();
+    return fn !== undefined ? ret.spread(fn) : ret;
+};
+
+};
+
+},{"./util.js":38}],19:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function(Promise,
+                          PromiseArray,
+                          apiRejection,
+                          tryConvertToPromise,
+                          INTERNAL) {
+var async = _dereq_("./async.js");
+var util = _dereq_("./util.js");
+var tryCatch = util.tryCatch;
+var errorObj = util.errorObj;
+var PENDING = {};
+var EMPTY_ARRAY = [];
+
+function MappingPromiseArray(promises, fn, limit, _filter) {
+    this.constructor$(promises);
+    this._promise._captureStackTrace();
+    this._callback = fn;
+    this._preservedValues = _filter === INTERNAL
+        ? new Array(this.length())
+        : null;
+    this._limit = limit;
+    this._inFlight = 0;
+    this._queue = limit >= 1 ? [] : EMPTY_ARRAY;
+    async.invoke(init, this, undefined);
+}
+util.inherits(MappingPromiseArray, PromiseArray);
+function init() {this._init$(undefined, -2);}
+
+MappingPromiseArray.prototype._init = function () {};
+
+MappingPromiseArray.prototype._promiseFulfilled = function (value, index) {
+    var values = this._values;
+    var length = this.length();
+    var preservedValues = this._preservedValues;
+    var limit = this._limit;
+    if (values[index] === PENDING) {
+        values[index] = value;
+        if (limit >= 1) {
+            this._inFlight--;
+            this._drainQueue();
+            if (this._isResolved()) return;
+        }
+    } else {
+        if (limit >= 1 && this._inFlight >= limit) {
+            values[index] = value;
+            this._queue.push(index);
+            return;
+        }
+        if (preservedValues !== null) preservedValues[index] = value;
+
+        var callback = this._callback;
+        var receiver = this._promise._boundTo;
+        this._promise._pushContext();
+        var ret = tryCatch(callback).call(receiver, value, index, length);
+        this._promise._popContext();
+        if (ret === errorObj) return this._reject(ret.e);
+
+        var maybePromise = tryConvertToPromise(ret, this._promise);
+        if (maybePromise instanceof Promise) {
+            maybePromise = maybePromise._target();
+            if (maybePromise._isPending()) {
+                if (limit >= 1) this._inFlight++;
+                values[index] = PENDING;
+                return maybePromise._proxyPromiseArray(this, index);
+            } else if (maybePromise._isFulfilled()) {
+                ret = maybePromise._value();
+            } else {
+                return this._reject(maybePromise._reason());
+            }
+        }
+        values[index] = ret;
+    }
+    var totalResolved = ++this._totalResolved;
+    if (totalResolved >= length) {
+        if (preservedValues !== null) {
+            this._filter(values, preservedValues);
+        } else {
+            this._resolve(values);
+        }
+
+    }
+};
+
+MappingPromiseArray.prototype._drainQueue = function () {
+    var queue = this._queue;
+    var limit = this._limit;
+    var values = this._values;
+    while (queue.length > 0 && this._inFlight < limit) {
+        if (this._isResolved()) return;
+        var index = queue.pop();
+        this._promiseFulfilled(values[index], index);
+    }
+};
+
+MappingPromiseArray.prototype._filter = function (booleans, values) {
+    var len = values.length;
+    var ret = new Array(len);
+    var j = 0;
+    for (var i = 0; i < len; ++i) {
+        if (booleans[i]) ret[j++] = values[i];
+    }
+    ret.length = j;
+    this._resolve(ret);
+};
+
+MappingPromiseArray.prototype.preservedValues = function () {
+    return this._preservedValues;
+};
+
+function map(promises, fn, options, _filter) {
+    var limit = typeof options === "object" && options !== null
+        ? options.concurrency
+        : 0;
+    limit = typeof limit === "number" &&
+        isFinite(limit) && limit >= 1 ? limit : 0;
+    return new MappingPromiseArray(promises, fn, limit, _filter);
+}
+
+Promise.prototype.map = function (fn, options) {
+    if (typeof fn !== "function") return apiRejection("fn must be a function\u000a\u000a    See http://goo.gl/916lJJ\u000a");
+
+    return map(this, fn, options, null).promise();
+};
+
+Promise.map = function (promises, fn, options, _filter) {
+    if (typeof fn !== "function") return apiRejection("fn must be a function\u000a\u000a    See http://goo.gl/916lJJ\u000a");
+    return map(promises, fn, options, _filter).promise();
+};
+
+
+};
+
+},{"./async.js":2,"./util.js":38}],20:[function(_dereq_,module,exports){
+"use strict";
+module.exports =
+function(Promise, INTERNAL, tryConvertToPromise, apiRejection) {
+var util = _dereq_("./util.js");
+var tryCatch = util.tryCatch;
+
+Promise.method = function (fn) {
+    if (typeof fn !== "function") {
+        throw new Promise.TypeError("fn must be a function\u000a\u000a    See http://goo.gl/916lJJ\u000a");
+    }
+    return function () {
+        var ret = new Promise(INTERNAL);
+        ret._captureStackTrace();
+        ret._pushContext();
+        var value = tryCatch(fn).apply(this, arguments);
+        ret._popContext();
+        ret._resolveFromSyncValue(value);
+        return ret;
+    };
+};
+
+Promise.attempt = Promise["try"] = function (fn, args, ctx) {
+    if (typeof fn !== "function") {
+        return apiRejection("fn must be a function\u000a\u000a    See http://goo.gl/916lJJ\u000a");
+    }
+    var ret = new Promise(INTERNAL);
+    ret._captureStackTrace();
+    ret._pushContext();
+    var value = util.isArray(args)
+        ? tryCatch(fn).apply(ctx, args)
+        : tryCatch(fn).call(ctx, args);
+    ret._popContext();
+    ret._resolveFromSyncValue(value);
+    return ret;
+};
+
+Promise.prototype._resolveFromSyncValue = function (value) {
+    if (value === util.errorObj) {
+        this._rejectCallback(value.e, false, true);
+    } else {
+        this._resolveCallback(value, true);
+    }
+};
+};
+
+},{"./util.js":38}],21:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function(Promise) {
+var util = _dereq_("./util.js");
+var async = _dereq_("./async.js");
+var tryCatch = util.tryCatch;
+var errorObj = util.errorObj;
+
+function spreadAdapter(val, nodeback) {
+    var promise = this;
+    if (!util.isArray(val)) return successAdapter.call(promise, val, nodeback);
+    var ret = tryCatch(nodeback).apply(promise._boundTo, [null].concat(val));
+    if (ret === errorObj) {
+        async.throwLater(ret.e);
+    }
+}
+
+function successAdapter(val, nodeback) {
+    var promise = this;
+    var receiver = promise._boundTo;
+    var ret = val === undefined
+        ? tryCatch(nodeback).call(receiver, null)
+        : tryCatch(nodeback).call(receiver, null, val);
+    if (ret === errorObj) {
+        async.throwLater(ret.e);
+    }
+}
+function errorAdapter(reason, nodeback) {
+    var promise = this;
+    if (!reason) {
+        var target = promise._target();
+        var newReason = target._getCarriedStackTrace();
+        newReason.cause = reason;
+        reason = newReason;
+    }
+    var ret = tryCatch(nodeback).call(promise._boundTo, reason);
+    if (ret === errorObj) {
+        async.throwLater(ret.e);
+    }
+}
+
+Promise.prototype.asCallback = 
+Promise.prototype.nodeify = function (nodeback, options) {
+    if (typeof nodeback == "function") {
+        var adapter = successAdapter;
+        if (options !== undefined && Object(options).spread) {
+            adapter = spreadAdapter;
+        }
+        this._then(
+            adapter,
+            errorAdapter,
+            undefined,
+            this,
+            nodeback
+        );
+    }
+    return this;
+};
+};
+
+},{"./async.js":2,"./util.js":38}],22:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function(Promise, PromiseArray) {
+var util = _dereq_("./util.js");
+var async = _dereq_("./async.js");
+var tryCatch = util.tryCatch;
+var errorObj = util.errorObj;
+
+Promise.prototype.progressed = function (handler) {
+    return this._then(undefined, undefined, handler, undefined, undefined);
+};
+
+Promise.prototype._progress = function (progressValue) {
+    if (this._isFollowingOrFulfilledOrRejected()) return;
+    this._target()._progressUnchecked(progressValue);
+
+};
+
+Promise.prototype._progressHandlerAt = function (index) {
+    return index === 0
+        ? this._progressHandler0
+        : this[(index << 2) + index - 5 + 2];
+};
+
+Promise.prototype._doProgressWith = function (progression) {
+    var progressValue = progression.value;
+    var handler = progression.handler;
+    var promise = progression.promise;
+    var receiver = progression.receiver;
+
+    var ret = tryCatch(handler).call(receiver, progressValue);
+    if (ret === errorObj) {
+        if (ret.e != null &&
+            ret.e.name !== "StopProgressPropagation") {
+            var trace = util.canAttachTrace(ret.e)
+                ? ret.e : new Error(util.toString(ret.e));
+            promise._attachExtraTrace(trace);
+            promise._progress(ret.e);
+        }
+    } else if (ret instanceof Promise) {
+        ret._then(promise._progress, null, null, promise, undefined);
+    } else {
+        promise._progress(ret);
+    }
+};
+
+
+Promise.prototype._progressUnchecked = function (progressValue) {
+    var len = this._length();
+    var progress = this._progress;
+    for (var i = 0; i < len; i++) {
+        var handler = this._progressHandlerAt(i);
+        var promise = this._promiseAt(i);
+        if (!(promise instanceof Promise)) {
+            var receiver = this._receiverAt(i);
+            if (typeof handler === "function") {
+                handler.call(receiver, progressValue, promise);
+            } else if (receiver instanceof PromiseArray &&
+                       !receiver._isResolved()) {
+                receiver._promiseProgressed(progressValue, promise);
+            }
+            continue;
+        }
+
+        if (typeof handler === "function") {
+            async.invoke(this._doProgressWith, this, {
+                handler: handler,
+                promise: promise,
+                receiver: this._receiverAt(i),
+                value: progressValue
+            });
+        } else {
+            async.invoke(progress, promise, progressValue);
+        }
+    }
+};
+};
+
+},{"./async.js":2,"./util.js":38}],23:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function() {
+var makeSelfResolutionError = function () {
+    return new TypeError("circular promise resolution chain\u000a\u000a    See http://goo.gl/LhFpo0\u000a");
+};
+var reflect = function() {
+    return new Promise.PromiseInspection(this._target());
+};
+var apiRejection = function(msg) {
+    return Promise.reject(new TypeError(msg));
+};
+var util = _dereq_("./util.js");
+var async = _dereq_("./async.js");
+var errors = _dereq_("./errors.js");
+var TypeError = Promise.TypeError = errors.TypeError;
+Promise.RangeError = errors.RangeError;
+Promise.CancellationError = errors.CancellationError;
+Promise.TimeoutError = errors.TimeoutError;
+Promise.OperationalError = errors.OperationalError;
+Promise.RejectionError = errors.OperationalError;
+Promise.AggregateError = errors.AggregateError;
+var INTERNAL = function(){};
+var APPLY = {};
+var NEXT_FILTER = {e: null};
+var tryConvertToPromise = _dereq_("./thenables.js")(Promise, INTERNAL);
+var PromiseArray =
+    _dereq_("./promise_array.js")(Promise, INTERNAL,
+                                    tryConvertToPromise, apiRejection);
+var CapturedTrace = _dereq_("./captured_trace.js")();
+var isDebugging = _dereq_("./debuggability.js")(Promise, CapturedTrace);
+ /*jshint unused:false*/
+var createContext =
+    _dereq_("./context.js")(Promise, CapturedTrace, isDebugging);
+var CatchFilter = _dereq_("./catch_filter.js")(NEXT_FILTER);
+var PromiseResolver = _dereq_("./promise_resolver.js");
+var nodebackForPromise = PromiseResolver._nodebackForPromise;
+var errorObj = util.errorObj;
+var tryCatch = util.tryCatch;
+function Promise(resolver) {
+    if (typeof resolver !== "function") {
+        throw new TypeError("the promise constructor requires a resolver function\u000a\u000a    See http://goo.gl/EC22Yn\u000a");
+    }
+    if (this.constructor !== Promise) {
+        throw new TypeError("the promise constructor cannot be invoked directly\u000a\u000a    See http://goo.gl/KsIlge\u000a");
+    }
+    this._bitField = 0;
+    this._fulfillmentHandler0 = undefined;
+    this._rejectionHandler0 = undefined;
+    this._progressHandler0 = undefined;
+    this._promise0 = undefined;
+    this._receiver0 = undefined;
+    this._settledValue = undefined;
+    if (resolver !== INTERNAL) this._resolveFromResolver(resolver);
+}
+
+Promise.prototype.toString = function () {
+    return "[object Promise]";
+};
+
+Promise.prototype.caught = Promise.prototype["catch"] = function (fn) {
+    var len = arguments.length;
+    if (len > 1) {
+        var catchInstances = new Array(len - 1),
+            j = 0, i;
+        for (i = 0; i < len - 1; ++i) {
+            var item = arguments[i];
+            if (typeof item === "function") {
+                catchInstances[j++] = item;
+            } else {
+                return Promise.reject(
+                    new TypeError("Catch filter must inherit from Error or be a simple predicate function\u000a\u000a    See http://goo.gl/o84o68\u000a"));
+            }
+        }
+        catchInstances.length = j;
+        fn = arguments[i];
+        var catchFilter = new CatchFilter(catchInstances, fn, this);
+        return this._then(undefined, catchFilter.doFilter, undefined,
+            catchFilter, undefined);
+    }
+    return this._then(undefined, fn, undefined, undefined, undefined);
+};
+
+Promise.prototype.reflect = function () {
+    return this._then(reflect, reflect, undefined, this, undefined);
+};
+
+Promise.prototype.then = function (didFulfill, didReject, didProgress) {
+    if (isDebugging() && arguments.length > 0 &&
+        typeof didFulfill !== "function" &&
+        typeof didReject !== "function") {
+        var msg = ".then() only accepts functions but was passed: " +
+                util.classString(didFulfill);
+        if (arguments.length > 1) {
+            msg += ", " + util.classString(didReject);
+        }
+        this._warn(msg);
+    }
+    return this._then(didFulfill, didReject, didProgress,
+        undefined, undefined);
+};
+
+Promise.prototype.done = function (didFulfill, didReject, didProgress) {
+    var promise = this._then(didFulfill, didReject, didProgress,
+        undefined, undefined);
+    promise._setIsFinal();
+};
+
+Promise.prototype.spread = function (didFulfill, didReject) {
+    return this.all()._then(didFulfill, didReject, undefined, APPLY, undefined);
+};
+
+Promise.prototype.isCancellable = function () {
+    return !this.isResolved() &&
+        this._cancellable();
+};
+
+Promise.prototype.toJSON = function () {
+    var ret = {
+        isFulfilled: false,
+        isRejected: false,
+        fulfillmentValue: undefined,
+        rejectionReason: undefined
+    };
+    if (this.isFulfilled()) {
+        ret.fulfillmentValue = this.value();
+        ret.isFulfilled = true;
+    } else if (this.isRejected()) {
+        ret.rejectionReason = this.reason();
+        ret.isRejected = true;
+    }
+    return ret;
+};
+
+Promise.prototype.all = function () {
+    return new PromiseArray(this).promise();
+};
+
+Promise.prototype.error = function (fn) {
+    return this.caught(util.originatesFromRejection, fn);
+};
+
+Promise.is = function (val) {
+    return val instanceof Promise;
+};
+
+Promise.fromNode = function(fn) {
+    var ret = new Promise(INTERNAL);
+    var result = tryCatch(fn)(nodebackForPromise(ret));
+    if (result === errorObj) {
+        ret._rejectCallback(result.e, true, true);
+    }
+    return ret;
+};
+
+Promise.all = function (promises) {
+    return new PromiseArray(promises).promise();
+};
+
+Promise.defer = Promise.pending = function () {
+    var promise = new Promise(INTERNAL);
+    return new PromiseResolver(promise);
+};
+
+Promise.cast = function (obj) {
+    var ret = tryConvertToPromise(obj);
+    if (!(ret instanceof Promise)) {
+        var val = ret;
+        ret = new Promise(INTERNAL);
+        ret._fulfillUnchecked(val);
+    }
+    return ret;
+};
+
+Promise.resolve = Promise.fulfilled = Promise.cast;
+
+Promise.reject = Promise.rejected = function (reason) {
+    var ret = new Promise(INTERNAL);
+    ret._captureStackTrace();
+    ret._rejectCallback(reason, true);
+    return ret;
+};
+
+Promise.setScheduler = function(fn) {
+    if (typeof fn !== "function") throw new TypeError("fn must be a function\u000a\u000a    See http://goo.gl/916lJJ\u000a");
+    var prev = async._schedule;
+    async._schedule = fn;
+    return prev;
+};
+
+Promise.prototype._then = function (
+    didFulfill,
+    didReject,
+    didProgress,
+    receiver,
+    internalData
+) {
+    var haveInternalData = internalData !== undefined;
+    var ret = haveInternalData ? internalData : new Promise(INTERNAL);
+
+    if (!haveInternalData) {
+        ret._propagateFrom(this, 4 | 1);
+        ret._captureStackTrace();
+    }
+
+    var target = this._target();
+    if (target !== this) {
+        if (receiver === undefined) receiver = this._boundTo;
+        if (!haveInternalData) ret._setIsMigrated();
+    }
+
+    var callbackIndex =
+        target._addCallbacks(didFulfill, didReject, didProgress, ret, receiver);
+
+    if (target._isResolved() && !target._isSettlePromisesQueued()) {
+        async.invoke(
+            target._settlePromiseAtPostResolution, target, callbackIndex);
+    }
+
+    return ret;
+};
+
+Promise.prototype._settlePromiseAtPostResolution = function (index) {
+    if (this._isRejectionUnhandled()) this._unsetRejectionIsUnhandled();
+    this._settlePromiseAt(index);
+};
+
+Promise.prototype._length = function () {
+    return this._bitField & 131071;
+};
+
+Promise.prototype._isFollowingOrFulfilledOrRejected = function () {
+    return (this._bitField & 939524096) > 0;
+};
+
+Promise.prototype._isFollowing = function () {
+    return (this._bitField & 536870912) === 536870912;
+};
+
+Promise.prototype._setLength = function (len) {
+    this._bitField = (this._bitField & -131072) |
+        (len & 131071);
+};
+
+Promise.prototype._setFulfilled = function () {
+    this._bitField = this._bitField | 268435456;
+};
+
+Promise.prototype._setRejected = function () {
+    this._bitField = this._bitField | 134217728;
+};
+
+Promise.prototype._setFollowing = function () {
+    this._bitField = this._bitField | 536870912;
+};
+
+Promise.prototype._setIsFinal = function () {
+    this._bitField = this._bitField | 33554432;
+};
+
+Promise.prototype._isFinal = function () {
+    return (this._bitField & 33554432) > 0;
+};
+
+Promise.prototype._cancellable = function () {
+    return (this._bitField & 67108864) > 0;
+};
+
+Promise.prototype._setCancellable = function () {
+    this._bitField = this._bitField | 67108864;
+};
+
+Promise.prototype._unsetCancellable = function () {
+    this._bitField = this._bitField & (~67108864);
+};
+
+Promise.prototype._setIsMigrated = function () {
+    this._bitField = this._bitField | 4194304;
+};
+
+Promise.prototype._unsetIsMigrated = function () {
+    this._bitField = this._bitField & (~4194304);
+};
+
+Promise.prototype._isMigrated = function () {
+    return (this._bitField & 4194304) > 0;
+};
+
+Promise.prototype._receiverAt = function (index) {
+    var ret = index === 0
+        ? this._receiver0
+        : this[
+            index * 5 - 5 + 4];
+    if (ret === undefined && this._isBound()) {
+        return this._boundTo;
+    }
+    return ret;
+};
+
+Promise.prototype._promiseAt = function (index) {
+    return index === 0
+        ? this._promise0
+        : this[index * 5 - 5 + 3];
+};
+
+Promise.prototype._fulfillmentHandlerAt = function (index) {
+    return index === 0
+        ? this._fulfillmentHandler0
+        : this[index * 5 - 5 + 0];
+};
+
+Promise.prototype._rejectionHandlerAt = function (index) {
+    return index === 0
+        ? this._rejectionHandler0
+        : this[index * 5 - 5 + 1];
+};
+
+Promise.prototype._migrateCallbacks = function (follower, index) {
+    var fulfill = follower._fulfillmentHandlerAt(index);
+    var reject = follower._rejectionHandlerAt(index);
+    var progress = follower._progressHandlerAt(index);
+    var promise = follower._promiseAt(index);
+    var receiver = follower._receiverAt(index);
+    if (promise instanceof Promise) promise._setIsMigrated();
+    this._addCallbacks(fulfill, reject, progress, promise, receiver);
+};
+
+Promise.prototype._addCallbacks = function (
+    fulfill,
+    reject,
+    progress,
+    promise,
+    receiver
+) {
+    var index = this._length();
+
+    if (index >= 131071 - 5) {
+        index = 0;
+        this._setLength(0);
+    }
+
+    if (index === 0) {
+        this._promise0 = promise;
+        if (receiver !== undefined) this._receiver0 = receiver;
+        if (typeof fulfill === "function" && !this._isCarryingStackTrace())
+            this._fulfillmentHandler0 = fulfill;
+        if (typeof reject === "function") this._rejectionHandler0 = reject;
+        if (typeof progress === "function") this._progressHandler0 = progress;
+    } else {
+        var base = index * 5 - 5;
+        this[base + 3] = promise;
+        this[base + 4] = receiver;
+        if (typeof fulfill === "function")
+            this[base + 0] = fulfill;
+        if (typeof reject === "function")
+            this[base + 1] = reject;
+        if (typeof progress === "function")
+            this[base + 2] = progress;
+    }
+    this._setLength(index + 1);
+    return index;
+};
+
+Promise.prototype._setProxyHandlers = function (receiver, promiseSlotValue) {
+    var index = this._length();
+
+    if (index >= 131071 - 5) {
+        index = 0;
+        this._setLength(0);
+    }
+    if (index === 0) {
+        this._promise0 = promiseSlotValue;
+        this._receiver0 = receiver;
+    } else {
+        var base = index * 5 - 5;
+        this[base + 3] = promiseSlotValue;
+        this[base + 4] = receiver;
+    }
+    this._setLength(index + 1);
+};
+
+Promise.prototype._proxyPromiseArray = function (promiseArray, index) {
+    this._setProxyHandlers(promiseArray, index);
+};
+
+Promise.prototype._resolveCallback = function(value, shouldBind) {
+    if (this._isFollowingOrFulfilledOrRejected()) return;
+    if (value === this)
+        return this._rejectCallback(makeSelfResolutionError(), false, true);
+    var maybePromise = tryConvertToPromise(value, this);
+    if (!(maybePromise instanceof Promise)) return this._fulfill(value);
+
+    var propagationFlags = 1 | (shouldBind ? 4 : 0);
+    this._propagateFrom(maybePromise, propagationFlags);
+    var promise = maybePromise._target();
+    if (promise._isPending()) {
+        var len = this._length();
+        for (var i = 0; i < len; ++i) {
+            promise._migrateCallbacks(this, i);
+        }
+        this._setFollowing();
+        this._setLength(0);
+        this._setFollowee(promise);
+    } else if (promise._isFulfilled()) {
+        this._fulfillUnchecked(promise._value());
+    } else {
+        this._rejectUnchecked(promise._reason(),
+            promise._getCarriedStackTrace());
+    }
+};
+
+Promise.prototype._rejectCallback =
+function(reason, synchronous, shouldNotMarkOriginatingFromRejection) {
+    if (!shouldNotMarkOriginatingFromRejection) {
+        util.markAsOriginatingFromRejection(reason);
+    }
+    var trace = util.ensureErrorObject(reason);
+    var hasStack = trace === reason;
+    this._attachExtraTrace(trace, synchronous ? hasStack : false);
+    this._reject(reason, hasStack ? undefined : trace);
+};
+
+Promise.prototype._resolveFromResolver = function (resolver) {
+    var promise = this;
+    this._captureStackTrace();
+    this._pushContext();
+    var synchronous = true;
+    var r = tryCatch(resolver)(function(value) {
+        if (promise === null) return;
+        promise._resolveCallback(value);
+        promise = null;
+    }, function (reason) {
+        if (promise === null) return;
+        promise._rejectCallback(reason, synchronous);
+        promise = null;
+    });
+    synchronous = false;
+    this._popContext();
+
+    if (r !== undefined && r === errorObj && promise !== null) {
+        promise._rejectCallback(r.e, true, true);
+        promise = null;
+    }
+};
+
+Promise.prototype._settlePromiseFromHandler = function (
+    handler, receiver, value, promise
+) {
+    if (promise._isRejected()) return;
+    promise._pushContext();
+    var x;
+    if (receiver === APPLY && !this._isRejected()) {
+        x = tryCatch(handler).apply(this._boundTo, value);
+    } else {
+        x = tryCatch(handler).call(receiver, value);
+    }
+    promise._popContext();
+
+    if (x === errorObj || x === promise || x === NEXT_FILTER) {
+        var err = x === promise ? makeSelfResolutionError() : x.e;
+        promise._rejectCallback(err, false, true);
+    } else {
+        promise._resolveCallback(x);
+    }
+};
+
+Promise.prototype._target = function() {
+    var ret = this;
+    while (ret._isFollowing()) ret = ret._followee();
+    return ret;
+};
+
+Promise.prototype._followee = function() {
+    return this._rejectionHandler0;
+};
+
+Promise.prototype._setFollowee = function(promise) {
+    this._rejectionHandler0 = promise;
+};
+
+Promise.prototype._cleanValues = function () {
+    if (this._cancellable()) {
+        this._cancellationParent = undefined;
+    }
+};
+
+Promise.prototype._propagateFrom = function (parent, flags) {
+    if ((flags & 1) > 0 && parent._cancellable()) {
+        this._setCancellable();
+        this._cancellationParent = parent;
+    }
+    if ((flags & 4) > 0 && parent._isBound()) {
+        this._setBoundTo(parent._boundTo);
+    }
+};
+
+Promise.prototype._fulfill = function (value) {
+    if (this._isFollowingOrFulfilledOrRejected()) return;
+    this._fulfillUnchecked(value);
+};
+
+Promise.prototype._reject = function (reason, carriedStackTrace) {
+    if (this._isFollowingOrFulfilledOrRejected()) return;
+    this._rejectUnchecked(reason, carriedStackTrace);
+};
+
+Promise.prototype._settlePromiseAt = function (index) {
+    var promise = this._promiseAt(index);
+    var isPromise = promise instanceof Promise;
+
+    if (isPromise && promise._isMigrated()) {
+        promise._unsetIsMigrated();
+        return async.invoke(this._settlePromiseAt, this, index);
+    }
+    var handler = this._isFulfilled()
+        ? this._fulfillmentHandlerAt(index)
+        : this._rejectionHandlerAt(index);
+
+    var carriedStackTrace =
+        this._isCarryingStackTrace() ? this._getCarriedStackTrace() : undefined;
+    var value = this._settledValue;
+    var receiver = this._receiverAt(index);
+
+
+    this._clearCallbackDataAtIndex(index);
+
+    if (typeof handler === "function") {
+        if (!isPromise) {
+            handler.call(receiver, value, promise);
+        } else {
+            this._settlePromiseFromHandler(handler, receiver, value, promise);
+        }
+    } else if (receiver instanceof PromiseArray) {
+        if (!receiver._isResolved()) {
+            if (this._isFulfilled()) {
+                receiver._promiseFulfilled(value, promise);
+            }
+            else {
+                receiver._promiseRejected(value, promise);
+            }
+        }
+    } else if (isPromise) {
+        if (this._isFulfilled()) {
+            promise._fulfill(value);
+        } else {
+            promise._reject(value, carriedStackTrace);
+        }
+    }
+
+    if (index >= 4 && (index & 31) === 4)
+        async.invokeLater(this._setLength, this, 0);
+};
+
+Promise.prototype._clearCallbackDataAtIndex = function(index) {
+    if (index === 0) {
+        if (!this._isCarryingStackTrace()) {
+            this._fulfillmentHandler0 = undefined;
+        }
+        this._rejectionHandler0 =
+        this._progressHandler0 =
+        this._receiver0 =
+        this._promise0 = undefined;
+    } else {
+        var base = index * 5 - 5;
+        this[base + 3] =
+        this[base + 4] =
+        this[base + 0] =
+        this[base + 1] =
+        this[base + 2] = undefined;
+    }
+};
+
+Promise.prototype._isSettlePromisesQueued = function () {
+    return (this._bitField &
+            -1073741824) === -1073741824;
+};
+
+Promise.prototype._setSettlePromisesQueued = function () {
+    this._bitField = this._bitField | -1073741824;
+};
+
+Promise.prototype._unsetSettlePromisesQueued = function () {
+    this._bitField = this._bitField & (~-1073741824);
+};
+
+Promise.prototype._queueSettlePromises = function() {
+    async.settlePromises(this);
+    this._setSettlePromisesQueued();
+};
+
+Promise.prototype._fulfillUnchecked = function (value) {
+    if (value === this) {
+        var err = makeSelfResolutionError();
+        this._attachExtraTrace(err);
+        return this._rejectUnchecked(err, undefined);
+    }
+    this._setFulfilled();
+    this._settledValue = value;
+    this._cleanValues();
+
+    if (this._length() > 0) {
+        this._queueSettlePromises();
+    }
+};
+
+Promise.prototype._rejectUncheckedCheckError = function (reason) {
+    var trace = util.ensureErrorObject(reason);
+    this._rejectUnchecked(reason, trace === reason ? undefined : trace);
+};
+
+Promise.prototype._rejectUnchecked = function (reason, trace) {
+    if (reason === this) {
+        var err = makeSelfResolutionError();
+        this._attachExtraTrace(err);
+        return this._rejectUnchecked(err);
+    }
+    this._setRejected();
+    this._settledValue = reason;
+    this._cleanValues();
+
+    if (this._isFinal()) {
+        async.throwLater(function(e) {
+            if ("stack" in e) {
+                async.invokeFirst(
+                    CapturedTrace.unhandledRejection, undefined, e);
+            }
+            throw e;
+        }, trace === undefined ? reason : trace);
+        return;
+    }
+
+    if (trace !== undefined && trace !== reason) {
+        this._setCarriedStackTrace(trace);
+    }
+
+    if (this._length() > 0) {
+        this._queueSettlePromises();
+    } else {
+        this._ensurePossibleRejectionHandled();
+    }
+};
+
+Promise.prototype._settlePromises = function () {
+    this._unsetSettlePromisesQueued();
+    var len = this._length();
+    for (var i = 0; i < len; i++) {
+        this._settlePromiseAt(i);
+    }
+};
+
+Promise._makeSelfResolutionError = makeSelfResolutionError;
+_dereq_("./progress.js")(Promise, PromiseArray);
+_dereq_("./method.js")(Promise, INTERNAL, tryConvertToPromise, apiRejection);
+_dereq_("./bind.js")(Promise, INTERNAL, tryConvertToPromise);
+_dereq_("./finally.js")(Promise, NEXT_FILTER, tryConvertToPromise);
+_dereq_("./direct_resolve.js")(Promise);
+_dereq_("./synchronous_inspection.js")(Promise);
+_dereq_("./join.js")(Promise, PromiseArray, tryConvertToPromise, INTERNAL);
+Promise.Promise = Promise;
+_dereq_('./map.js')(Promise, PromiseArray, apiRejection, tryConvertToPromise, INTERNAL);
+_dereq_('./cancel.js')(Promise);
+_dereq_('./using.js')(Promise, apiRejection, tryConvertToPromise, createContext);
+_dereq_('./generators.js')(Promise, apiRejection, INTERNAL, tryConvertToPromise);
+_dereq_('./nodeify.js')(Promise);
+_dereq_('./call_get.js')(Promise);
+_dereq_('./props.js')(Promise, PromiseArray, tryConvertToPromise, apiRejection);
+_dereq_('./race.js')(Promise, INTERNAL, tryConvertToPromise, apiRejection);
+_dereq_('./reduce.js')(Promise, PromiseArray, apiRejection, tryConvertToPromise, INTERNAL);
+_dereq_('./settle.js')(Promise, PromiseArray);
+_dereq_('./some.js')(Promise, PromiseArray, apiRejection);
+_dereq_('./promisify.js')(Promise, INTERNAL);
+_dereq_('./any.js')(Promise);
+_dereq_('./each.js')(Promise, INTERNAL);
+_dereq_('./timers.js')(Promise, INTERNAL);
+_dereq_('./filter.js')(Promise, INTERNAL);
+                                                         
+    util.toFastProperties(Promise);                                          
+    util.toFastProperties(Promise.prototype);                                
+    function fillTypes(value) {                                              
+        var p = new Promise(INTERNAL);                                       
+        p._fulfillmentHandler0 = value;                                      
+        p._rejectionHandler0 = value;                                        
+        p._progressHandler0 = value;                                         
+        p._promise0 = value;                                                 
+        p._receiver0 = value;                                                
+        p._settledValue = value;                                             
+    }                                                                        
+    // Complete slack tracking, opt out of field-type tracking and           
+    // stabilize map                                                         
+    fillTypes({a: 1});                                                       
+    fillTypes({b: 2});                                                       
+    fillTypes({c: 3});                                                       
+    fillTypes(1);                                                            
+    fillTypes(function(){});                                                 
+    fillTypes(undefined);                                                    
+    fillTypes(false);                                                        
+    fillTypes(new Promise(INTERNAL));                                        
+    CapturedTrace.setBounds(async.firstLineError, util.lastLineError);       
+    return Promise;                                                          
+
+};
+
+},{"./any.js":1,"./async.js":2,"./bind.js":3,"./call_get.js":5,"./cancel.js":6,"./captured_trace.js":7,"./catch_filter.js":8,"./context.js":9,"./debuggability.js":10,"./direct_resolve.js":11,"./each.js":12,"./errors.js":13,"./filter.js":15,"./finally.js":16,"./generators.js":17,"./join.js":18,"./map.js":19,"./method.js":20,"./nodeify.js":21,"./progress.js":22,"./promise_array.js":24,"./promise_resolver.js":25,"./promisify.js":26,"./props.js":27,"./race.js":29,"./reduce.js":30,"./settle.js":32,"./some.js":33,"./synchronous_inspection.js":34,"./thenables.js":35,"./timers.js":36,"./using.js":37,"./util.js":38}],24:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function(Promise, INTERNAL, tryConvertToPromise,
+    apiRejection) {
+var util = _dereq_("./util.js");
+var isArray = util.isArray;
+
+function toResolutionValue(val) {
+    switch(val) {
+    case -2: return [];
+    case -3: return {};
+    }
+}
+
+function PromiseArray(values) {
+    var promise = this._promise = new Promise(INTERNAL);
+    var parent;
+    if (values instanceof Promise) {
+        parent = values;
+        promise._propagateFrom(parent, 1 | 4);
+    }
+    this._values = values;
+    this._length = 0;
+    this._totalResolved = 0;
+    this._init(undefined, -2);
+}
+PromiseArray.prototype.length = function () {
+    return this._length;
+};
+
+PromiseArray.prototype.promise = function () {
+    return this._promise;
+};
+
+PromiseArray.prototype._init = function init(_, resolveValueIfEmpty) {
+    var values = tryConvertToPromise(this._values, this._promise);
+    if (values instanceof Promise) {
+        values = values._target();
+        this._values = values;
+        if (values._isFulfilled()) {
+            values = values._value();
+            if (!isArray(values)) {
+                var err = new Promise.TypeError("expecting an array, a promise or a thenable\u000a\u000a    See http://goo.gl/s8MMhc\u000a");
+                this.__hardReject__(err);
+                return;
+            }
+        } else if (values._isPending()) {
+            values._then(
+                init,
+                this._reject,
+                undefined,
+                this,
+                resolveValueIfEmpty
+           );
+            return;
+        } else {
+            this._reject(values._reason());
+            return;
+        }
+    } else if (!isArray(values)) {
+        this._promise._reject(apiRejection("expecting an array, a promise or a thenable\u000a\u000a    See http://goo.gl/s8MMhc\u000a")._reason());
+        return;
+    }
+
+    if (values.length === 0) {
+        if (resolveValueIfEmpty === -5) {
+            this._resolveEmptyArray();
+        }
+        else {
+            this._resolve(toResolutionValue(resolveValueIfEmpty));
+        }
+        return;
+    }
+    var len = this.getActualLength(values.length);
+    this._length = len;
+    this._values = this.shouldCopyValues() ? new Array(len) : this._values;
+    var promise = this._promise;
+    for (var i = 0; i < len; ++i) {
+        var isResolved = this._isResolved();
+        var maybePromise = tryConvertToPromise(values[i], promise);
+        if (maybePromise instanceof Promise) {
+            maybePromise = maybePromise._target();
+            if (isResolved) {
+                maybePromise._unsetRejectionIsUnhandled();
+            } else if (maybePromise._isPending()) {
+                maybePromise._proxyPromiseArray(this, i);
+            } else if (maybePromise._isFulfilled()) {
+                this._promiseFulfilled(maybePromise._value(), i);
+            } else {
+                this._promiseRejected(maybePromise._reason(), i);
+            }
+        } else if (!isResolved) {
+            this._promiseFulfilled(maybePromise, i);
+        }
+    }
+};
+
+PromiseArray.prototype._isResolved = function () {
+    return this._values === null;
+};
+
+PromiseArray.prototype._resolve = function (value) {
+    this._values = null;
+    this._promise._fulfill(value);
+};
+
+PromiseArray.prototype.__hardReject__ =
+PromiseArray.prototype._reject = function (reason) {
+    this._values = null;
+    this._promise._rejectCallback(reason, false, true);
+};
+
+PromiseArray.prototype._promiseProgressed = function (progressValue, index) {
+    this._promise._progress({
+        index: index,
+        value: progressValue
+    });
+};
+
+
+PromiseArray.prototype._promiseFulfilled = function (value, index) {
+    this._values[index] = value;
+    var totalResolved = ++this._totalResolved;
+    if (totalResolved >= this._length) {
+        this._resolve(this._values);
+    }
+};
+
+PromiseArray.prototype._promiseRejected = function (reason, index) {
+    this._totalResolved++;
+    this._reject(reason);
+};
+
+PromiseArray.prototype.shouldCopyValues = function () {
+    return true;
+};
+
+PromiseArray.prototype.getActualLength = function (len) {
+    return len;
+};
+
+return PromiseArray;
+};
+
+},{"./util.js":38}],25:[function(_dereq_,module,exports){
+"use strict";
+var util = _dereq_("./util.js");
+var maybeWrapAsError = util.maybeWrapAsError;
+var errors = _dereq_("./errors.js");
+var TimeoutError = errors.TimeoutError;
+var OperationalError = errors.OperationalError;
+var haveGetters = util.haveGetters;
+var es5 = _dereq_("./es5.js");
+
+function isUntypedError(obj) {
+    return obj instanceof Error &&
+        es5.getPrototypeOf(obj) === Error.prototype;
+}
+
+var rErrorKey = /^(?:name|message|stack|cause)$/;
+function wrapAsOperationalError(obj) {
+    var ret;
+    if (isUntypedError(obj)) {
+        ret = new OperationalError(obj);
+        ret.name = obj.name;
+        ret.message = obj.message;
+        ret.stack = obj.stack;
+        var keys = es5.keys(obj);
+        for (var i = 0; i < keys.length; ++i) {
+            var key = keys[i];
+            if (!rErrorKey.test(key)) {
+                ret[key] = obj[key];
+            }
+        }
+        return ret;
+    }
+    util.markAsOriginatingFromRejection(obj);
+    return obj;
+}
+
+function nodebackForPromise(promise) {
+    return function(err, value) {
+        if (promise === null) return;
+
+        if (err) {
+            var wrapped = wrapAsOperationalError(maybeWrapAsError(err));
+            promise._attachExtraTrace(wrapped);
+            promise._reject(wrapped);
+        } else if (arguments.length > 2) {
+            var $_len = arguments.length;var args = new Array($_len - 1); for(var $_i = 1; $_i < $_len; ++$_i) {args[$_i - 1] = arguments[$_i];}
+            promise._fulfill(args);
+        } else {
+            promise._fulfill(value);
+        }
+
+        promise = null;
+    };
+}
+
+
+var PromiseResolver;
+if (!haveGetters) {
+    PromiseResolver = function (promise) {
+        this.promise = promise;
+        this.asCallback = nodebackForPromise(promise);
+        this.callback = this.asCallback;
+    };
+}
+else {
+    PromiseResolver = function (promise) {
+        this.promise = promise;
+    };
+}
+if (haveGetters) {
+    var prop = {
+        get: function() {
+            return nodebackForPromise(this.promise);
+        }
+    };
+    es5.defineProperty(PromiseResolver.prototype, "asCallback", prop);
+    es5.defineProperty(PromiseResolver.prototype, "callback", prop);
+}
+
+PromiseResolver._nodebackForPromise = nodebackForPromise;
+
+PromiseResolver.prototype.toString = function () {
+    return "[object PromiseResolver]";
+};
+
+PromiseResolver.prototype.resolve =
+PromiseResolver.prototype.fulfill = function (value) {
+    if (!(this instanceof PromiseResolver)) {
+        throw new TypeError("Illegal invocation, resolver resolve/reject must be called within a resolver context. Consider using the promise constructor instead.\u000a\u000a    See http://goo.gl/sdkXL9\u000a");
+    }
+    this.promise._resolveCallback(value);
+};
+
+PromiseResolver.prototype.reject = function (reason) {
+    if (!(this instanceof PromiseResolver)) {
+        throw new TypeError("Illegal invocation, resolver resolve/reject must be called within a resolver context. Consider using the promise constructor instead.\u000a\u000a    See http://goo.gl/sdkXL9\u000a");
+    }
+    this.promise._rejectCallback(reason);
+};
+
+PromiseResolver.prototype.progress = function (value) {
+    if (!(this instanceof PromiseResolver)) {
+        throw new TypeError("Illegal invocation, resolver resolve/reject must be called within a resolver context. Consider using the promise constructor instead.\u000a\u000a    See http://goo.gl/sdkXL9\u000a");
+    }
+    this.promise._progress(value);
+};
+
+PromiseResolver.prototype.cancel = function (err) {
+    this.promise.cancel(err);
+};
+
+PromiseResolver.prototype.timeout = function () {
+    this.reject(new TimeoutError("timeout"));
+};
+
+PromiseResolver.prototype.isResolved = function () {
+    return this.promise.isResolved();
+};
+
+PromiseResolver.prototype.toJSON = function () {
+    return this.promise.toJSON();
+};
+
+module.exports = PromiseResolver;
+
+},{"./errors.js":13,"./es5.js":14,"./util.js":38}],26:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function(Promise, INTERNAL) {
+var THIS = {};
+var util = _dereq_("./util.js");
+var nodebackForPromise = _dereq_("./promise_resolver.js")
+    ._nodebackForPromise;
+var withAppended = util.withAppended;
+var maybeWrapAsError = util.maybeWrapAsError;
+var canEvaluate = util.canEvaluate;
+var TypeError = _dereq_("./errors").TypeError;
+var defaultSuffix = "Async";
+var defaultPromisified = {__isPromisified__: true};
+var noCopyPropsPattern =
+    /^(?:length|name|arguments|caller|callee|prototype|__isPromisified__)$/;
+var defaultFilter = function(name, func) {
+    return util.isIdentifier(name) &&
+        name.charAt(0) !== "_" &&
+        !util.isClass(func);
+};
+
+function propsFilter(key) {
+    return !noCopyPropsPattern.test(key);
+}
+
+function isPromisified(fn) {
+    try {
+        return fn.__isPromisified__ === true;
+    }
+    catch (e) {
+        return false;
+    }
+}
+
+function hasPromisified(obj, key, suffix) {
+    var val = util.getDataPropertyOrDefault(obj, key + suffix,
+                                            defaultPromisified);
+    return val ? isPromisified(val) : false;
+}
+function checkValid(ret, suffix, suffixRegexp) {
+    for (var i = 0; i < ret.length; i += 2) {
+        var key = ret[i];
+        if (suffixRegexp.test(key)) {
+            var keyWithoutAsyncSuffix = key.replace(suffixRegexp, "");
+            for (var j = 0; j < ret.length; j += 2) {
+                if (ret[j] === keyWithoutAsyncSuffix) {
+                    throw new TypeError("Cannot promisify an API that has normal methods with '%s'-suffix\u000a\u000a    See http://goo.gl/iWrZbw\u000a"
+                        .replace("%s", suffix));
+                }
+            }
+        }
+    }
+}
+
+function promisifiableMethods(obj, suffix, suffixRegexp, filter) {
+    var keys = util.inheritedDataKeys(obj);
+    var ret = [];
+    for (var i = 0; i < keys.length; ++i) {
+        var key = keys[i];
+        var value = obj[key];
+        var passesDefaultFilter = filter === defaultFilter
+            ? true : defaultFilter(key, value, obj);
+        if (typeof value === "function" &&
+            !isPromisified(value) &&
+            !hasPromisified(obj, key, suffix) &&
+            filter(key, value, obj, passesDefaultFilter)) {
+            ret.push(key, value);
+        }
+    }
+    checkValid(ret, suffix, suffixRegexp);
+    return ret;
+}
+
+var escapeIdentRegex = function(str) {
+    return str.replace(/([$])/, "\\$");
+};
+
+var makeNodePromisifiedEval;
+if (!true) {
+var switchCaseArgumentOrder = function(likelyArgumentCount) {
+    var ret = [likelyArgumentCount];
+    var min = Math.max(0, likelyArgumentCount - 1 - 3);
+    for(var i = likelyArgumentCount - 1; i >= min; --i) {
+        ret.push(i);
+    }
+    for(var i = likelyArgumentCount + 1; i <= 3; ++i) {
+        ret.push(i);
+    }
+    return ret;
+};
+
+var argumentSequence = function(argumentCount) {
+    return util.filledRange(argumentCount, "_arg", "");
+};
+
+var parameterDeclaration = function(parameterCount) {
+    return util.filledRange(
+        Math.max(parameterCount, 3), "_arg", "");
+};
+
+var parameterCount = function(fn) {
+    if (typeof fn.length === "number") {
+        return Math.max(Math.min(fn.length, 1023 + 1), 0);
+    }
+    return 0;
+};
+
+makeNodePromisifiedEval =
+function(callback, receiver, originalName, fn) {
+    var newParameterCount = Math.max(0, parameterCount(fn) - 1);
+    var argumentOrder = switchCaseArgumentOrder(newParameterCount);
+    var shouldProxyThis = typeof callback === "string" || receiver === THIS;
+
+    function generateCallForArgumentCount(count) {
+        var args = argumentSequence(count).join(", ");
+        var comma = count > 0 ? ", " : "";
+        var ret;
+        if (shouldProxyThis) {
+            ret = "ret = callback.call(this, {{args}}, nodeback); break;\n";
+        } else {
+            ret = receiver === undefined
+                ? "ret = callback({{args}}, nodeback); break;\n"
+                : "ret = callback.call(receiver, {{args}}, nodeback); break;\n";
+        }
+        return ret.replace("{{args}}", args).replace(", ", comma);
+    }
+
+    function generateArgumentSwitchCase() {
+        var ret = "";
+        for (var i = 0; i < argumentOrder.length; ++i) {
+            ret += "case " + argumentOrder[i] +":" +
+                generateCallForArgumentCount(argumentOrder[i]);
+        }
+
+        ret += "                                                             \n\
+        default:                                                             \n\
+            var args = new Array(len + 1);                                   \n\
+            var i = 0;                                                       \n\
+            for (var i = 0; i < len; ++i) {                                  \n\
+               args[i] = arguments[i];                                       \n\
+            }                                                                \n\
+            args[i] = nodeback;                                              \n\
+            [CodeForCall]                                                    \n\
+            break;                                                           \n\
+        ".replace("[CodeForCall]", (shouldProxyThis
+                                ? "ret = callback.apply(this, args);\n"
+                                : "ret = callback.apply(receiver, args);\n"));
+        return ret;
+    }
+
+    var getFunctionCode = typeof callback === "string"
+                                ? ("this != null ? this['"+callback+"'] : fn")
+                                : "fn";
+
+    return new Function("Promise",
+                        "fn",
+                        "receiver",
+                        "withAppended",
+                        "maybeWrapAsError",
+                        "nodebackForPromise",
+                        "tryCatch",
+                        "errorObj",
+                        "INTERNAL","'use strict';                            \n\
+        var ret = function (Parameters) {                                    \n\
+            'use strict';                                                    \n\
+            var len = arguments.length;                                      \n\
+            var promise = new Promise(INTERNAL);                             \n\
+            promise._captureStackTrace();                                    \n\
+            var nodeback = nodebackForPromise(promise);                      \n\
+            var ret;                                                         \n\
+            var callback = tryCatch([GetFunctionCode]);                      \n\
+            switch(len) {                                                    \n\
+                [CodeForSwitchCase]                                          \n\
+            }                                                                \n\
+            if (ret === errorObj) {                                          \n\
+                promise._rejectCallback(maybeWrapAsError(ret.e), true, true);\n\
+            }                                                                \n\
+            return promise;                                                  \n\
+        };                                                                   \n\
+        ret.__isPromisified__ = true;                                        \n\
+        return ret;                                                          \n\
+        "
+        .replace("Parameters", parameterDeclaration(newParameterCount))
+        .replace("[CodeForSwitchCase]", generateArgumentSwitchCase())
+        .replace("[GetFunctionCode]", getFunctionCode))(
+            Promise,
+            fn,
+            receiver,
+            withAppended,
+            maybeWrapAsError,
+            nodebackForPromise,
+            util.tryCatch,
+            util.errorObj,
+            INTERNAL
+        );
+};
+}
+
+function makeNodePromisifiedClosure(callback, receiver, _, fn) {
+    var defaultThis = (function() {return this;})();
+    var method = callback;
+    if (typeof method === "string") {
+        callback = fn;
+    }
+    function promisified() {
+        var _receiver = receiver;
+        if (receiver === THIS) _receiver = this;
+        var promise = new Promise(INTERNAL);
+        promise._captureStackTrace();
+        var cb = typeof method === "string" && this !== defaultThis
+            ? this[method] : callback;
+        var fn = nodebackForPromise(promise);
+        try {
+            cb.apply(_receiver, withAppended(arguments, fn));
+        } catch(e) {
+            promise._rejectCallback(maybeWrapAsError(e), true, true);
+        }
+        return promise;
+    }
+    promisified.__isPromisified__ = true;
+    return promisified;
+}
+
+var makeNodePromisified = canEvaluate
+    ? makeNodePromisifiedEval
+    : makeNodePromisifiedClosure;
+
+function promisifyAll(obj, suffix, filter, promisifier) {
+    var suffixRegexp = new RegExp(escapeIdentRegex(suffix) + "$");
+    var methods =
+        promisifiableMethods(obj, suffix, suffixRegexp, filter);
+
+    for (var i = 0, len = methods.length; i < len; i+= 2) {
+        var key = methods[i];
+        var fn = methods[i+1];
+        var promisifiedKey = key + suffix;
+        obj[promisifiedKey] = promisifier === makeNodePromisified
+                ? makeNodePromisified(key, THIS, key, fn, suffix)
+                : promisifier(fn, function() {
+                    return makeNodePromisified(key, THIS, key, fn, suffix);
+                });
+    }
+    util.toFastProperties(obj);
+    return obj;
+}
+
+function promisify(callback, receiver) {
+    return makeNodePromisified(callback, receiver, undefined, callback);
+}
+
+Promise.promisify = function (fn, receiver) {
+    if (typeof fn !== "function") {
+        throw new TypeError("fn must be a function\u000a\u000a    See http://goo.gl/916lJJ\u000a");
+    }
+    if (isPromisified(fn)) {
+        return fn;
+    }
+    var ret = promisify(fn, arguments.length < 2 ? THIS : receiver);
+    util.copyDescriptors(fn, ret, propsFilter);
+    return ret;
+};
+
+Promise.promisifyAll = function (target, options) {
+    if (typeof target !== "function" && typeof target !== "object") {
+        throw new TypeError("the target of promisifyAll must be an object or a function\u000a\u000a    See http://goo.gl/9ITlV0\u000a");
+    }
+    options = Object(options);
+    var suffix = options.suffix;
+    if (typeof suffix !== "string") suffix = defaultSuffix;
+    var filter = options.filter;
+    if (typeof filter !== "function") filter = defaultFilter;
+    var promisifier = options.promisifier;
+    if (typeof promisifier !== "function") promisifier = makeNodePromisified;
+
+    if (!util.isIdentifier(suffix)) {
+        throw new RangeError("suffix must be a valid identifier\u000a\u000a    See http://goo.gl/8FZo5V\u000a");
+    }
+
+    var keys = util.inheritedDataKeys(target);
+    for (var i = 0; i < keys.length; ++i) {
+        var value = target[keys[i]];
+        if (keys[i] !== "constructor" &&
+            util.isClass(value)) {
+            promisifyAll(value.prototype, suffix, filter, promisifier);
+            promisifyAll(value, suffix, filter, promisifier);
+        }
+    }
+
+    return promisifyAll(target, suffix, filter, promisifier);
+};
+};
+
+
+},{"./errors":13,"./promise_resolver.js":25,"./util.js":38}],27:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function(
+    Promise, PromiseArray, tryConvertToPromise, apiRejection) {
+var util = _dereq_("./util.js");
+var isObject = util.isObject;
+var es5 = _dereq_("./es5.js");
+
+function PropertiesPromiseArray(obj) {
+    var keys = es5.keys(obj);
+    var len = keys.length;
+    var values = new Array(len * 2);
+    for (var i = 0; i < len; ++i) {
+        var key = keys[i];
+        values[i] = obj[key];
+        values[i + len] = key;
+    }
+    this.constructor$(values);
+}
+util.inherits(PropertiesPromiseArray, PromiseArray);
+
+PropertiesPromiseArray.prototype._init = function () {
+    this._init$(undefined, -3) ;
+};
+
+PropertiesPromiseArray.prototype._promiseFulfilled = function (value, index) {
+    this._values[index] = value;
+    var totalResolved = ++this._totalResolved;
+    if (totalResolved >= this._length) {
+        var val = {};
+        var keyOffset = this.length();
+        for (var i = 0, len = this.length(); i < len; ++i) {
+            val[this._values[i + keyOffset]] = this._values[i];
+        }
+        this._resolve(val);
+    }
+};
+
+PropertiesPromiseArray.prototype._promiseProgressed = function (value, index) {
+    this._promise._progress({
+        key: this._values[index + this.length()],
+        value: value
+    });
+};
+
+PropertiesPromiseArray.prototype.shouldCopyValues = function () {
+    return false;
+};
+
+PropertiesPromiseArray.prototype.getActualLength = function (len) {
+    return len >> 1;
+};
+
+function props(promises) {
+    var ret;
+    var castValue = tryConvertToPromise(promises);
+
+    if (!isObject(castValue)) {
+        return apiRejection("cannot await properties of a non-object\u000a\u000a    See http://goo.gl/OsFKC8\u000a");
+    } else if (castValue instanceof Promise) {
+        ret = castValue._then(
+            Promise.props, undefined, undefined, undefined, undefined);
+    } else {
+        ret = new PropertiesPromiseArray(castValue).promise();
+    }
+
+    if (castValue instanceof Promise) {
+        ret._propagateFrom(castValue, 4);
+    }
+    return ret;
+}
+
+Promise.prototype.props = function () {
+    return props(this);
+};
+
+Promise.props = function (promises) {
+    return props(promises);
+};
+};
+
+},{"./es5.js":14,"./util.js":38}],28:[function(_dereq_,module,exports){
+"use strict";
+function arrayMove(src, srcIndex, dst, dstIndex, len) {
+    for (var j = 0; j < len; ++j) {
+        dst[j + dstIndex] = src[j + srcIndex];
+        src[j + srcIndex] = void 0;
+    }
+}
+
+function Queue(capacity) {
+    this._capacity = capacity;
+    this._length = 0;
+    this._front = 0;
+}
+
+Queue.prototype._willBeOverCapacity = function (size) {
+    return this._capacity < size;
+};
+
+Queue.prototype._pushOne = function (arg) {
+    var length = this.length();
+    this._checkCapacity(length + 1);
+    var i = (this._front + length) & (this._capacity - 1);
+    this[i] = arg;
+    this._length = length + 1;
+};
+
+Queue.prototype._unshiftOne = function(value) {
+    var capacity = this._capacity;
+    this._checkCapacity(this.length() + 1);
+    var front = this._front;
+    var i = (((( front - 1 ) &
+                    ( capacity - 1) ) ^ capacity ) - capacity );
+    this[i] = value;
+    this._front = i;
+    this._length = this.length() + 1;
+};
+
+Queue.prototype.unshift = function(fn, receiver, arg) {
+    this._unshiftOne(arg);
+    this._unshiftOne(receiver);
+    this._unshiftOne(fn);
+};
+
+Queue.prototype.push = function (fn, receiver, arg) {
+    var length = this.length() + 3;
+    if (this._willBeOverCapacity(length)) {
+        this._pushOne(fn);
+        this._pushOne(receiver);
+        this._pushOne(arg);
+        return;
+    }
+    var j = this._front + length - 3;
+    this._checkCapacity(length);
+    var wrapMask = this._capacity - 1;
+    this[(j + 0) & wrapMask] = fn;
+    this[(j + 1) & wrapMask] = receiver;
+    this[(j + 2) & wrapMask] = arg;
+    this._length = length;
+};
+
+Queue.prototype.shift = function () {
+    var front = this._front,
+        ret = this[front];
+
+    this[front] = undefined;
+    this._front = (front + 1) & (this._capacity - 1);
+    this._length--;
+    return ret;
+};
+
+Queue.prototype.length = function () {
+    return this._length;
+};
+
+Queue.prototype._checkCapacity = function (size) {
+    if (this._capacity < size) {
+        this._resizeTo(this._capacity << 1);
+    }
+};
+
+Queue.prototype._resizeTo = function (capacity) {
+    var oldCapacity = this._capacity;
+    this._capacity = capacity;
+    var front = this._front;
+    var length = this._length;
+    var moveItemsCount = (front + length) & (oldCapacity - 1);
+    arrayMove(this, 0, this, oldCapacity, moveItemsCount);
+};
+
+module.exports = Queue;
+
+},{}],29:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function(
+    Promise, INTERNAL, tryConvertToPromise, apiRejection) {
+var isArray = _dereq_("./util.js").isArray;
+
+var raceLater = function (promise) {
+    return promise.then(function(array) {
+        return race(array, promise);
+    });
+};
+
+function race(promises, parent) {
+    var maybePromise = tryConvertToPromise(promises);
+
+    if (maybePromise instanceof Promise) {
+        return raceLater(maybePromise);
+    } else if (!isArray(promises)) {
+        return apiRejection("expecting an array, a promise or a thenable\u000a\u000a    See http://goo.gl/s8MMhc\u000a");
+    }
+
+    var ret = new Promise(INTERNAL);
+    if (parent !== undefined) {
+        ret._propagateFrom(parent, 4 | 1);
+    }
+    var fulfill = ret._fulfill;
+    var reject = ret._reject;
+    for (var i = 0, len = promises.length; i < len; ++i) {
+        var val = promises[i];
+
+        if (val === undefined && !(i in promises)) {
+            continue;
+        }
+
+        Promise.cast(val)._then(fulfill, reject, undefined, ret, null);
+    }
+    return ret;
+}
+
+Promise.race = function (promises) {
+    return race(promises, undefined);
+};
+
+Promise.prototype.race = function () {
+    return race(this, undefined);
+};
+
+};
+
+},{"./util.js":38}],30:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function(Promise,
+                          PromiseArray,
+                          apiRejection,
+                          tryConvertToPromise,
+                          INTERNAL) {
+var async = _dereq_("./async.js");
+var util = _dereq_("./util.js");
+var tryCatch = util.tryCatch;
+var errorObj = util.errorObj;
+function ReductionPromiseArray(promises, fn, accum, _each) {
+    this.constructor$(promises);
+    this._promise._captureStackTrace();
+    this._preservedValues = _each === INTERNAL ? [] : null;
+    this._zerothIsAccum = (accum === undefined);
+    this._gotAccum = false;
+    this._reducingIndex = (this._zerothIsAccum ? 1 : 0);
+    this._valuesPhase = undefined;
+    var maybePromise = tryConvertToPromise(accum, this._promise);
+    var rejected = false;
+    var isPromise = maybePromise instanceof Promise;
+    if (isPromise) {
+        maybePromise = maybePromise._target();
+        if (maybePromise._isPending()) {
+            maybePromise._proxyPromiseArray(this, -1);
+        } else if (maybePromise._isFulfilled()) {
+            accum = maybePromise._value();
+            this._gotAccum = true;
+        } else {
+            this._reject(maybePromise._reason());
+            rejected = true;
+        }
+    }
+    if (!(isPromise || this._zerothIsAccum)) this._gotAccum = true;
+    this._callback = fn;
+    this._accum = accum;
+    if (!rejected) async.invoke(init, this, undefined);
+}
+function init() {
+    this._init$(undefined, -5);
+}
+util.inherits(ReductionPromiseArray, PromiseArray);
+
+ReductionPromiseArray.prototype._init = function () {};
+
+ReductionPromiseArray.prototype._resolveEmptyArray = function () {
+    if (this._gotAccum || this._zerothIsAccum) {
+        this._resolve(this._preservedValues !== null
+                        ? [] : this._accum);
+    }
+};
+
+ReductionPromiseArray.prototype._promiseFulfilled = function (value, index) {
+    var values = this._values;
+    values[index] = value;
+    var length = this.length();
+    var preservedValues = this._preservedValues;
+    var isEach = preservedValues !== null;
+    var gotAccum = this._gotAccum;
+    var valuesPhase = this._valuesPhase;
+    var valuesPhaseIndex;
+    if (!valuesPhase) {
+        valuesPhase = this._valuesPhase = new Array(length);
+        for (valuesPhaseIndex=0; valuesPhaseIndex<length; ++valuesPhaseIndex) {
+            valuesPhase[valuesPhaseIndex] = 0;
+        }
+    }
+    valuesPhaseIndex = valuesPhase[index];
+
+    if (index === 0 && this._zerothIsAccum) {
+        this._accum = value;
+        this._gotAccum = gotAccum = true;
+        valuesPhase[index] = ((valuesPhaseIndex === 0)
+            ? 1 : 2);
+    } else if (index === -1) {
+        this._accum = value;
+        this._gotAccum = gotAccum = true;
+    } else {
+        if (valuesPhaseIndex === 0) {
+            valuesPhase[index] = 1;
+        } else {
+            valuesPhase[index] = 2;
+            this._accum = value;
+        }
+    }
+    if (!gotAccum) return;
+
+    var callback = this._callback;
+    var receiver = this._promise._boundTo;
+    var ret;
+
+    for (var i = this._reducingIndex; i < length; ++i) {
+        valuesPhaseIndex = valuesPhase[i];
+        if (valuesPhaseIndex === 2) {
+            this._reducingIndex = i + 1;
+            continue;
+        }
+        if (valuesPhaseIndex !== 1) return;
+        value = values[i];
+        this._promise._pushContext();
+        if (isEach) {
+            preservedValues.push(value);
+            ret = tryCatch(callback).call(receiver, value, i, length);
+        }
+        else {
+            ret = tryCatch(callback)
+                .call(receiver, this._accum, value, i, length);
+        }
+        this._promise._popContext();
+
+        if (ret === errorObj) return this._reject(ret.e);
+
+        var maybePromise = tryConvertToPromise(ret, this._promise);
+        if (maybePromise instanceof Promise) {
+            maybePromise = maybePromise._target();
+            if (maybePromise._isPending()) {
+                valuesPhase[i] = 4;
+                return maybePromise._proxyPromiseArray(this, i);
+            } else if (maybePromise._isFulfilled()) {
+                ret = maybePromise._value();
+            } else {
+                return this._reject(maybePromise._reason());
+            }
+        }
+
+        this._reducingIndex = i + 1;
+        this._accum = ret;
+    }
+
+    this._resolve(isEach ? preservedValues : this._accum);
+};
+
+function reduce(promises, fn, initialValue, _each) {
+    if (typeof fn !== "function") return apiRejection("fn must be a function\u000a\u000a    See http://goo.gl/916lJJ\u000a");
+    var array = new ReductionPromiseArray(promises, fn, initialValue, _each);
+    return array.promise();
+}
+
+Promise.prototype.reduce = function (fn, initialValue) {
+    return reduce(this, fn, initialValue, null);
+};
+
+Promise.reduce = function (promises, fn, initialValue, _each) {
+    return reduce(promises, fn, initialValue, _each);
+};
+};
+
+},{"./async.js":2,"./util.js":38}],31:[function(_dereq_,module,exports){
+"use strict";
+var schedule;
+var noAsyncScheduler = function() {
+    throw new Error("No async scheduler available\u000a\u000a    See http://goo.gl/m3OTXk\u000a");
+};
+if (_dereq_("./util.js").isNode) {
+    var version = process.versions.node.split(".").map(Number);
+    schedule = (version[0] === 0 && version[1] > 10) || (version[0] > 0)
+        ? global.setImmediate : process.nextTick;
+
+    if (!schedule) {
+        if (typeof setImmediate !== "undefined") {
+            schedule = setImmediate;
+        } else if (typeof setTimeout !== "undefined") {
+            schedule = setTimeout;
+        } else {
+            schedule = noAsyncScheduler;
+        }
+    }
+} else if (typeof MutationObserver !== "undefined") {
+    schedule = function(fn) {
+        var div = document.createElement("div");
+        var observer = new MutationObserver(fn);
+        observer.observe(div, {attributes: true});
+        return function() { div.classList.toggle("foo"); };
+    };
+    schedule.isStatic = true;
+} else if (typeof setImmediate !== "undefined") {
+    schedule = function (fn) {
+        setImmediate(fn);
+    };
+} else if (typeof setTimeout !== "undefined") {
+    schedule = function (fn) {
+        setTimeout(fn, 0);
+    };
+} else {
+    schedule = noAsyncScheduler;
+}
+module.exports = schedule;
+
+},{"./util.js":38}],32:[function(_dereq_,module,exports){
+"use strict";
+module.exports =
+    function(Promise, PromiseArray) {
+var PromiseInspection = Promise.PromiseInspection;
+var util = _dereq_("./util.js");
+
+function SettledPromiseArray(values) {
+    this.constructor$(values);
+}
+util.inherits(SettledPromiseArray, PromiseArray);
+
+SettledPromiseArray.prototype._promiseResolved = function (index, inspection) {
+    this._values[index] = inspection;
+    var totalResolved = ++this._totalResolved;
+    if (totalResolved >= this._length) {
+        this._resolve(this._values);
+    }
+};
+
+SettledPromiseArray.prototype._promiseFulfilled = function (value, index) {
+    var ret = new PromiseInspection();
+    ret._bitField = 268435456;
+    ret._settledValue = value;
+    this._promiseResolved(index, ret);
+};
+SettledPromiseArray.prototype._promiseRejected = function (reason, index) {
+    var ret = new PromiseInspection();
+    ret._bitField = 134217728;
+    ret._settledValue = reason;
+    this._promiseResolved(index, ret);
+};
+
+Promise.settle = function (promises) {
+    return new SettledPromiseArray(promises).promise();
+};
+
+Promise.prototype.settle = function () {
+    return new SettledPromiseArray(this).promise();
+};
+};
+
+},{"./util.js":38}],33:[function(_dereq_,module,exports){
+"use strict";
+module.exports =
+function(Promise, PromiseArray, apiRejection) {
+var util = _dereq_("./util.js");
+var RangeError = _dereq_("./errors.js").RangeError;
+var AggregateError = _dereq_("./errors.js").AggregateError;
+var isArray = util.isArray;
+
+
+function SomePromiseArray(values) {
+    this.constructor$(values);
+    this._howMany = 0;
+    this._unwrap = false;
+    this._initialized = false;
+}
+util.inherits(SomePromiseArray, PromiseArray);
+
+SomePromiseArray.prototype._init = function () {
+    if (!this._initialized) {
+        return;
+    }
+    if (this._howMany === 0) {
+        this._resolve([]);
+        return;
+    }
+    this._init$(undefined, -5);
+    var isArrayResolved = isArray(this._values);
+    if (!this._isResolved() &&
+        isArrayResolved &&
+        this._howMany > this._canPossiblyFulfill()) {
+        this._reject(this._getRangeError(this.length()));
+    }
+};
+
+SomePromiseArray.prototype.init = function () {
+    this._initialized = true;
+    this._init();
+};
+
+SomePromiseArray.prototype.setUnwrap = function () {
+    this._unwrap = true;
+};
+
+SomePromiseArray.prototype.howMany = function () {
+    return this._howMany;
+};
+
+SomePromiseArray.prototype.setHowMany = function (count) {
+    this._howMany = count;
+};
+
+SomePromiseArray.prototype._promiseFulfilled = function (value) {
+    this._addFulfilled(value);
+    if (this._fulfilled() === this.howMany()) {
+        this._values.length = this.howMany();
+        if (this.howMany() === 1 && this._unwrap) {
+            this._resolve(this._values[0]);
+        } else {
+            this._resolve(this._values);
+        }
+    }
+
+};
+SomePromiseArray.prototype._promiseRejected = function (reason) {
+    this._addRejected(reason);
+    if (this.howMany() > this._canPossiblyFulfill()) {
+        var e = new AggregateError();
+        for (var i = this.length(); i < this._values.length; ++i) {
+            e.push(this._values[i]);
+        }
+        this._reject(e);
+    }
+};
+
+SomePromiseArray.prototype._fulfilled = function () {
+    return this._totalResolved;
+};
+
+SomePromiseArray.prototype._rejected = function () {
+    return this._values.length - this.length();
+};
+
+SomePromiseArray.prototype._addRejected = function (reason) {
+    this._values.push(reason);
+};
+
+SomePromiseArray.prototype._addFulfilled = function (value) {
+    this._values[this._totalResolved++] = value;
+};
+
+SomePromiseArray.prototype._canPossiblyFulfill = function () {
+    return this.length() - this._rejected();
+};
+
+SomePromiseArray.prototype._getRangeError = function (count) {
+    var message = "Input array must contain at least " +
+            this._howMany + " items but contains only " + count + " items";
+    return new RangeError(message);
+};
+
+SomePromiseArray.prototype._resolveEmptyArray = function () {
+    this._reject(this._getRangeError(0));
+};
+
+function some(promises, howMany) {
+    if ((howMany | 0) !== howMany || howMany < 0) {
+        return apiRejection("expecting a positive integer\u000a\u000a    See http://goo.gl/1wAmHx\u000a");
+    }
+    var ret = new SomePromiseArray(promises);
+    var promise = ret.promise();
+    ret.setHowMany(howMany);
+    ret.init();
+    return promise;
+}
+
+Promise.some = function (promises, howMany) {
+    return some(promises, howMany);
+};
+
+Promise.prototype.some = function (howMany) {
+    return some(this, howMany);
+};
+
+Promise._SomePromiseArray = SomePromiseArray;
+};
+
+},{"./errors.js":13,"./util.js":38}],34:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function(Promise) {
+function PromiseInspection(promise) {
+    if (promise !== undefined) {
+        promise = promise._target();
+        this._bitField = promise._bitField;
+        this._settledValue = promise._settledValue;
+    }
+    else {
+        this._bitField = 0;
+        this._settledValue = undefined;
+    }
+}
+
+PromiseInspection.prototype.value = function () {
+    if (!this.isFulfilled()) {
+        throw new TypeError("cannot get fulfillment value of a non-fulfilled promise\u000a\u000a    See http://goo.gl/hc1DLj\u000a");
+    }
+    return this._settledValue;
+};
+
+PromiseInspection.prototype.error =
+PromiseInspection.prototype.reason = function () {
+    if (!this.isRejected()) {
+        throw new TypeError("cannot get rejection reason of a non-rejected promise\u000a\u000a    See http://goo.gl/hPuiwB\u000a");
+    }
+    return this._settledValue;
+};
+
+PromiseInspection.prototype.isFulfilled =
+Promise.prototype._isFulfilled = function () {
+    return (this._bitField & 268435456) > 0;
+};
+
+PromiseInspection.prototype.isRejected =
+Promise.prototype._isRejected = function () {
+    return (this._bitField & 134217728) > 0;
+};
+
+PromiseInspection.prototype.isPending =
+Promise.prototype._isPending = function () {
+    return (this._bitField & 402653184) === 0;
+};
+
+PromiseInspection.prototype.isResolved =
+Promise.prototype._isResolved = function () {
+    return (this._bitField & 402653184) > 0;
+};
+
+Promise.prototype.isPending = function() {
+    return this._target()._isPending();
+};
+
+Promise.prototype.isRejected = function() {
+    return this._target()._isRejected();
+};
+
+Promise.prototype.isFulfilled = function() {
+    return this._target()._isFulfilled();
+};
+
+Promise.prototype.isResolved = function() {
+    return this._target()._isResolved();
+};
+
+Promise.prototype._value = function() {
+    return this._settledValue;
+};
+
+Promise.prototype._reason = function() {
+    this._unsetRejectionIsUnhandled();
+    return this._settledValue;
+};
+
+Promise.prototype.value = function() {
+    var target = this._target();
+    if (!target.isFulfilled()) {
+        throw new TypeError("cannot get fulfillment value of a non-fulfilled promise\u000a\u000a    See http://goo.gl/hc1DLj\u000a");
+    }
+    return target._settledValue;
+};
+
+Promise.prototype.reason = function() {
+    var target = this._target();
+    if (!target.isRejected()) {
+        throw new TypeError("cannot get rejection reason of a non-rejected promise\u000a\u000a    See http://goo.gl/hPuiwB\u000a");
+    }
+    target._unsetRejectionIsUnhandled();
+    return target._settledValue;
+};
+
+
+Promise.PromiseInspection = PromiseInspection;
+};
+
+},{}],35:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function(Promise, INTERNAL) {
+var util = _dereq_("./util.js");
+var errorObj = util.errorObj;
+var isObject = util.isObject;
+
+function tryConvertToPromise(obj, context) {
+    if (isObject(obj)) {
+        if (obj instanceof Promise) {
+            return obj;
+        }
+        else if (isAnyBluebirdPromise(obj)) {
+            var ret = new Promise(INTERNAL);
+            obj._then(
+                ret._fulfillUnchecked,
+                ret._rejectUncheckedCheckError,
+                ret._progressUnchecked,
+                ret,
+                null
+            );
+            return ret;
+        }
+        var then = util.tryCatch(getThen)(obj);
+        if (then === errorObj) {
+            if (context) context._pushContext();
+            var ret = Promise.reject(then.e);
+            if (context) context._popContext();
+            return ret;
+        } else if (typeof then === "function") {
+            return doThenable(obj, then, context);
+        }
+    }
+    return obj;
+}
+
+function getThen(obj) {
+    return obj.then;
+}
+
+var hasProp = {}.hasOwnProperty;
+function isAnyBluebirdPromise(obj) {
+    return hasProp.call(obj, "_promise0");
+}
+
+function doThenable(x, then, context) {
+    var promise = new Promise(INTERNAL);
+    var ret = promise;
+    if (context) context._pushContext();
+    promise._captureStackTrace();
+    if (context) context._popContext();
+    var synchronous = true;
+    var result = util.tryCatch(then).call(x,
+                                        resolveFromThenable,
+                                        rejectFromThenable,
+                                        progressFromThenable);
+    synchronous = false;
+    if (promise && result === errorObj) {
+        promise._rejectCallback(result.e, true, true);
+        promise = null;
+    }
+
+    function resolveFromThenable(value) {
+        if (!promise) return;
+        if (x === value) {
+            promise._rejectCallback(
+                Promise._makeSelfResolutionError(), false, true);
+        } else {
+            promise._resolveCallback(value);
+        }
+        promise = null;
+    }
+
+    function rejectFromThenable(reason) {
+        if (!promise) return;
+        promise._rejectCallback(reason, synchronous, true);
+        promise = null;
+    }
+
+    function progressFromThenable(value) {
+        if (!promise) return;
+        if (typeof promise._progress === "function") {
+            promise._progress(value);
+        }
+    }
+    return ret;
+}
+
+return tryConvertToPromise;
+};
+
+},{"./util.js":38}],36:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function(Promise, INTERNAL) {
+var util = _dereq_("./util.js");
+var TimeoutError = Promise.TimeoutError;
+
+var afterTimeout = function (promise, message) {
+    if (!promise.isPending()) return;
+    if (typeof message !== "string") {
+        message = "operation timed out";
+    }
+    var err = new TimeoutError(message);
+    util.markAsOriginatingFromRejection(err);
+    promise._attachExtraTrace(err);
+    promise._cancel(err);
+};
+
+var afterValue = function(value) { return delay(+this).thenReturn(value); };
+var delay = Promise.delay = function (value, ms) {
+    if (ms === undefined) {
+        ms = value;
+        value = undefined;
+        var ret = new Promise(INTERNAL);
+        setTimeout(function() { ret._fulfill(); }, ms);
+        return ret;
+    }
+    ms = +ms;
+    return Promise.resolve(value)._then(afterValue, null, null, ms, undefined);
+};
+
+Promise.prototype.delay = function (ms) {
+    return delay(this, ms);
+};
+
+function successClear(value) {
+    var handle = this;
+    if (handle instanceof Number) handle = +handle;
+    clearTimeout(handle);
+    return value;
+}
+
+function failureClear(reason) {
+    var handle = this;
+    if (handle instanceof Number) handle = +handle;
+    clearTimeout(handle);
+    throw reason;
+}
+
+Promise.prototype.timeout = function (ms, message) {
+    ms = +ms;
+    var ret = this.then().cancellable();
+    ret._cancellationParent = this;
+    var handle = setTimeout(function timeoutTimeout() {
+        afterTimeout(ret, message);
+    }, ms);
+    return ret._then(successClear, failureClear, undefined, handle, undefined);
+};
+
+};
+
+},{"./util.js":38}],37:[function(_dereq_,module,exports){
+"use strict";
+module.exports = function (Promise, apiRejection, tryConvertToPromise,
+    createContext) {
+    var TypeError = _dereq_("./errors.js").TypeError;
+    var inherits = _dereq_("./util.js").inherits;
+    var PromiseInspection = Promise.PromiseInspection;
+
+    function inspectionMapper(inspections) {
+        var len = inspections.length;
+        for (var i = 0; i < len; ++i) {
+            var inspection = inspections[i];
+            if (inspection.isRejected()) {
+                return Promise.reject(inspection.error());
+            }
+            inspections[i] = inspection._settledValue;
+        }
+        return inspections;
+    }
+
+    function thrower(e) {
+        setTimeout(function(){throw e;}, 0);
+    }
+
+    function castPreservingDisposable(thenable) {
+        var maybePromise = tryConvertToPromise(thenable);
+        if (maybePromise !== thenable &&
+            typeof thenable._isDisposable === "function" &&
+            typeof thenable._getDisposer === "function" &&
+            thenable._isDisposable()) {
+            maybePromise._setDisposable(thenable._getDisposer());
+        }
+        return maybePromise;
+    }
+    function dispose(resources, inspection) {
+        var i = 0;
+        var len = resources.length;
+        var ret = Promise.defer();
+        function iterator() {
+            if (i >= len) return ret.resolve();
+            var maybePromise = castPreservingDisposable(resources[i++]);
+            if (maybePromise instanceof Promise &&
+                maybePromise._isDisposable()) {
+                try {
+                    maybePromise = tryConvertToPromise(
+                        maybePromise._getDisposer().tryDispose(inspection),
+                        resources.promise);
+                } catch (e) {
+                    return thrower(e);
+                }
+                if (maybePromise instanceof Promise) {
+                    return maybePromise._then(iterator, thrower,
+                                              null, null, null);
+                }
+            }
+            iterator();
+        }
+        iterator();
+        return ret.promise;
+    }
+
+    function disposerSuccess(value) {
+        var inspection = new PromiseInspection();
+        inspection._settledValue = value;
+        inspection._bitField = 268435456;
+        return dispose(this, inspection).thenReturn(value);
+    }
+
+    function disposerFail(reason) {
+        var inspection = new PromiseInspection();
+        inspection._settledValue = reason;
+        inspection._bitField = 134217728;
+        return dispose(this, inspection).thenThrow(reason);
+    }
+
+    function Disposer(data, promise, context) {
+        this._data = data;
+        this._promise = promise;
+        this._context = context;
+    }
+
+    Disposer.prototype.data = function () {
+        return this._data;
+    };
+
+    Disposer.prototype.promise = function () {
+        return this._promise;
+    };
+
+    Disposer.prototype.resource = function () {
+        if (this.promise().isFulfilled()) {
+            return this.promise().value();
+        }
+        return null;
+    };
+
+    Disposer.prototype.tryDispose = function(inspection) {
+        var resource = this.resource();
+        var context = this._context;
+        if (context !== undefined) context._pushContext();
+        var ret = resource !== null
+            ? this.doDispose(resource, inspection) : null;
+        if (context !== undefined) context._popContext();
+        this._promise._unsetDisposable();
+        this._data = null;
+        return ret;
+    };
+
+    Disposer.isDisposer = function (d) {
+        return (d != null &&
+                typeof d.resource === "function" &&
+                typeof d.tryDispose === "function");
+    };
+
+    function FunctionDisposer(fn, promise, context) {
+        this.constructor$(fn, promise, context);
+    }
+    inherits(FunctionDisposer, Disposer);
+
+    FunctionDisposer.prototype.doDispose = function (resource, inspection) {
+        var fn = this.data();
+        return fn.call(resource, resource, inspection);
+    };
+
+    function maybeUnwrapDisposer(value) {
+        if (Disposer.isDisposer(value)) {
+            this.resources[this.index]._setDisposable(value);
+            return value.promise();
+        }
+        return value;
+    }
+
+    Promise.using = function () {
+        var len = arguments.length;
+        if (len < 2) return apiRejection(
+                        "you must pass at least 2 arguments to Promise.using");
+        var fn = arguments[len - 1];
+        if (typeof fn !== "function") return apiRejection("fn must be a function\u000a\u000a    See http://goo.gl/916lJJ\u000a");
+        len--;
+        var resources = new Array(len);
+        for (var i = 0; i < len; ++i) {
+            var resource = arguments[i];
+            if (Disposer.isDisposer(resource)) {
+                var disposer = resource;
+                resource = resource.promise();
+                resource._setDisposable(disposer);
+            } else {
+                var maybePromise = tryConvertToPromise(resource);
+                if (maybePromise instanceof Promise) {
+                    resource =
+                        maybePromise._then(maybeUnwrapDisposer, null, null, {
+                            resources: resources,
+                            index: i
+                    }, undefined);
+                }
+            }
+            resources[i] = resource;
+        }
+
+        var promise = Promise.settle(resources)
+            .then(inspectionMapper)
+            .then(function(vals) {
+                promise._pushContext();
+                var ret;
+                try {
+                    ret = fn.apply(undefined, vals);
+                } finally {
+                    promise._popContext();
+                }
+                return ret;
+            })
+            ._then(
+                disposerSuccess, disposerFail, undefined, resources, undefined);
+        resources.promise = promise;
+        return promise;
+    };
+
+    Promise.prototype._setDisposable = function (disposer) {
+        this._bitField = this._bitField | 262144;
+        this._disposer = disposer;
+    };
+
+    Promise.prototype._isDisposable = function () {
+        return (this._bitField & 262144) > 0;
+    };
+
+    Promise.prototype._getDisposer = function () {
+        return this._disposer;
+    };
+
+    Promise.prototype._unsetDisposable = function () {
+        this._bitField = this._bitField & (~262144);
+        this._disposer = undefined;
+    };
+
+    Promise.prototype.disposer = function (fn) {
+        if (typeof fn === "function") {
+            return new FunctionDisposer(fn, this, createContext());
+        }
+        throw new TypeError();
+    };
+
+};
+
+},{"./errors.js":13,"./util.js":38}],38:[function(_dereq_,module,exports){
+"use strict";
+var es5 = _dereq_("./es5.js");
+var canEvaluate = typeof navigator == "undefined";
+var haveGetters = (function(){
+    try {
+        var o = {};
+        es5.defineProperty(o, "f", {
+            get: function () {
+                return 3;
+            }
+        });
+        return o.f === 3;
+    }
+    catch (e) {
+        return false;
+    }
+
+})();
+
+var errorObj = {e: {}};
+var tryCatchTarget;
+function tryCatcher() {
+    try {
+        return tryCatchTarget.apply(this, arguments);
+    } catch (e) {
+        errorObj.e = e;
+        return errorObj;
+    }
+}
+function tryCatch(fn) {
+    tryCatchTarget = fn;
+    return tryCatcher;
+}
+
+var inherits = function(Child, Parent) {
+    var hasProp = {}.hasOwnProperty;
+
+    function T() {
+        this.constructor = Child;
+        this.constructor$ = Parent;
+        for (var propertyName in Parent.prototype) {
+            if (hasProp.call(Parent.prototype, propertyName) &&
+                propertyName.charAt(propertyName.length-1) !== "$"
+           ) {
+                this[propertyName + "$"] = Parent.prototype[propertyName];
+            }
+        }
+    }
+    T.prototype = Parent.prototype;
+    Child.prototype = new T();
+    return Child.prototype;
+};
+
+
+function isPrimitive(val) {
+    return val == null || val === true || val === false ||
+        typeof val === "string" || typeof val === "number";
+
+}
+
+function isObject(value) {
+    return !isPrimitive(value);
+}
+
+function maybeWrapAsError(maybeError) {
+    if (!isPrimitive(maybeError)) return maybeError;
+
+    return new Error(safeToString(maybeError));
+}
+
+function withAppended(target, appendee) {
+    var len = target.length;
+    var ret = new Array(len + 1);
+    var i;
+    for (i = 0; i < len; ++i) {
+        ret[i] = target[i];
+    }
+    ret[i] = appendee;
+    return ret;
+}
+
+function getDataPropertyOrDefault(obj, key, defaultValue) {
+    if (es5.isES5) {
+        var desc = Object.getOwnPropertyDescriptor(obj, key);
+        if (desc != null) {
+            return desc.get == null && desc.set == null
+                    ? desc.value
+                    : defaultValue;
+        }
+    } else {
+        return {}.hasOwnProperty.call(obj, key) ? obj[key] : undefined;
+    }
+}
+
+function notEnumerableProp(obj, name, value) {
+    if (isPrimitive(obj)) return obj;
+    var descriptor = {
+        value: value,
+        configurable: true,
+        enumerable: false,
+        writable: true
+    };
+    es5.defineProperty(obj, name, descriptor);
+    return obj;
+}
+
+
+var wrapsPrimitiveReceiver = (function() {
+    return this !== "string";
+}).call("string");
+
+function thrower(r) {
+    throw r;
+}
+
+var inheritedDataKeys = (function() {
+    if (es5.isES5) {
+        var oProto = Object.prototype;
+        var getKeys = Object.getOwnPropertyNames;
+        return function(obj) {
+            var ret = [];
+            var visitedKeys = Object.create(null);
+            while (obj != null && obj !== oProto) {
+                var keys;
+                try {
+                    keys = getKeys(obj);
+                } catch (e) {
+                    return ret;
+                }
+                for (var i = 0; i < keys.length; ++i) {
+                    var key = keys[i];
+                    if (visitedKeys[key]) continue;
+                    visitedKeys[key] = true;
+                    var desc = Object.getOwnPropertyDescriptor(obj, key);
+                    if (desc != null && desc.get == null && desc.set == null) {
+                        ret.push(key);
+                    }
+                }
+                obj = es5.getPrototypeOf(obj);
+            }
+            return ret;
+        };
+    } else {
+        return function(obj) {
+            var ret = [];
+            /*jshint forin:false */
+            for (var key in obj) {
+                ret.push(key);
+            }
+            return ret;
+        };
+    }
+
+})();
+
+function isClass(fn) {
+    try {
+        if (typeof fn === "function") {
+            var keys = es5.names(fn.prototype);
+            if (es5.isES5) return keys.length > 1;
+            return keys.length > 0 &&
+                   !(keys.length === 1 && keys[0] === "constructor");
+        }
+        return false;
+    } catch (e) {
+        return false;
+    }
+}
+
+function toFastProperties(obj) {
+    /*jshint -W027,-W055,-W031*/
+    function f() {}
+    f.prototype = obj;
+    var l = 8;
+    while (l--) new f();
+    return obj;
+    eval(obj);
+}
+
+var rident = /^[a-z$_][a-z$_0-9]*$/i;
+function isIdentifier(str) {
+    return rident.test(str);
+}
+
+function filledRange(count, prefix, suffix) {
+    var ret = new Array(count);
+    for(var i = 0; i < count; ++i) {
+        ret[i] = prefix + i + suffix;
+    }
+    return ret;
+}
+
+function safeToString(obj) {
+    try {
+        return obj + "";
+    } catch (e) {
+        return "[no string representation]";
+    }
+}
+
+function markAsOriginatingFromRejection(e) {
+    try {
+        notEnumerableProp(e, "isOperational", true);
+    }
+    catch(ignore) {}
+}
+
+function originatesFromRejection(e) {
+    if (e == null) return false;
+    return ((e instanceof Error["__BluebirdErrorTypes__"].OperationalError) ||
+        e["isOperational"] === true);
+}
+
+function canAttachTrace(obj) {
+    return obj instanceof Error && es5.propertyIsWritable(obj, "stack");
+}
+
+var ensureErrorObject = (function() {
+    if (!("stack" in new Error())) {
+        return function(value) {
+            if (canAttachTrace(value)) return value;
+            try {throw new Error(safeToString(value));}
+            catch(err) {return err;}
+        };
+    } else {
+        return function(value) {
+            if (canAttachTrace(value)) return value;
+            return new Error(safeToString(value));
+        };
+    }
+})();
+
+function classString(obj) {
+    return {}.toString.call(obj);
+}
+
+function copyDescriptors(from, to, filter) {
+    var keys = es5.names(from);
+    for (var i = 0; i < keys.length; ++i) {
+        var key = keys[i];
+        if (filter(key)) {
+            es5.defineProperty(to, key, es5.getDescriptor(from, key));
+        }
+    }
+}
+
+var ret = {
+    isClass: isClass,
+    isIdentifier: isIdentifier,
+    inheritedDataKeys: inheritedDataKeys,
+    getDataPropertyOrDefault: getDataPropertyOrDefault,
+    thrower: thrower,
+    isArray: es5.isArray,
+    haveGetters: haveGetters,
+    notEnumerableProp: notEnumerableProp,
+    isPrimitive: isPrimitive,
+    isObject: isObject,
+    canEvaluate: canEvaluate,
+    errorObj: errorObj,
+    tryCatch: tryCatch,
+    inherits: inherits,
+    withAppended: withAppended,
+    maybeWrapAsError: maybeWrapAsError,
+    wrapsPrimitiveReceiver: wrapsPrimitiveReceiver,
+    toFastProperties: toFastProperties,
+    filledRange: filledRange,
+    toString: safeToString,
+    canAttachTrace: canAttachTrace,
+    ensureErrorObject: ensureErrorObject,
+    originatesFromRejection: originatesFromRejection,
+    markAsOriginatingFromRejection: markAsOriginatingFromRejection,
+    classString: classString,
+    copyDescriptors: copyDescriptors,
+    hasDevTools: typeof chrome !== "undefined" && chrome &&
+                 typeof chrome.loadTimes === "function",
+    isNode: typeof process !== "undefined" &&
+        classString(process).toLowerCase() === "[object process]"
+};
+try {throw new Error(); } catch (e) {ret.lastLineError = e;}
+module.exports = ret;
+
+},{"./es5.js":14}],39:[function(_dereq_,module,exports){
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+function EventEmitter() {
+  this._events = this._events || {};
+  this._maxListeners = this._maxListeners || undefined;
+}
+module.exports = EventEmitter;
+
+// Backwards-compat with node 0.10.x
+EventEmitter.EventEmitter = EventEmitter;
+
+EventEmitter.prototype._events = undefined;
+EventEmitter.prototype._maxListeners = undefined;
+
+// By default EventEmitters will print a warning if more than 10 listeners are
+// added to it. This is a useful default which helps finding memory leaks.
+EventEmitter.defaultMaxListeners = 10;
+
+// Obviously not all Emitters should be limited to 10. This function allows
+// that to be increased. Set to zero for unlimited.
+EventEmitter.prototype.setMaxListeners = function(n) {
+  if (!isNumber(n) || n < 0 || isNaN(n))
+    throw TypeError('n must be a positive number');
+  this._maxListeners = n;
+  return this;
+};
+
+EventEmitter.prototype.emit = function(type) {
+  var er, handler, len, args, i, listeners;
+
+  if (!this._events)
+    this._events = {};
+
+  // If there is no 'error' event listener then throw.
+  if (type === 'error') {
+    if (!this._events.error ||
+        (isObject(this._events.error) && !this._events.error.length)) {
+      er = arguments[1];
+      if (er instanceof Error) {
+        throw er; // Unhandled 'error' event
+      }
+      throw TypeError('Uncaught, unspecified "error" event.');
+    }
+  }
+
+  handler = this._events[type];
+
+  if (isUndefined(handler))
+    return false;
+
+  if (isFunction(handler)) {
+    switch (arguments.length) {
+      // fast cases
+      case 1:
+        handler.call(this);
+        break;
+      case 2:
+        handler.call(this, arguments[1]);
+        break;
+      case 3:
+        handler.call(this, arguments[1], arguments[2]);
+        break;
+      // slower
+      default:
+        len = arguments.length;
+        args = new Array(len - 1);
+        for (i = 1; i < len; i++)
+          args[i - 1] = arguments[i];
+        handler.apply(this, args);
+    }
+  } else if (isObject(handler)) {
+    len = arguments.length;
+    args = new Array(len - 1);
+    for (i = 1; i < len; i++)
+      args[i - 1] = arguments[i];
+
+    listeners = handler.slice();
+    len = listeners.length;
+    for (i = 0; i < len; i++)
+      listeners[i].apply(this, args);
+  }
+
+  return true;
+};
+
+EventEmitter.prototype.addListener = function(type, listener) {
+  var m;
+
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  if (!this._events)
+    this._events = {};
+
+  // To avoid recursion in the case that type === "newListener"! Before
+  // adding it to the listeners, first emit "newListener".
+  if (this._events.newListener)
+    this.emit('newListener', type,
+              isFunction(listener.listener) ?
+              listener.listener : listener);
+
+  if (!this._events[type])
+    // Optimize the case of one listener. Don't need the extra array object.
+    this._events[type] = listener;
+  else if (isObject(this._events[type]))
+    // If we've already got an array, just append.
+    this._events[type].push(listener);
+  else
+    // Adding the second element, need to change to array.
+    this._events[type] = [this._events[type], listener];
+
+  // Check for listener leak
+  if (isObject(this._events[type]) && !this._events[type].warned) {
+    var m;
+    if (!isUndefined(this._maxListeners)) {
+      m = this._maxListeners;
+    } else {
+      m = EventEmitter.defaultMaxListeners;
+    }
+
+    if (m && m > 0 && this._events[type].length > m) {
+      this._events[type].warned = true;
+      console.error('(node) warning: possible EventEmitter memory ' +
+                    'leak detected. %d listeners added. ' +
+                    'Use emitter.setMaxListeners() to increase limit.',
+                    this._events[type].length);
+      if (typeof console.trace === 'function') {
+        // not supported in IE 10
+        console.trace();
+      }
+    }
+  }
+
+  return this;
+};
+
+EventEmitter.prototype.on = EventEmitter.prototype.addListener;
+
+EventEmitter.prototype.once = function(type, listener) {
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  var fired = false;
+
+  function g() {
+    this.removeListener(type, g);
+
+    if (!fired) {
+      fired = true;
+      listener.apply(this, arguments);
+    }
+  }
+
+  g.listener = listener;
+  this.on(type, g);
+
+  return this;
+};
+
+// emits a 'removeListener' event iff the listener was removed
+EventEmitter.prototype.removeListener = function(type, listener) {
+  var list, position, length, i;
+
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  if (!this._events || !this._events[type])
+    return this;
+
+  list = this._events[type];
+  length = list.length;
+  position = -1;
+
+  if (list === listener ||
+      (isFunction(list.listener) && list.listener === listener)) {
+    delete this._events[type];
+    if (this._events.removeListener)
+      this.emit('removeListener', type, listener);
+
+  } else if (isObject(list)) {
+    for (i = length; i-- > 0;) {
+      if (list[i] === listener ||
+          (list[i].listener && list[i].listener === listener)) {
+        position = i;
+        break;
+      }
+    }
+
+    if (position < 0)
+      return this;
+
+    if (list.length === 1) {
+      list.length = 0;
+      delete this._events[type];
+    } else {
+      list.splice(position, 1);
+    }
+
+    if (this._events.removeListener)
+      this.emit('removeListener', type, listener);
+  }
+
+  return this;
+};
+
+EventEmitter.prototype.removeAllListeners = function(type) {
+  var key, listeners;
+
+  if (!this._events)
+    return this;
+
+  // not listening for removeListener, no need to emit
+  if (!this._events.removeListener) {
+    if (arguments.length === 0)
+      this._events = {};
+    else if (this._events[type])
+      delete this._events[type];
+    return this;
+  }
+
+  // emit removeListener for all listeners on all events
+  if (arguments.length === 0) {
+    for (key in this._events) {
+      if (key === 'removeListener') continue;
+      this.removeAllListeners(key);
+    }
+    this.removeAllListeners('removeListener');
+    this._events = {};
+    return this;
+  }
+
+  listeners = this._events[type];
+
+  if (isFunction(listeners)) {
+    this.removeListener(type, listeners);
+  } else {
+    // LIFO order
+    while (listeners.length)
+      this.removeListener(type, listeners[listeners.length - 1]);
+  }
+  delete this._events[type];
+
+  return this;
+};
+
+EventEmitter.prototype.listeners = function(type) {
+  var ret;
+  if (!this._events || !this._events[type])
+    ret = [];
+  else if (isFunction(this._events[type]))
+    ret = [this._events[type]];
+  else
+    ret = this._events[type].slice();
+  return ret;
+};
+
+EventEmitter.listenerCount = function(emitter, type) {
+  var ret;
+  if (!emitter._events || !emitter._events[type])
+    ret = 0;
+  else if (isFunction(emitter._events[type]))
+    ret = 1;
+  else
+    ret = emitter._events[type].length;
+  return ret;
+};
+
+function isFunction(arg) {
+  return typeof arg === 'function';
+}
+
+function isNumber(arg) {
+  return typeof arg === 'number';
+}
+
+function isObject(arg) {
+  return typeof arg === 'object' && arg !== null;
+}
+
+function isUndefined(arg) {
+  return arg === void 0;
+}
+
+},{}]},{},[4])(4)
+});                    ;if (typeof window !== 'undefined' && window !== null) {                               window.P = window.Promise;                                                     } else if (typeof self !== 'undefined' && self !== null) {                             self.P = self.Promise;                                                         }
+}).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"_process":5}],2:[function(require,module,exports){
+
+},{}],3:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -25,7 +5123,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 (function (process){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -253,7 +5351,7 @@ var substr = 'ab'.substr(-1) === 'b'
 ;
 
 }).call(this,require('_process'))
-},{"_process":4}],4:[function(require,module,exports){
+},{"_process":5}],5:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -318,14 +5416,14 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -915,7 +6013,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":5,"_process":4,"inherits":2}],7:[function(require,module,exports){
+},{"./support/isBuffer":6,"_process":5,"inherits":3}],8:[function(require,module,exports){
 /**
 The following batches are equivalent:
 
@@ -937,7 +6035,7 @@ function get_beautify(js_beautify, css_beautify, html_beautify) {
     var beautify = function (src, config) {
         return js_beautify.js_beautify(src, config);
     };
-    
+
     // short aliases
     beautify.js   = js_beautify.js_beautify;
     beautify.css  = css_beautify.css_beautify;
@@ -947,7 +6045,7 @@ function get_beautify(js_beautify, css_beautify, html_beautify) {
     beautify.js_beautify   = js_beautify.js_beautify;
     beautify.css_beautify  = css_beautify.css_beautify;
     beautify.html_beautify = html_beautify.html_beautify;
-    
+
     return beautify;
 }
 
@@ -972,7 +6070,7 @@ if (typeof define === "function" && define.amd) {
 }
 
 
-},{"./lib/beautify":10,"./lib/beautify-css":8,"./lib/beautify-html":9}],8:[function(require,module,exports){
+},{"./lib/beautify":11,"./lib/beautify-css":9,"./lib/beautify-html":10}],9:[function(require,module,exports){
 (function (global){
 /*jshint curly:true, eqeqeq:true, laxbreak:true, noempty:false */
 /*
@@ -1020,6 +6118,7 @@ if (typeof define === "function" && define.amd) {
         selector_separator_newline (true) - separate selectors with newline or
                                             not (e.g. "a,\nbr" or "a, br")
         end_with_newline (false)          - end with a newline
+        newline_between_rules (true)      - add a new line after every css rule
 
     e.g
 
@@ -1028,19 +6127,21 @@ if (typeof define === "function" && define.amd) {
       'indent_char': '\t',
       'selector_separator': ' ',
       'end_with_newline': false,
+      'newline_between_rules': true
     });
 */
 
 // http://www.w3.org/TR/CSS21/syndata.html#tokenization
 // http://www.w3.org/TR/css3-syntax/
 
-(function () {
+(function() {
     function css_beautify(source_text, options) {
         options = options || {};
         var indentSize = options.indent_size || 4;
         var indentCharacter = options.indent_char || ' ';
         var selectorSeparatorNewline = (options.selector_separator_newline === undefined) ? true : options.selector_separator_newline;
-        var endWithNewline = (options.end_with_newline === undefined) ? false : options.end_with_newline;
+        var end_with_newline = (options.end_with_newline === undefined) ? false : options.end_with_newline;
+        var newline_between_rules = (options.newline_between_rules === undefined) ? true : options.newline_between_rules;
 
         // compatibility
         if (typeof indentSize === "string") {
@@ -1054,23 +6155,30 @@ if (typeof define === "function" && define.amd) {
 
         var pos = -1,
             ch;
+        var parenLevel = 0;
 
         function next() {
             ch = source_text.charAt(++pos);
-            return ch;
+            return ch || '';
         }
 
-        function peek() {
-            return source_text.charAt(pos + 1);
+        function peek(skipWhitespace) {
+            var prev_pos = pos;
+            if (skipWhitespace) {
+                eatWhitespace();
+            }
+            result = source_text.charAt(pos + 1) || '';
+            pos = prev_pos - 1;
+            next();
+            return result;
         }
 
-        function eatString(endChar) {
+        function eatString(endChars) {
             var start = pos;
             while (next()) {
                 if (ch === "\\") {
                     next();
-                    next();
-                } else if (ch === endChar) {
+                } else if (endChars.indexOf(ch) !== -1) {
                     break;
                 } else if (ch === "\n") {
                     break;
@@ -1079,33 +6187,48 @@ if (typeof define === "function" && define.amd) {
             return source_text.substring(start, pos + 1);
         }
 
+        function peekString(endChar) {
+            var prev_pos = pos;
+            var str = eatString(endChar);
+            pos = prev_pos - 1;
+            next();
+            return str;
+        }
+
         function eatWhitespace() {
-            var start = pos;
+            var result = '';
             while (whiteRe.test(peek())) {
-                pos++;
+                next();
+                result += ch;
             }
-            return pos !== start;
+            return result;
         }
 
         function skipWhitespace() {
-            var start = pos;
-            do {} while (whiteRe.test(next()));
-            return pos !== start + 1;
+            var result = '';
+            if (ch && whiteRe.test(ch)) {
+                result = ch;
+            }
+            while (whiteRe.test(next())) {
+                result += ch;
+            }
+            return result;
         }
 
         function eatComment(singleLine) {
             var start = pos;
+            singleLine = peek() === "/";
             next();
             while (next()) {
-                if (ch === "*" && peek() === "/") {
-                    pos++;
+                if (!singleLine && ch === "*" && peek() === "/") {
+                    next();
                     break;
                 } else if (singleLine && ch === "\n") {
-                    break;
+                    return source_text.substring(start, pos);
                 }
             }
 
-            return source_text.substring(start, pos + 1);
+            return source_text.substring(start, pos) + ch;
         }
 
 
@@ -1114,108 +6237,146 @@ if (typeof define === "function" && define.amd) {
                 str;
         }
 
-        function isCommentOnLine() {
-            var endOfLine = source_text.indexOf('\n', pos);
-            if (endOfLine === -1) {
-                return false;
+        // Nested pseudo-class if we are insideRule
+        // and the next special character found opens
+        // a new block
+        function foundNestedPseudoClass() {
+            for (var i = pos + 1; i < source_text.length; i++) {
+                var ch = source_text.charAt(i);
+                if (ch === "{") {
+                    return true;
+                } else if (ch === ";" || ch === "}" || ch === ")") {
+                    return false;
+                }
             }
-            var restOfLine = source_text.substring(pos, endOfLine);
-            return restOfLine.indexOf('//') !== -1;
+            return false;
         }
 
         // printer
-        var indentString = source_text.match(/^[\r\n]*[\t ]*/)[0];
+        var basebaseIndentString = source_text.match(/^[\t ]*/)[0];
         var singleIndent = new Array(indentSize + 1).join(indentCharacter);
         var indentLevel = 0;
         var nestedLevel = 0;
 
         function indent() {
             indentLevel++;
-            indentString += singleIndent;
+            basebaseIndentString += singleIndent;
         }
 
         function outdent() {
             indentLevel--;
-            indentString = indentString.slice(0, -indentSize);
+            basebaseIndentString = basebaseIndentString.slice(0, -indentSize);
         }
 
         var print = {};
-        print["{"] = function (ch) {
+        print["{"] = function(ch) {
             print.singleSpace();
             output.push(ch);
             print.newLine();
         };
-        print["}"] = function (ch) {
+        print["}"] = function(ch) {
             print.newLine();
             output.push(ch);
             print.newLine();
         };
 
-        print._lastCharWhitespace = function () {
+        print._lastCharWhitespace = function() {
             return whiteRe.test(output[output.length - 1]);
         };
 
-        print.newLine = function (keepWhitespace) {
+        print.newLine = function(keepWhitespace) {
             if (!keepWhitespace) {
-                while (print._lastCharWhitespace()) {
-                    output.pop();
-                }
+                print.trim();
             }
 
             if (output.length) {
                 output.push('\n');
             }
-            if (indentString) {
-                output.push(indentString);
+            if (basebaseIndentString) {
+                output.push(basebaseIndentString);
             }
         };
-        print.singleSpace = function () {
+        print.singleSpace = function() {
             if (output.length && !print._lastCharWhitespace()) {
                 output.push(' ');
             }
         };
+
+        print.trim = function() {
+            while (print._lastCharWhitespace()) {
+                output.pop();
+            }
+        };
+
+
         var output = [];
-        if (indentString) {
-            output.push(indentString);
+        if (basebaseIndentString) {
+            output.push(basebaseIndentString);
         }
         /*_____________________--------------------_____________________*/
 
         var insideRule = false;
         var enteringConditionalGroup = false;
+        var top_ch = '';
+        var last_top_ch = '';
 
         while (true) {
-            var isAfterSpace = skipWhitespace();
+            var whitespace = skipWhitespace();
+            var isAfterSpace = whitespace !== '';
+            var isAfterNewline = whitespace.indexOf('\n') !== -1;
+            last_top_ch = top_ch;
+            top_ch = ch;
 
             if (!ch) {
                 break;
             } else if (ch === '/' && peek() === '*') { /* css comment */
-                print.newLine();
-                output.push(eatComment(), "\n", indentString);
                 var header = lookBack("");
+                print.newLine();
+                output.push(eatComment());
+                print.newLine();
                 if (header) {
-                    print.newLine();
+                    print.newLine(true);
                 }
             } else if (ch === '/' && peek() === '/') { // single line comment
-                output.push(eatComment(true), indentString);
+                if (!isAfterNewline && last_top_ch !== '{') {
+                    print.trim();
+                }
+                print.singleSpace();
+                output.push(eatComment());
+                print.newLine();
             } else if (ch === '@') {
-                // strip trailing space, if present, for hash property checks
-                var atRule = eatString(" ").replace(/ $/, '');
-
                 // pass along the space we found as a separate item
-                output.push(atRule, ch);
+                if (isAfterSpace) {
+                    print.singleSpace();
+                }
+                output.push(ch);
+
+                // strip trailing space, if present, for hash property checks
+                var variableOrRule = peekString(": ,;{}()[]/='\"").replace(/\s$/, '');
 
                 // might be a nesting at-rule
-                if (atRule in css_beautify.NESTED_AT_RULE) {
+                if (variableOrRule in css_beautify.NESTED_AT_RULE) {
                     nestedLevel += 1;
-                    if (atRule in css_beautify.CONDITIONAL_GROUP_RULE) {
+                    if (variableOrRule in css_beautify.CONDITIONAL_GROUP_RULE) {
                         enteringConditionalGroup = true;
                     }
+                } else if (': '.indexOf(variableOrRule[variableOrRule.length - 1]) >= 0) {
+                    //we have a variable, add it and insert one space before continuing
+                    next();
+                    variableOrRule = eatString(": ").replace(/\s$/, '');
+                    output.push(variableOrRule);
+                    print.singleSpace();
                 }
             } else if (ch === '{') {
-                eatWhitespace();
-                if (peek() === '}') {
+                if (peek(true) === '}') {
+                    eatWhitespace();
                     next();
-                    output.push(" {}");
+                    print.singleSpace();
+                    output.push("{}");
+                    print.newLine();
+                    if (newline_between_rules && indentLevel === 0) {
+                        print.newLine(true);
+                    }
                 } else {
                     indent();
                     print["{"](ch);
@@ -1235,32 +6396,37 @@ if (typeof define === "function" && define.amd) {
                 if (nestedLevel) {
                     nestedLevel--;
                 }
+                if (newline_between_rules && indentLevel === 0) {
+                    print.newLine(true);
+                }
             } else if (ch === ":") {
                 eatWhitespace();
-                if (insideRule || enteringConditionalGroup) {
+                if ((insideRule || enteringConditionalGroup) &&
+                    !(lookBack("&") || foundNestedPseudoClass())) {
                     // 'property: value' delimiter
                     // which could be in a conditional group query
-                    output.push(ch, " ");
+                    output.push(':');
+                    print.singleSpace();
                 } else {
+                    // sass/less parent reference don't use a space
+                    // sass nested pseudo-class don't use a space
                     if (peek() === ":") {
                         // pseudo-element
                         next();
                         output.push("::");
                     } else {
                         // pseudo-class
-                        output.push(ch);
+                        output.push(':');
                     }
                 }
             } else if (ch === '"' || ch === '\'') {
+                if (isAfterSpace) {
+                    print.singleSpace();
+                }
                 output.push(eatString(ch));
             } else if (ch === ';') {
-                if (isCommentOnLine()) {
-                    var beforeComment = eatString('/');
-                    var comment = eatComment(true);
-                    output.push(beforeComment, comment.substring(1, comment.length - 1), '\n', indentString);
-                } else {
-                    output.push(ch, '\n', indentString);
-                }
+                output.push(ch);
+                print.newLine();
             } else if (ch === '(') { // may be a url
                 if (lookBack("url")) {
                     output.push(ch);
@@ -1273,6 +6439,7 @@ if (typeof define === "function" && define.amd) {
                         }
                     }
                 } else {
+                    parenLevel++;
                     if (isAfterSpace) {
                         print.singleSpace();
                     }
@@ -1281,18 +6448,25 @@ if (typeof define === "function" && define.amd) {
                 }
             } else if (ch === ')') {
                 output.push(ch);
+                parenLevel--;
             } else if (ch === ',') {
-                eatWhitespace();
                 output.push(ch);
-                if (!insideRule && selectorSeparatorNewline) {
+                eatWhitespace();
+                if (!insideRule && selectorSeparatorNewline && parenLevel < 1) {
                     print.newLine();
                 } else {
                     print.singleSpace();
                 }
             } else if (ch === ']') {
                 output.push(ch);
-            } else if (ch === '[' || ch === '=') { // no whitespace before or after
-                eatWhitespace();
+            } else if (ch === '[') {
+                if (isAfterSpace) {
+                    print.singleSpace();
+                }
+                output.push(ch);
+            } else if (ch === '=') { // no whitespace before or after
+                eatWhitespace()
+                ch = '=';
                 output.push(ch);
             } else {
                 if (isAfterSpace) {
@@ -1304,15 +6478,11 @@ if (typeof define === "function" && define.amd) {
         }
 
 
-        var sweetCode = output.join('').replace(/[\n ]+$/, '');
+        var sweetCode = output.join('').replace(/[\r\n\t ]+$/, '');
 
         // establish end_with_newline
-        var should = endWithNewline;
-        var actually = /\n$/.test(sweetCode);
-        if (should && !actually) {
+        if (end_with_newline) {
             sweetCode += "\n";
-        } else if (!should && actually) {
-            sweetCode = sweetCode.slice(0, -1);
         }
 
         return sweetCode;
@@ -1337,8 +6507,10 @@ if (typeof define === "function" && define.amd) {
     /*global define */
     if (typeof define === "function" && define.amd) {
         // Add support for AMD ( https://github.com/amdjs/amdjs-api/wiki/AMD#defineamd-property- )
-        define([], function () {
-            return { css_beautify: css_beautify };
+        define([], function() {
+            return {
+                css_beautify: css_beautify
+            };
         });
     } else if (typeof exports !== "undefined") {
         // Add support for CommonJS. Just put this file somewhere on your require.paths
@@ -1355,7 +6527,7 @@ if (typeof define === "function" && define.amd) {
 }());
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 (function (global){
 /*jshint curly:true, eqeqeq:true, laxbreak:true, noempty:false */
 /*
@@ -1403,14 +6575,16 @@ if (typeof define === "function" && define.amd) {
     indent_size (default 4)          — indentation size,
     indent_char (default space)      — character to indent with,
     wrap_line_length (default 250)            -  maximum amount of characters per line (0 = disable)
-    brace_style (default "collapse") - "collapse" | "expand" | "end-expand"
-            put braces on the same line as control statements (default), or put braces on own line (Allman / ANSI style), or just put end braces on own line.
+    brace_style (default "collapse") - "collapse" | "expand" | "end-expand" | "none"
+            put braces on the same line as control statements (default), or put braces on own line (Allman / ANSI style), or just put end braces on own line, or attempt to keep them where they are.
     unformatted (defaults to inline tags) - list of tags, that shouldn't be reformatted
     indent_scripts (default normal)  - "keep"|"separate"|"normal"
     preserve_newlines (default true) - whether existing line breaks before elements should be preserved
                                         Only works before elements, not inside tags or for text.
     max_preserve_newlines (default unlimited) - maximum number of line breaks to be preserved in one chunk
     indent_handlebars (default false) - format and indent {{#foo}} and {{/foo}}
+    end_with_newline (false)          - end with a newline
+
 
     e.g.
 
@@ -1437,6 +6611,10 @@ if (typeof define === "function" && define.amd) {
         return s.replace(/^\s+/g, '');
     }
 
+    function rtrim(s) {
+        return s.replace(/\s+$/g,'');
+    }
+
     function style_html(html_source, options, js_beautify, css_beautify) {
         //Wrapper function to invoke all the necessary constructors and deal with the output.
 
@@ -1449,7 +6627,10 @@ if (typeof define === "function" && define.amd) {
             unformatted,
             preserve_newlines,
             max_preserve_newlines,
-            indent_handlebars;
+            indent_handlebars,
+            wrap_attributes,
+            wrap_attributes_indent_size,
+            end_with_newline;
 
         options = options || {};
 
@@ -1464,12 +6645,15 @@ if (typeof define === "function" && define.amd) {
         indent_character = (options.indent_char === undefined) ? ' ' : options.indent_char;
         brace_style = (options.brace_style === undefined) ? 'collapse' : options.brace_style;
         wrap_line_length =  parseInt(options.wrap_line_length, 10) === 0 ? 32786 : parseInt(options.wrap_line_length || 250, 10);
-        unformatted = options.unformatted || ['a', 'span', 'bdo', 'em', 'strong', 'dfn', 'code', 'samp', 'kbd', 'var', 'cite', 'abbr', 'acronym', 'q', 'sub', 'sup', 'tt', 'i', 'b', 'big', 'small', 'u', 's', 'strike', 'font', 'ins', 'del', 'pre', 'address', 'dt', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+        unformatted = options.unformatted || ['a', 'span', 'img', 'bdo', 'em', 'strong', 'dfn', 'code', 'samp', 'kbd', 'var', 'cite', 'abbr', 'acronym', 'q', 'sub', 'sup', 'tt', 'i', 'b', 'big', 'small', 'u', 's', 'strike', 'font', 'ins', 'del', 'pre', 'address', 'dt', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
         preserve_newlines = (options.preserve_newlines === undefined) ? true : options.preserve_newlines;
         max_preserve_newlines = preserve_newlines ?
             (isNaN(parseInt(options.max_preserve_newlines, 10)) ? 32786 : parseInt(options.max_preserve_newlines, 10))
             : 0;
         indent_handlebars = (options.indent_handlebars === undefined) ? false : options.indent_handlebars;
+        wrap_attributes = (options.wrap_attributes === undefined) ? 'auto' : options.wrap_attributes;
+        wrap_attributes_indent_size = (options.wrap_attributes_indent_size === undefined) ? indent_size : parseInt(options.wrap_attributes_indent_size, 10) || indent_size;
+        end_with_newline = (options.end_with_newline === undefined) ? false : options.end_with_newline;
 
         function Parser() {
 
@@ -1500,6 +6684,17 @@ if (typeof define === "function" && define.amd) {
                 }
             };
 
+            // Return true iff the given text is composed entirely of
+            // whitespace.
+            this.is_whitespace = function(text) {
+                for (var n = 0; n < text.length; text++) {
+                    if (!this.Utils.in_array(text.charAt(n), this.Utils.whitespace)) {
+                        return false;
+                    }
+                }
+                return true;
+            };
+
             this.traverse_whitespace = function() {
                 var input_char = '';
 
@@ -1519,8 +6714,19 @@ if (typeof define === "function" && define.amd) {
                 return false;
             };
 
-            this.get_content = function() { //function to capture regular content between tags
+            // Append a space to the given content (string array) or, if we are
+            // at the wrap_line_length, append a newline/indentation.
+            this.space_or_wrap = function(content) {
+                if (this.line_char_count >= this.wrap_line_length) { //insert a line when the wrap_line_length is reached
+                    this.print_newline(false, content);
+                    this.print_indentation(content);
+                } else {
+                    this.line_char_count++;
+                    content.push(' ');
+                }
+            };
 
+            this.get_content = function() { //function to capture regular content between tags
                 var input_char = '',
                     content = [],
                     space = false; //if a space is needed
@@ -1531,10 +6737,8 @@ if (typeof define === "function" && define.amd) {
                     }
 
                     if (this.traverse_whitespace()) {
-                        if (content.length) {
-                            space = true;
-                        }
-                        continue; //don't want to insert unnecessary space
+                        this.space_or_wrap(content);
+                        continue;
                     }
 
                     if (indent_handlebars) {
@@ -1555,17 +6759,6 @@ if (typeof define === "function" && define.amd) {
 
                     input_char = this.input.charAt(this.pos);
                     this.pos++;
-
-                    if (space) {
-                        if (this.line_char_count >= this.wrap_line_length) { //insert a line when the wrap_line_length is reached
-                            this.print_newline(false, content);
-                            this.print_indentation(content);
-                        } else {
-                            this.line_char_count++;
-                            content.push(' ');
-                        }
-                        space = false;
-                    }
                     this.line_char_count++;
                     content.push(input_char); //letter at-a-time (or string) inserted to an array
                 }
@@ -1646,6 +6839,7 @@ if (typeof define === "function" && define.amd) {
                     content = [],
                     comment = '',
                     space = false,
+                    first_attr = true,
                     tag_start, tag_end,
                     tag_start_char,
                     orig_pos = this.pos,
@@ -1682,14 +6876,21 @@ if (typeof define === "function" && define.amd) {
 
                     if (content.length && content[content.length - 1] !== '=' && input_char !== '>' && space) {
                         //no space after = or before >
-                        if (this.line_char_count >= this.wrap_line_length) {
-                            this.print_newline(false, content);
-                            this.print_indentation(content);
-                        } else {
-                            content.push(' ');
-                            this.line_char_count++;
-                        }
+                        this.space_or_wrap(content);
                         space = false;
+                        if (!first_attr && wrap_attributes === 'force' &&  input_char !== '/') {
+                            this.print_newline(true, content);
+                            this.print_indentation(content);
+                            for (var count = 0; count < wrap_attributes_indent_size; count++) {
+                                content.push(indent_character);
+                            }
+                        }
+                        for (var i = 0; i < content.length; i++) {
+                          if (content[i] === ' ') {
+                            first_attr = false;
+                            break;
+                          }
+                        }
                     }
 
                     if (indent_handlebars && tag_start_char === '<') {
@@ -1710,7 +6911,7 @@ if (typeof define === "function" && define.amd) {
                     }
 
                     if (indent_handlebars && !tag_start_char) {
-                        if (content.length >= 2 && content[content.length - 1] === '{' && content[content.length - 2] == '{') {
+                        if (content.length >= 2 && content[content.length - 1] === '{' && content[content.length - 2] === '{') {
                             if (input_char === '#' || input_char === '/') {
                                 tag_start = this.pos - 3;
                             } else {
@@ -1764,28 +6965,26 @@ if (typeof define === "function" && define.amd) {
                         this.indent_content = true;
                         this.traverse_whitespace();
                     }
-                } else if (tag_check === 'script') { //for later script handling
+                } else if (this.is_unformatted(tag_check, unformatted)) { // do not reformat the "unformatted" tags
+                    comment = this.get_unformatted('</' + tag_check + '>', tag_complete); //...delegate to get_unformatted function
+                    content.push(comment);
+                    tag_end = this.pos - 1;
+                    this.tag_type = 'SINGLE';
+                } else if (tag_check === 'script' &&
+                    (tag_complete.search('type') === -1 ||
+                    (tag_complete.search('type') > -1 &&
+                    tag_complete.search(/\b(text|application)\/(x-)?(javascript|ecmascript|jscript|livescript)/) > -1))) {
                     if (!peek) {
                         this.record_tag(tag_check);
                         this.tag_type = 'SCRIPT';
                     }
-                } else if (tag_check === 'style') { //for future style handling (for now it justs uses get_content)
+                } else if (tag_check === 'style' &&
+                    (tag_complete.search('type') === -1 ||
+                    (tag_complete.search('type') > -1 && tag_complete.search('text/css') > -1))) {
                     if (!peek) {
                         this.record_tag(tag_check);
                         this.tag_type = 'STYLE';
                     }
-                } else if (this.is_unformatted(tag_check, unformatted)) { // do not reformat the "unformatted" tags
-                    comment = this.get_unformatted('</' + tag_check + '>', tag_complete); //...delegate to get_unformatted function
-                    content.push(comment);
-                    // Preserve collapsed whitespace either before or after this tag.
-                    if (tag_start > 0 && this.Utils.in_array(this.input.charAt(tag_start - 1), this.Utils.whitespace)) {
-                        content.splice(0, 0, this.input.charAt(tag_start - 1));
-                    }
-                    tag_end = this.pos - 1;
-                    if (this.Utils.in_array(this.input.charAt(tag_end + 1), this.Utils.whitespace)) {
-                        content.push(this.input.charAt(tag_end + 1));
-                    }
-                    this.tag_type = 'SINGLE';
                 } else if (tag_check.charAt(0) === '!') { //peek for <! comment
                     // for comments content is already correct.
                     if (!peek) {
@@ -1796,17 +6995,19 @@ if (typeof define === "function" && define.amd) {
                     if (tag_check.charAt(0) === '/') { //this tag is a double tag so check for tag-ending
                         this.retrieve_tag(tag_check.substring(1)); //remove it and all ancestors
                         this.tag_type = 'END';
-                        this.traverse_whitespace();
                     } else { //otherwise it's a start-tag
                         this.record_tag(tag_check); //push it on the tag stack
                         if (tag_check.toLowerCase() !== 'html') {
                             this.indent_content = true;
                         }
                         this.tag_type = 'START';
-
-                        // Allow preserving of newlines after a start tag
-                        this.traverse_whitespace();
                     }
+
+                    // Allow preserving of newlines after a start or end tag
+                    if (this.traverse_whitespace()) {
+                        this.space_or_wrap(content);
+                    }
+
                     if (this.Utils.in_array(tag_check, this.Utils.extra_liners)) { //check if this double needs an extra line
                         this.print_newline(false, this.output);
                         if (this.output.length && this.output[this.output.length - 2] !== '\n') {
@@ -2004,6 +7205,9 @@ if (typeof define === "function" && define.amd) {
                         return;
                     }
                     if (force || (arr[arr.length - 1] !== '\n')) { //we might want the extra line
+                        if ((arr[arr.length - 1] !== '\n')) {
+                            arr[arr.length - 1] = rtrim(arr[arr.length - 1]);
+                        }
                         arr.push('\n');
                     }
                 };
@@ -2016,6 +7220,10 @@ if (typeof define === "function" && define.amd) {
                 };
 
                 this.print_token = function(text) {
+                    // Avoid printing initial whitespace.
+                    if (this.is_whitespace(text) && !this.output.length) {
+                        return;
+                    }
                     if (text || text !== '') {
                         if (this.output.length && this.output[this.output.length - 1] === '\n') {
                             this.print_indentation(this.output);
@@ -2026,6 +7234,12 @@ if (typeof define === "function" && define.amd) {
                 };
 
                 this.print_token_raw = function(text) {
+                    // If we are going to print newlines, truncate trailing
+                    // whitespace, as the newlines will represent the space.
+                    if (this.newlines > 0) {
+                        text = rtrim(text);
+                    }
+
                     if (text && text !== '') {
                         if (text.length > 1 && text[text.length - 1] === '\n') {
                             // unformatted tags can grab newlines as their last character
@@ -2094,7 +7308,7 @@ if (typeof define === "function" && define.amd) {
                             tag_extracted_from_last_output = multi_parser.output[multi_parser.output.length - 1].match(/(?:<|{{#)\s*(\w+)/);
                         }
                         if (tag_extracted_from_last_output === null ||
-                            tag_extracted_from_last_output[1] !== tag_name) {
+                            (tag_extracted_from_last_output[1] !== tag_name && !multi_parser.Utils.in_array(tag_extracted_from_last_output[1], unformatted))) {
                             multi_parser.print_newline(false, multi_parser.output);
                         }
                     }
@@ -2103,7 +7317,7 @@ if (typeof define === "function" && define.amd) {
                     break;
                 case 'TK_TAG_SINGLE':
                     // Don't add a newline before elements that should remain unformatted.
-                    var tag_check = multi_parser.token_text.match(/^\s*<([a-z]+)/i);
+                    var tag_check = multi_parser.token_text.match(/^\s*<([a-z-]+)/i);
                     if (!tag_check || !multi_parser.Utils.in_array(tag_check[1], unformatted)) {
                         multi_parser.print_newline(false, multi_parser.output);
                     }
@@ -2155,17 +7369,28 @@ if (typeof define === "function" && define.amd) {
                                 .replace(/\s+$/, '');
                         }
                         if (text) {
-                            multi_parser.print_token_raw(indentation + trim(text));
-                            multi_parser.print_newline(false, multi_parser.output);
+                            multi_parser.print_token_raw(text);
+                            multi_parser.print_newline(true, multi_parser.output);
                         }
                     }
                     multi_parser.current_mode = 'TAG';
+                    break;
+                default:
+                    // We should not be getting here but we don't want to drop input on the floor
+                    // Just output the text and move on
+                    if (multi_parser.token_text !== '') {
+                        multi_parser.print_token(multi_parser.token_text);
+                    }
                     break;
             }
             multi_parser.last_token = multi_parser.token_type;
             multi_parser.last_text = multi_parser.token_text;
         }
-        return multi_parser.output.join('');
+        var sweet_code = multi_parser.output.join('').replace(/[\r\n\t ]+$/, '');
+        if (end_with_newline) {
+            sweet_code += '\n';
+        }
+        return sweet_code;
     }
 
     if (typeof define === "function" && define.amd) {
@@ -2173,7 +7398,7 @@ if (typeof define === "function" && define.amd) {
         define(["require", "./beautify", "./beautify-css"], function(requireamd) {
             var js_beautify =  requireamd("./beautify");
             var css_beautify =  requireamd("./beautify-css");
-            
+
             return {
               html_beautify: function(html_source, options) {
                 return style_html(html_source, options, js_beautify.js_beautify, css_beautify.css_beautify);
@@ -2204,7 +7429,7 @@ if (typeof define === "function" && define.amd) {
 }());
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./beautify-css.js":8,"./beautify.js":10}],10:[function(require,module,exports){
+},{"./beautify-css.js":9,"./beautify.js":11}],11:[function(require,module,exports){
 (function (global){
 /*jshint curly:true, eqeqeq:true, laxbreak:true, noempty:false */
 /*
@@ -2257,12 +7482,20 @@ if (typeof define === "function" && define.amd) {
 
     jslint_happy (default false) - if true, then jslint-stricter mode is enforced.
 
-            jslint_happy   !jslint_happy
+            jslint_happy        !jslint_happy
             ---------------------------------
-             function ()      function()
+            function ()         function()
 
-    brace_style (default "collapse") - "collapse" | "expand" | "end-expand"
-            put braces on the same line as control statements (default), or put braces on own line (Allman / ANSI style), or just put end braces on own line.
+            switch () {         switch() {
+            case 1:               case 1:
+              break;                break;
+            }                   }
+
+    space_after_anon_function (default false) - should the space before an anonymous function's parens be added, "function()" vs "function ()",
+          NOTE: This option is overriden by jslint_happy (i.e. if jslint_happy is true, space_after_anon_function is true by design)
+
+    brace_style (default "collapse") - "collapse" | "expand" | "end-expand" | "none"
+            put braces on the same line as control statements (default), or put braces on own line (Allman / ANSI style), or just put end braces on own line, or attempt to keep them where they are.
 
     space_before_conditional (default true) - should the space before conditional statement be added, "if(true)" vs "if (true)",
 
@@ -2271,6 +7504,9 @@ if (typeof define === "function" && define.amd) {
     wrap_line_length (default unlimited) - lines should wrap at next opportunity after this number of characters.
           NOTE: This is not a hard limit. Lines will continue until a point where a newline would
                 be preserved if it were present.
+
+    end_with_newline (default false)  - end output with a newline
+
 
     e.g
 
@@ -2311,7 +7547,7 @@ if (typeof define === "function" && define.amd) {
 
       // Whether a single character denotes a newline.
 
-      var newline = /[\n\r\u2028\u2029]/;
+      var newline = exports.newline = /[\n\r\u2028\u2029]/;
 
       // Matches a whole line break (where CRLF is considered a single
       // line break). Used to count lines.
@@ -2341,41 +7577,34 @@ if (typeof define === "function" && define.amd) {
       };
     })(acorn);
 
+    function in_array(what, arr) {
+        for (var i = 0; i < arr.length; i += 1) {
+            if (arr[i] === what) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function trim(s) {
+        return s.replace(/^\s+|\s+$/g, '');
+    }
+
+    function ltrim(s) {
+        return s.replace(/^\s+/g, '');
+    }
+
+    function rtrim(s) {
+        return s.replace(/\s+$/g, '');
+    }
+
     function js_beautify(js_source_text, options) {
         "use strict";
         var beautifier = new Beautifier(js_source_text, options);
         return beautifier.beautify();
     }
 
-    function Beautifier(js_source_text, options) {
-        "use strict";
-        var input, output_lines;
-        var token_text, token_type, last_type, last_last_text, indent_string;
-        var flags, previous_flags, flag_store;
-        var whitespace, wordchar, punct, parser_pos, line_starters, reserved_words, digits;
-        var prefix;
-        var input_wanted_newline;
-        var output_wrapped, output_space_before_token;
-        var input_length, n_newlines, whitespace_before_token;
-        var handlers, MODE, opt;
-        var preindent_string = '';
-
-
-
-        whitespace = "\n\r\t ".split('');
-        wordchar = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_$'.split('');
-        digits = '0123456789'.split('');
-
-        punct = '+ - * / % & ++ -- = += -= *= /= %= == === != !== > < >= <= >> << >>> >>>= >>= <<= && &= | || ! , : ? ^ ^= |= :: =>';
-        punct += ' <%= <% %> <?= <? ?>'; // try to be a good boy and try not to break the markup language identifiers
-        punct = punct.split(' ');
-
-        // words which should always start on new line.
-        line_starters = 'continue,try,throw,return,var,let,const,if,switch,case,default,for,while,break,function'.split(',');
-        reserved_words = line_starters.concat(['do', 'in', 'else', 'get', 'set', 'new', 'catch', 'finally', 'typeof']);
-
-
-        MODE = {
+    var MODE = {
             BlockStatement: 'BlockStatement', // 'BLOCK'
             Statement: 'Statement', // 'STATEMENT'
             ObjectLiteral: 'ObjectLiteral', // 'OBJECT',
@@ -2384,6 +7613,19 @@ if (typeof define === "function" && define.amd) {
             Conditional: 'Conditional', //'(COND-EXPRESSION)',
             Expression: 'Expression' //'(EXPRESSION)'
         };
+
+    function Beautifier(js_source_text, options) {
+        "use strict";
+        var output
+        var tokens = [], token_pos;
+        var Tokenizer;
+        var current_token;
+        var last_type, last_last_text, indent_string;
+        var flags, previous_flags, flag_store;
+        var prefix;
+
+        var handlers, opt;
+        var baseIndentString = '';
 
         handlers = {
             'TK_START_EXPR': handle_start_expr,
@@ -2401,14 +7643,15 @@ if (typeof define === "function" && define.amd) {
             'TK_INLINE_COMMENT': handle_inline_comment,
             'TK_COMMENT': handle_comment,
             'TK_DOT': handle_dot,
-            'TK_UNKNOWN': handle_unknown
+            'TK_UNKNOWN': handle_unknown,
+            'TK_EOF': handle_eof
         };
 
         function create_flags(flags_base, mode) {
             var next_indent_level = 0;
             if (flags_base) {
                 next_indent_level = flags_base.indentation_level;
-                if (!just_added_newline() &&
+                if (!output.just_added_newline() &&
                     flags_base.line_indent_level > next_indent_level) {
                     next_indent_level = flags_base.line_indent_level;
                 }
@@ -2421,7 +7664,6 @@ if (typeof define === "function" && define.amd) {
                 last_word: flags_base ? flags_base.last_word : '', // last 'TK_WORD' passed
                 declaration_statement: false,
                 declaration_assignment: false,
-                in_html_comment: false,
                 multiline_frame: false,
                 if_block: false,
                 else_block: false,
@@ -2432,19 +7674,10 @@ if (typeof define === "function" && define.amd) {
                 case_body: false, // the indented case-action block
                 indentation_level: next_indent_level,
                 line_indent_level: flags_base ? flags_base.line_indent_level : next_indent_level,
-                start_line_index: output_lines.length,
-                had_comment: false,
+                start_line_index: output.get_line_number(),
                 ternary_depth: 0
             };
             return next_flags;
-        }
-
-        // Using object instead of string to allow for later expansion of info about each line
-
-        function create_output_line() {
-            return {
-                text: []
-            };
         }
 
         // Some interpreters have unexpected results with foo = baz || bar;
@@ -2452,9 +7685,6 @@ if (typeof define === "function" && define.amd) {
         opt = {};
 
         // compatibility
-        if (options.space_after_anon_function !== undefined && options.jslint_happy === undefined) {
-            options.jslint_happy = options.space_after_anon_function;
-        }
         if (options.braces_on_own_line !== undefined) { //graceful handling of deprecated option
             opt.brace_style = options.braces_on_own_line ? "expand" : "collapse";
         }
@@ -2474,11 +7704,20 @@ if (typeof define === "function" && define.amd) {
         opt.space_in_paren = (options.space_in_paren === undefined) ? false : options.space_in_paren;
         opt.space_in_empty_paren = (options.space_in_empty_paren === undefined) ? false : options.space_in_empty_paren;
         opt.jslint_happy = (options.jslint_happy === undefined) ? false : options.jslint_happy;
+        opt.space_after_anon_function = (options.space_after_anon_function === undefined) ? false : options.space_after_anon_function;
         opt.keep_array_indentation = (options.keep_array_indentation === undefined) ? false : options.keep_array_indentation;
         opt.space_before_conditional = (options.space_before_conditional === undefined) ? true : options.space_before_conditional;
         opt.unescape_strings = (options.unescape_strings === undefined) ? false : options.unescape_strings;
         opt.wrap_line_length = (options.wrap_line_length === undefined) ? 0 : parseInt(options.wrap_line_length, 10);
         opt.e4x = (options.e4x === undefined) ? false : options.e4x;
+        opt.end_with_newline = (options.end_with_newline === undefined) ? false : options.end_with_newline;
+        opt.comma_first = (options.comma_first === undefined) ? false : options.comma_first;
+
+
+        // force opt.space_after_anon_function to true if opt.jslint_happy
+        if(opt.jslint_happy) {
+            opt.space_after_anon_function = true;
+        }
 
         if(options.indent_with_tabs){
             opt.indent_char = '\t';
@@ -2492,20 +7731,20 @@ if (typeof define === "function" && define.amd) {
             opt.indent_size -= 1;
         }
 
-        while (js_source_text && (js_source_text.charAt(0) === ' ' || js_source_text.charAt(0) === '\t')) {
-            preindent_string += js_source_text.charAt(0);
-            js_source_text = js_source_text.substring(1);
+        var preindent_index = 0;
+        if(js_source_text && js_source_text.length) {
+            while ( (js_source_text.charAt(preindent_index) === ' ' ||
+                    js_source_text.charAt(preindent_index) === '\t')) {
+                baseIndentString += js_source_text.charAt(preindent_index);
+                preindent_index += 1;
+            }
+            js_source_text = js_source_text.substring(preindent_index);
         }
-        input = js_source_text;
-        // cache the source's length.
-        input_length = js_source_text.length;
 
         last_type = 'TK_START_BLOCK'; // last token type
         last_last_text = ''; // pre-last token text
-        output_lines = [create_output_line()];
-        output_wrapped = false;
-        output_space_before_token = false;
-        whitespace_before_token = [];
+        output = new Output(indent_string, baseIndentString);
+
 
         // Stack of parsing/formatting states, including MODE.
         // We tokenize, parse, and output in an almost purely a forward-only stream of token input
@@ -2520,101 +7759,67 @@ if (typeof define === "function" && define.amd) {
         flag_store = [];
         set_mode(MODE.BlockStatement);
 
-        parser_pos = 0;
-
         this.beautify = function() {
+
             /*jshint onevar:true */
-            var t, i, keep_whitespace, sweet_code;
+            var local_token, sweet_code;
+            Tokenizer = new tokenizer(js_source_text, opt, indent_string);
+            tokens = Tokenizer.tokenize();
+            token_pos = 0;
 
-            while (true) {
-                t = get_next_token();
-                token_text = t[0];
-                token_type = t[1];
-
-                if (token_type === 'TK_EOF') {
-                    // Unwind any open statements
-                    while (flags.mode === MODE.Statement) {
-                        restore_mode();
-                    }
-                    break;
+            while (local_token = get_token()) {
+                for(var i = 0; i < local_token.comments_before.length; i++) {
+                    // The cleanest handling of inline comments is to treat them as though they aren't there.
+                    // Just continue formatting and the behavior should be logical.
+                    // Also ignore unknown tokens.  Again, this should result in better behavior.
+                    handle_token(local_token.comments_before[i]);
                 }
+                handle_token(local_token);
 
-                keep_whitespace = opt.keep_array_indentation && is_array(flags.mode);
-                input_wanted_newline = n_newlines > 0;
+                last_last_text = flags.last_text;
+                last_type = local_token.type;
+                flags.last_text = local_token.text;
 
-                if (keep_whitespace) {
-                    for (i = 0; i < n_newlines; i += 1) {
-                        print_newline(i > 0);
-                    }
-                } else {
-                    if (opt.max_preserve_newlines && n_newlines > opt.max_preserve_newlines) {
-                        n_newlines = opt.max_preserve_newlines;
-                    }
-
-                    if (opt.preserve_newlines) {
-                        if (n_newlines > 1) {
-                            print_newline();
-                            for (i = 1; i < n_newlines; i += 1) {
-                                print_newline(true);
-                            }
-                        }
-                    }
-                }
-
-                handlers[token_type]();
-
-                // The cleanest handling of inline comments is to treat them as though they aren't there.
-                // Just continue formatting and the behavior should be logical.
-                // Also ignore unknown tokens.  Again, this should result in better behavior.
-                if (token_type !== 'TK_INLINE_COMMENT' && token_type !== 'TK_COMMENT' &&
-                    token_type !== 'TK_BLOCK_COMMENT' && token_type !== 'TK_UNKNOWN') {
-                    last_last_text = flags.last_text;
-                    last_type = token_type;
-                    flags.last_text = token_text;
-                }
-                flags.had_comment = (token_type === 'TK_INLINE_COMMENT' || token_type === 'TK_COMMENT'
-                    || token_type === 'TK_BLOCK_COMMENT');
+                token_pos += 1;
             }
 
-
-            sweet_code = output_lines[0].text.join('');
-            for (var line_index = 1; line_index < output_lines.length; line_index++) {
-                sweet_code += '\n' + output_lines[line_index].text.join('');
+            sweet_code = output.get_code();
+            if (opt.end_with_newline) {
+                sweet_code += '\n';
             }
-            sweet_code = sweet_code.replace(/[\r\n ]+$/, '');
+
             return sweet_code;
         };
 
-        function trim_output(eat_newlines) {
-            eat_newlines = (eat_newlines === undefined) ? false : eat_newlines;
+        function handle_token(local_token) {
+            var newlines = local_token.newlines;
+            var keep_whitespace = opt.keep_array_indentation && is_array(flags.mode);
 
-            if (output_lines.length) {
-                trim_output_line(output_lines[output_lines.length - 1], eat_newlines);
+            if (keep_whitespace) {
+                for (i = 0; i < newlines; i += 1) {
+                    print_newline(i > 0);
+                }
+            } else {
+                if (opt.max_preserve_newlines && newlines > opt.max_preserve_newlines) {
+                    newlines = opt.max_preserve_newlines;
+                }
 
-                while (eat_newlines && output_lines.length > 1 &&
-                    output_lines[output_lines.length - 1].text.length === 0) {
-                    output_lines.pop();
-                    trim_output_line(output_lines[output_lines.length - 1], eat_newlines);
+                if (opt.preserve_newlines) {
+                    if (local_token.newlines > 1) {
+                        print_newline();
+                        for (var i = 1; i < newlines; i += 1) {
+                            print_newline(true);
+                        }
+                    }
                 }
             }
-        }
 
-        function trim_output_line(line) {
-            while (line.text.length &&
-                (line.text[line.text.length - 1] === ' ' ||
-                    line.text[line.text.length - 1] === indent_string ||
-                    line.text[line.text.length - 1] === preindent_string)) {
-                line.text.pop();
-            }
-        }
-
-        function trim(s) {
-            return s.replace(/^\s+|\s+$/g, '');
+            current_token = local_token;
+            handlers[current_token.type]();
         }
 
         // we could use just string.split, but
         // IE doesn't like returning empty strings
-
         function split_newlines(s) {
             //return s.split(/\x0d\x0a|\x0a/);
 
@@ -2632,51 +7837,26 @@ if (typeof define === "function" && define.amd) {
             return out;
         }
 
-        function just_added_newline() {
-            var line = output_lines[output_lines.length - 1];
-            return line.text.length === 0;
-        }
-
-        function just_added_blankline() {
-            if (just_added_newline()) {
-                if (output_lines.length === 1) {
-                    return true; // start of the file and newline = blank
-                }
-
-                var line = output_lines[output_lines.length - 2];
-                return line.text.length === 0;
-            }
-            return false;
-        }
-
         function allow_wrap_or_preserved_newline(force_linewrap) {
             force_linewrap = (force_linewrap === undefined) ? false : force_linewrap;
-            if (opt.wrap_line_length && !force_linewrap) {
-                var line = output_lines[output_lines.length - 1];
-                var proposed_line_length = 0;
-                // never wrap the first token of a line.
-                if (line.text.length > 0) {
-                    proposed_line_length = line.text.join('').length + token_text.length +
-                        (output_space_before_token ? 1 : 0);
-                    if (proposed_line_length >= opt.wrap_line_length) {
-                        force_linewrap = true;
-                    }
-                }
-            }
-            if (((opt.preserve_newlines && input_wanted_newline) || force_linewrap) && !just_added_newline()) {
-                print_newline(false, true);
 
-                // Expressions and array literals already indent their contents.
-                if (!(is_array(flags.mode) || is_expression(flags.mode) || flags.mode === MODE.Statement)) {
-                    output_wrapped = true;
+            // Never wrap the first token on a line
+            if (output.just_added_newline()) {
+                return
+            }
+
+            if ((opt.preserve_newlines && current_token.wanted_newline) || force_linewrap) {
+                print_newline(false, true);
+            } else if (opt.wrap_line_length) {
+                var proposed_line_length = output.current_line.get_character_count() + current_token.text.length +
+                    (output.space_before_token ? 1 : 0);
+                if (proposed_line_length >= opt.wrap_line_length) {
+                    print_newline(false, true);
                 }
             }
         }
 
         function print_newline(force_newline, preserve_statement_flags) {
-            output_wrapped = false;
-            output_space_before_token = false;
-
             if (!preserve_statement_flags) {
                 if (flags.last_text !== ';' && flags.last_text !== ',' && flags.last_text !== '=' && last_type !== 'TK_OPERATOR') {
                     while (flags.mode === MODE.Statement && !flags.if_block && !flags.do_block) {
@@ -2685,65 +7865,36 @@ if (typeof define === "function" && define.amd) {
                 }
             }
 
-            if (output_lines.length === 1 && just_added_newline()) {
-                return; // no newline on start of file
-            }
-
-            if (force_newline || !just_added_newline()) {
+            if (output.add_new_line(force_newline)) {
                 flags.multiline_frame = true;
-                output_lines.push(create_output_line());
             }
         }
 
         function print_token_line_indentation() {
-            if (just_added_newline()) {
-                var line = output_lines[output_lines.length - 1];
-                if (opt.keep_array_indentation && is_array(flags.mode) && input_wanted_newline) {
-                    // prevent removing of this whitespace as redundant
-                    line.text.push('');
-                    for (var i = 0; i < whitespace_before_token.length; i += 1) {
-                        line.text.push(whitespace_before_token[i]);
-                    }
-                } else {
-                    if (preindent_string) {
-                        line.text.push(preindent_string);
-                    }
-
-                    print_indent_string(flags.indentation_level +
-                        (output_wrapped ? 1 : 0));
-                }
-            }
-        }
-
-        function print_indent_string(level) {
-            // Never indent your first output indent at the start of the file
-            if (output_lines.length > 1) {
-                var line = output_lines[output_lines.length - 1];
-
-                flags.line_indent_level = level;
-                for (var i = 0; i < level; i += 1) {
-                    line.text.push(indent_string);
-                }
-            }
-        }
-
-        function print_token_space_before() {
-            var line = output_lines[output_lines.length - 1];
-            if (output_space_before_token && line.text.length) {
-                var last_output = line.text[line.text.length - 1];
-                if (last_output !== ' ' && last_output !== indent_string) { // prevent occassional duplicate space
-                    line.text.push(' ');
+            if (output.just_added_newline()) {
+                if (opt.keep_array_indentation && is_array(flags.mode) && current_token.wanted_newline) {
+                    output.current_line.push(current_token.whitespace_before);
+                    output.space_before_token = false;
+                } else if (output.set_indent(flags.indentation_level)) {
+                    flags.line_indent_level = flags.indentation_level;
                 }
             }
         }
 
         function print_token(printable_token) {
-            printable_token = printable_token || token_text;
+            if (opt.comma_first && last_type === 'TK_COMMA'
+                && output.just_added_newline()) {
+                if(output.previous_line.last() === ',') {
+                    output.previous_line.pop();
+                    print_token_line_indentation();
+                    output.add_token(',');
+                    output.space_before_token = true;
+                }
+            }
+
+            printable_token = printable_token || current_token.text;
             print_token_line_indentation();
-            output_wrapped = false;
-            print_token_space_before();
-            output_space_before_token = false;
-            output_lines[output_lines.length - 1].text.push(printable_token);
+            output.add_token(printable_token);
         }
 
         function indent() {
@@ -2754,43 +7905,6 @@ if (typeof define === "function" && define.amd) {
             if (flags.indentation_level > 0 &&
                 ((!flags.parent) || flags.indentation_level > flags.parent.indentation_level))
                 flags.indentation_level -= 1;
-        }
-
-        function remove_redundant_indentation(frame) {
-            // This implementation is effective but has some issues:
-            //     - less than great performance due to array splicing
-            //     - can cause line wrap to happen too soon due to indent removal
-            //           after wrap points are calculated
-            // These issues are minor compared to ugly indentation.
-
-            if (frame.multiline_frame) return;
-
-            // remove one indent from each line inside this section
-            var index = frame.start_line_index;
-            var splice_index = 0;
-            var line;
-
-            while (index < output_lines.length) {
-                line = output_lines[index];
-                index++;
-
-                // skip empty lines
-                if (line.text.length === 0) {
-                    continue;
-                }
-
-                // skip the preindent string if present
-                if (preindent_string && line.text[0] === preindent_string) {
-                    splice_index = 1;
-                } else {
-                    splice_index = 0;
-                }
-
-                // remove one indent, if present
-                if (line.text[splice_index] === indent_string) {
-                    line.text.splice(splice_index, 1);
-                }
-            }
         }
 
         function set_mode(mode) {
@@ -2817,38 +7931,45 @@ if (typeof define === "function" && define.amd) {
                 previous_flags = flags;
                 flags = flag_store.pop();
                 if (previous_flags.mode === MODE.Statement) {
-                    remove_redundant_indentation(previous_flags);
+                    output.remove_redundant_indentation(previous_flags);
                 }
             }
         }
 
         function start_of_object_property() {
-            return flags.mode === MODE.ObjectLiteral && flags.last_text === ':' &&
-                flags.ternary_depth === 0;
+            return flags.parent.mode === MODE.ObjectLiteral && flags.mode === MODE.Statement && (
+                (flags.last_text === ':' && flags.ternary_depth === 0) || (last_type === 'TK_RESERVED' && in_array(flags.last_text, ['get', 'set'])));
         }
 
         function start_of_statement() {
             if (
-                    (last_type === 'TK_RESERVED' && in_array(flags.last_text, ['var', 'let', 'const']) && token_type === 'TK_WORD') ||
+                    (last_type === 'TK_RESERVED' && in_array(flags.last_text, ['var', 'let', 'const']) && current_token.type === 'TK_WORD') ||
                     (last_type === 'TK_RESERVED' && flags.last_text === 'do') ||
-                    (last_type === 'TK_RESERVED' && flags.last_text === 'return' && !input_wanted_newline) ||
-                    (last_type === 'TK_RESERVED' && flags.last_text === 'else' && !(token_type === 'TK_RESERVED' && token_text === 'if')) ||
-                    (last_type === 'TK_END_EXPR' && (previous_flags.mode === MODE.ForInitializer || previous_flags.mode === MODE.Conditional))) {
+                    (last_type === 'TK_RESERVED' && flags.last_text === 'return' && !current_token.wanted_newline) ||
+                    (last_type === 'TK_RESERVED' && flags.last_text === 'else' && !(current_token.type === 'TK_RESERVED' && current_token.text === 'if')) ||
+                    (last_type === 'TK_END_EXPR' && (previous_flags.mode === MODE.ForInitializer || previous_flags.mode === MODE.Conditional)) ||
+                    (last_type === 'TK_WORD' && flags.mode === MODE.BlockStatement
+                        && !flags.in_case
+                        && !(current_token.text === '--' || current_token.text === '++')
+                        && current_token.type !== 'TK_WORD' && current_token.type !== 'TK_RESERVED') ||
+                    (flags.mode === MODE.ObjectLiteral && (
+                        (flags.last_text === ':' && flags.ternary_depth === 0) || (last_type === 'TK_RESERVED' && in_array(flags.last_text, ['get', 'set']))))
+                ) {
 
                 set_mode(MODE.Statement);
                 indent();
 
-                if (last_type === 'TK_RESERVED' && in_array(flags.last_text, ['var', 'let', 'const']) && token_type === 'TK_WORD') {
+                if (last_type === 'TK_RESERVED' && in_array(flags.last_text, ['var', 'let', 'const']) && current_token.type === 'TK_WORD') {
                     flags.declaration_statement = true;
                 }
 
                 // Issue #276:
                 // If starting a new statement with [if, for, while, do], push to a new line.
                 // if (a) if (b) if(c) d(); else e(); else f();
-                allow_wrap_or_preserved_newline(
-                    token_type === 'TK_RESERVED' && in_array(token_text, ['do', 'for', 'if', 'while']));
-
-                output_wrapped = false;
+                if (!start_of_object_property()) {
+                    allow_wrap_or_preserved_newline(
+                        current_token.type === 'TK_RESERVED' && in_array(current_token.text, ['do', 'for', 'if', 'while']));
+                }
 
                 return true;
             }
@@ -2865,18 +7986,1348 @@ if (typeof define === "function" && define.amd) {
             return true;
         }
 
+        function each_line_matches_indent(lines, indent) {
+            var i = 0,
+                len = lines.length,
+                line;
+            for (; i < len; i++) {
+                line = lines[i];
+                // allow empty lines to pass through
+                if (line && line.indexOf(indent) !== 0) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         function is_special_word(word) {
             return in_array(word, ['case', 'return', 'do', 'if', 'throw', 'else']);
         }
 
-        function in_array(what, arr) {
-            for (var i = 0; i < arr.length; i += 1) {
-                if (arr[i] === what) {
-                    return true;
+        function get_token(offset) {
+            var index = token_pos + (offset || 0);
+            return (index < 0 || index >= tokens.length) ? null : tokens[index];
+        }
+
+        function handle_start_expr() {
+            if (start_of_statement()) {
+                // The conditional starts the statement if appropriate.
+            }
+
+            var next_mode = MODE.Expression;
+            if (current_token.text === '[') {
+
+                if (last_type === 'TK_WORD' || flags.last_text === ')') {
+                    // this is array index specifier, break immediately
+                    // a[x], fn()[x]
+                    if (last_type === 'TK_RESERVED' && in_array(flags.last_text, Tokenizer.line_starters)) {
+                        output.space_before_token = true;
+                    }
+                    set_mode(next_mode);
+                    print_token();
+                    indent();
+                    if (opt.space_in_paren) {
+                        output.space_before_token = true;
+                    }
+                    return;
                 }
+
+                next_mode = MODE.ArrayLiteral;
+                if (is_array(flags.mode)) {
+                    if (flags.last_text === '[' ||
+                        (flags.last_text === ',' && (last_last_text === ']' || last_last_text === '}'))) {
+                        // ], [ goes to new line
+                        // }, [ goes to new line
+                        if (!opt.keep_array_indentation) {
+                            print_newline();
+                        }
+                    }
+                }
+
+            } else {
+                if (last_type === 'TK_RESERVED' && flags.last_text === 'for') {
+                    next_mode = MODE.ForInitializer;
+                } else if (last_type === 'TK_RESERVED' && in_array(flags.last_text, ['if', 'while'])) {
+                    next_mode = MODE.Conditional;
+                } else {
+                    // next_mode = MODE.Expression;
+                }
+            }
+
+            if (flags.last_text === ';' || last_type === 'TK_START_BLOCK') {
+                print_newline();
+            } else if (last_type === 'TK_END_EXPR' || last_type === 'TK_START_EXPR' || last_type === 'TK_END_BLOCK' || flags.last_text === '.') {
+                // TODO: Consider whether forcing this is required.  Review failing tests when removed.
+                allow_wrap_or_preserved_newline(current_token.wanted_newline);
+                // do nothing on (( and )( and ][ and ]( and .(
+            } else if (!(last_type === 'TK_RESERVED' && current_token.text === '(') && last_type !== 'TK_WORD' && last_type !== 'TK_OPERATOR') {
+                output.space_before_token = true;
+            } else if ((last_type === 'TK_RESERVED' && (flags.last_word === 'function' || flags.last_word === 'typeof')) ||
+                (flags.last_text === '*' && last_last_text === 'function')) {
+                // function() vs function ()
+                if (opt.space_after_anon_function) {
+                    output.space_before_token = true;
+                }
+            } else if (last_type === 'TK_RESERVED' && (in_array(flags.last_text, Tokenizer.line_starters) || flags.last_text === 'catch')) {
+                if (opt.space_before_conditional) {
+                    output.space_before_token = true;
+                }
+            }
+
+            // Support of this kind of newline preservation.
+            // a = (b &&
+            //     (c || d));
+            if (current_token.text === '(') {
+                if (last_type === 'TK_EQUALS' || last_type === 'TK_OPERATOR') {
+                    if (!start_of_object_property()) {
+                        allow_wrap_or_preserved_newline();
+                    }
+                }
+            }
+
+            set_mode(next_mode);
+            print_token();
+            if (opt.space_in_paren) {
+                output.space_before_token = true;
+            }
+
+            // In all cases, if we newline while inside an expression it should be indented.
+            indent();
+        }
+
+        function handle_end_expr() {
+            // statements inside expressions are not valid syntax, but...
+            // statements must all be closed when their container closes
+            while (flags.mode === MODE.Statement) {
+                restore_mode();
+            }
+
+            if (flags.multiline_frame) {
+                allow_wrap_or_preserved_newline(current_token.text === ']' && is_array(flags.mode) && !opt.keep_array_indentation);
+            }
+
+            if (opt.space_in_paren) {
+                if (last_type === 'TK_START_EXPR' && ! opt.space_in_empty_paren) {
+                    // () [] no inner space in empty parens like these, ever, ref #320
+                    output.trim();
+                    output.space_before_token = false;
+                } else {
+                    output.space_before_token = true;
+                }
+            }
+            if (current_token.text === ']' && opt.keep_array_indentation) {
+                print_token();
+                restore_mode();
+            } else {
+                restore_mode();
+                print_token();
+            }
+            output.remove_redundant_indentation(previous_flags);
+
+            // do {} while () // no statement required after
+            if (flags.do_while && previous_flags.mode === MODE.Conditional) {
+                previous_flags.mode = MODE.Expression;
+                flags.do_block = false;
+                flags.do_while = false;
+
+            }
+        }
+
+        function handle_start_block() {
+            // Check if this is should be treated as a ObjectLiteral
+            var next_token = get_token(1)
+            var second_token = get_token(2)
+            if (second_token && (
+                    (second_token.text === ':' && in_array(next_token.type, ['TK_STRING', 'TK_WORD', 'TK_RESERVED']))
+                    || (in_array(next_token.text, ['get', 'set']) && in_array(second_token.type, ['TK_WORD', 'TK_RESERVED']))
+                )) {
+                // We don't support TypeScript,but we didn't break it for a very long time.
+                // We'll try to keep not breaking it.
+                if (!in_array(last_last_text, ['class','interface'])) {
+                    set_mode(MODE.ObjectLiteral);
+                } else {
+                    set_mode(MODE.BlockStatement);
+                }
+            } else {
+                set_mode(MODE.BlockStatement);
+            }
+
+            var empty_braces = !next_token.comments_before.length &&  next_token.text === '}';
+            var empty_anonymous_function = empty_braces && flags.last_word === 'function' &&
+                last_type === 'TK_END_EXPR';
+
+            if (opt.brace_style === "expand" ||
+                (opt.brace_style === "none" && current_token.wanted_newline)) {
+                if (last_type !== 'TK_OPERATOR' &&
+                    (empty_anonymous_function ||
+                        last_type === 'TK_EQUALS' ||
+                        (last_type === 'TK_RESERVED' && is_special_word(flags.last_text) && flags.last_text !== 'else'))) {
+                    output.space_before_token = true;
+                } else {
+                    print_newline(false, true);
+                }
+            } else { // collapse
+                if (last_type !== 'TK_OPERATOR' && last_type !== 'TK_START_EXPR') {
+                    if (last_type === 'TK_START_BLOCK') {
+                        print_newline();
+                    } else {
+                        output.space_before_token = true;
+                    }
+                } else {
+                    // if TK_OPERATOR or TK_START_EXPR
+                    if (is_array(previous_flags.mode) && flags.last_text === ',') {
+                        if (last_last_text === '}') {
+                            // }, { in array context
+                            output.space_before_token = true;
+                        } else {
+                            print_newline(); // [a, b, c, {
+                        }
+                    }
+                }
+            }
+            print_token();
+            indent();
+        }
+
+        function handle_end_block() {
+            // statements must all be closed when their container closes
+            while (flags.mode === MODE.Statement) {
+                restore_mode();
+            }
+            var empty_braces = last_type === 'TK_START_BLOCK';
+
+            if (opt.brace_style === "expand") {
+                if (!empty_braces) {
+                    print_newline();
+                }
+            } else {
+                // skip {}
+                if (!empty_braces) {
+                    if (is_array(flags.mode) && opt.keep_array_indentation) {
+                        // we REALLY need a newline here, but newliner would skip that
+                        opt.keep_array_indentation = false;
+                        print_newline();
+                        opt.keep_array_indentation = true;
+
+                    } else {
+                        print_newline();
+                    }
+                }
+            }
+            restore_mode();
+            print_token();
+        }
+
+        function handle_word() {
+            if (current_token.type === 'TK_RESERVED' && flags.mode !== MODE.ObjectLiteral &&
+                in_array(current_token.text, ['set', 'get'])) {
+                current_token.type = 'TK_WORD';
+            }
+
+            if (current_token.type === 'TK_RESERVED' && flags.mode === MODE.ObjectLiteral) {
+                var next_token = get_token(1);
+                if (next_token.text == ':') {
+                    current_token.type = 'TK_WORD';
+                }
+            }
+
+            if (start_of_statement()) {
+                // The conditional starts the statement if appropriate.
+            } else if (current_token.wanted_newline && !is_expression(flags.mode) &&
+                (last_type !== 'TK_OPERATOR' || (flags.last_text === '--' || flags.last_text === '++')) &&
+                last_type !== 'TK_EQUALS' &&
+                (opt.preserve_newlines || !(last_type === 'TK_RESERVED' && in_array(flags.last_text, ['var', 'let', 'const', 'set', 'get'])))) {
+
+                print_newline();
+            }
+
+            if (flags.do_block && !flags.do_while) {
+                if (current_token.type === 'TK_RESERVED' && current_token.text === 'while') {
+                    // do {} ## while ()
+                    output.space_before_token = true;
+                    print_token();
+                    output.space_before_token = true;
+                    flags.do_while = true;
+                    return;
+                } else {
+                    // do {} should always have while as the next word.
+                    // if we don't see the expected while, recover
+                    print_newline();
+                    flags.do_block = false;
+                }
+            }
+
+            // if may be followed by else, or not
+            // Bare/inline ifs are tricky
+            // Need to unwind the modes correctly: if (a) if (b) c(); else d(); else e();
+            if (flags.if_block) {
+                if (!flags.else_block && (current_token.type === 'TK_RESERVED' && current_token.text === 'else')) {
+                    flags.else_block = true;
+                } else {
+                    while (flags.mode === MODE.Statement) {
+                        restore_mode();
+                    }
+                    flags.if_block = false;
+                    flags.else_block = false;
+                }
+            }
+
+            if (current_token.type === 'TK_RESERVED' && (current_token.text === 'case' || (current_token.text === 'default' && flags.in_case_statement))) {
+                print_newline();
+                if (flags.case_body || opt.jslint_happy) {
+                    // switch cases following one another
+                    deindent();
+                    flags.case_body = false;
+                }
+                print_token();
+                flags.in_case = true;
+                flags.in_case_statement = true;
+                return;
+            }
+
+            if (current_token.type === 'TK_RESERVED' && current_token.text === 'function') {
+                if (in_array(flags.last_text, ['}', ';']) || (output.just_added_newline() && ! in_array(flags.last_text, ['[', '{', ':', '=', ',']))) {
+                    // make sure there is a nice clean space of at least one blank line
+                    // before a new function definition
+                    if ( !output.just_added_blankline() && !current_token.comments_before.length) {
+                        print_newline();
+                        print_newline(true);
+                    }
+                }
+                if (last_type === 'TK_RESERVED' || last_type === 'TK_WORD') {
+                    if (last_type === 'TK_RESERVED' && in_array(flags.last_text, ['get', 'set', 'new', 'return', 'export'])) {
+                        output.space_before_token = true;
+                    } else if (last_type === 'TK_RESERVED' && flags.last_text === 'default' && last_last_text === 'export') {
+                        output.space_before_token = true;
+                    } else {
+                        print_newline();
+                    }
+                } else if (last_type === 'TK_OPERATOR' || flags.last_text === '=') {
+                    // foo = function
+                    output.space_before_token = true;
+                } else if (!flags.multiline_frame && (is_expression(flags.mode) || is_array(flags.mode))) {
+                    // (function
+                } else {
+                    print_newline();
+                }
+            }
+
+            if (last_type === 'TK_COMMA' || last_type === 'TK_START_EXPR' || last_type === 'TK_EQUALS' || last_type === 'TK_OPERATOR') {
+                if (!start_of_object_property()) {
+                    allow_wrap_or_preserved_newline();
+                }
+            }
+
+            if (current_token.type === 'TK_RESERVED' &&  in_array(current_token.text, ['function', 'get', 'set'])) {
+                print_token();
+                flags.last_word = current_token.text;
+                return;
+            }
+
+            prefix = 'NONE';
+
+            if (last_type === 'TK_END_BLOCK') {
+                if (!(current_token.type === 'TK_RESERVED' && in_array(current_token.text, ['else', 'catch', 'finally']))) {
+                    prefix = 'NEWLINE';
+                } else {
+                    if (opt.brace_style === "expand" ||
+                        opt.brace_style === "end-expand" ||
+                        (opt.brace_style === "none" && current_token.wanted_newline)) {
+                        prefix = 'NEWLINE';
+                    } else {
+                        prefix = 'SPACE';
+                        output.space_before_token = true;
+                    }
+                }
+            } else if (last_type === 'TK_SEMICOLON' && flags.mode === MODE.BlockStatement) {
+                // TODO: Should this be for STATEMENT as well?
+                prefix = 'NEWLINE';
+            } else if (last_type === 'TK_SEMICOLON' && is_expression(flags.mode)) {
+                prefix = 'SPACE';
+            } else if (last_type === 'TK_STRING') {
+                prefix = 'NEWLINE';
+            } else if (last_type === 'TK_RESERVED' || last_type === 'TK_WORD' ||
+                (flags.last_text === '*' && last_last_text === 'function')) {
+                prefix = 'SPACE';
+            } else if (last_type === 'TK_START_BLOCK') {
+                prefix = 'NEWLINE';
+            } else if (last_type === 'TK_END_EXPR') {
+                output.space_before_token = true;
+                prefix = 'NEWLINE';
+            }
+
+            if (current_token.type === 'TK_RESERVED' && in_array(current_token.text, Tokenizer.line_starters) && flags.last_text !== ')') {
+                if (flags.last_text === 'else' || flags.last_text === 'export') {
+                    prefix = 'SPACE';
+                } else {
+                    prefix = 'NEWLINE';
+                }
+
+            }
+
+            if (current_token.type === 'TK_RESERVED' && in_array(current_token.text, ['else', 'catch', 'finally'])) {
+                if (last_type !== 'TK_END_BLOCK' ||
+                    opt.brace_style === "expand" ||
+                    opt.brace_style === "end-expand" ||
+                    (opt.brace_style === "none" && current_token.wanted_newline)) {
+                    print_newline();
+                } else {
+                    output.trim(true);
+                    var line = output.current_line;
+                    // If we trimmed and there's something other than a close block before us
+                    // put a newline back in.  Handles '} // comment' scenario.
+                    if (line.last() !== '}') {
+                        print_newline();
+                    }
+                    output.space_before_token = true;
+                }
+            } else if (prefix === 'NEWLINE') {
+                if (last_type === 'TK_RESERVED' && is_special_word(flags.last_text)) {
+                    // no newline between 'return nnn'
+                    output.space_before_token = true;
+                } else if (last_type !== 'TK_END_EXPR') {
+                    if ((last_type !== 'TK_START_EXPR' || !(current_token.type === 'TK_RESERVED' && in_array(current_token.text, ['var', 'let', 'const']))) && flags.last_text !== ':') {
+                        // no need to force newline on 'var': for (var x = 0...)
+                        if (current_token.type === 'TK_RESERVED' && current_token.text === 'if' && flags.last_text === 'else') {
+                            // no newline for } else if {
+                            output.space_before_token = true;
+                        } else {
+                            print_newline();
+                        }
+                    }
+                } else if (current_token.type === 'TK_RESERVED' && in_array(current_token.text, Tokenizer.line_starters) && flags.last_text !== ')') {
+                    print_newline();
+                }
+            } else if (flags.multiline_frame && is_array(flags.mode) && flags.last_text === ',' && last_last_text === '}') {
+                print_newline(); // }, in lists get a newline treatment
+            } else if (prefix === 'SPACE') {
+                output.space_before_token = true;
+            }
+            print_token();
+            flags.last_word = current_token.text;
+
+            if (current_token.type === 'TK_RESERVED' && current_token.text === 'do') {
+                flags.do_block = true;
+            }
+
+            if (current_token.type === 'TK_RESERVED' && current_token.text === 'if') {
+                flags.if_block = true;
+            }
+        }
+
+        function handle_semicolon() {
+            if (start_of_statement()) {
+                // The conditional starts the statement if appropriate.
+                // Semicolon can be the start (and end) of a statement
+                output.space_before_token = false;
+            }
+            while (flags.mode === MODE.Statement && !flags.if_block && !flags.do_block) {
+                restore_mode();
+            }
+            print_token();
+        }
+
+        function handle_string() {
+            if (start_of_statement()) {
+                // The conditional starts the statement if appropriate.
+                // One difference - strings want at least a space before
+                output.space_before_token = true;
+            } else if (last_type === 'TK_RESERVED' || last_type === 'TK_WORD') {
+                output.space_before_token = true;
+            } else if (last_type === 'TK_COMMA' || last_type === 'TK_START_EXPR' || last_type === 'TK_EQUALS' || last_type === 'TK_OPERATOR') {
+                if (!start_of_object_property()) {
+                    allow_wrap_or_preserved_newline();
+                }
+            } else {
+                print_newline();
+            }
+            print_token();
+        }
+
+        function handle_equals() {
+            if (start_of_statement()) {
+                // The conditional starts the statement if appropriate.
+            }
+
+            if (flags.declaration_statement) {
+                // just got an '=' in a var-line, different formatting/line-breaking, etc will now be done
+                flags.declaration_assignment = true;
+            }
+            output.space_before_token = true;
+            print_token();
+            output.space_before_token = true;
+        }
+
+        function handle_comma() {
+            if (flags.declaration_statement) {
+                if (is_expression(flags.parent.mode)) {
+                    // do not break on comma, for(var a = 1, b = 2)
+                    flags.declaration_assignment = false;
+                }
+
+                print_token();
+
+                if (flags.declaration_assignment) {
+                    flags.declaration_assignment = false;
+                    print_newline(false, true);
+                } else {
+                    output.space_before_token = true;
+                    // for comma-first, we want to allow a newline before the comma
+                    // to turn into a newline after the comma, which we will fixup later
+                    if (opt.comma_first) {
+                        allow_wrap_or_preserved_newline();
+                    }
+                }
+                return;
+            }
+
+            print_token();
+            if (flags.mode === MODE.ObjectLiteral ||
+                (flags.mode === MODE.Statement && flags.parent.mode === MODE.ObjectLiteral)) {
+                if (flags.mode === MODE.Statement) {
+                    restore_mode();
+                }
+                print_newline();
+            } else {
+                // EXPR or DO_BLOCK
+                output.space_before_token = true;
+                // for comma-first, we want to allow a newline before the comma
+                // to turn into a newline after the comma, which we will fixup later
+                if (opt.comma_first) {
+                    allow_wrap_or_preserved_newline();
+                }
+            }
+
+        }
+
+        function handle_operator() {
+            if (start_of_statement()) {
+                // The conditional starts the statement if appropriate.
+            }
+
+            if (last_type === 'TK_RESERVED' && is_special_word(flags.last_text)) {
+                // "return" had a special handling in TK_WORD. Now we need to return the favor
+                output.space_before_token = true;
+                print_token();
+                return;
+            }
+
+            // hack for actionscript's import .*;
+            if (current_token.text === '*' && last_type === 'TK_DOT') {
+                print_token();
+                return;
+            }
+
+            if (current_token.text === ':' && flags.in_case) {
+                flags.case_body = true;
+                indent();
+                print_token();
+                print_newline();
+                flags.in_case = false;
+                return;
+            }
+
+            if (current_token.text === '::') {
+                // no spaces around exotic namespacing syntax operator
+                print_token();
+                return;
+            }
+
+            // Allow line wrapping between operators
+            if (last_type === 'TK_OPERATOR') {
+                allow_wrap_or_preserved_newline();
+            }
+
+            var space_before = true;
+            var space_after = true;
+
+            if (in_array(current_token.text, ['--', '++', '!', '~']) || (in_array(current_token.text, ['-', '+']) && (in_array(last_type, ['TK_START_BLOCK', 'TK_START_EXPR', 'TK_EQUALS', 'TK_OPERATOR']) || in_array(flags.last_text, Tokenizer.line_starters) || flags.last_text === ','))) {
+                // unary operators (and binary +/- pretending to be unary) special cases
+
+                space_before = false;
+                space_after = false;
+
+                // http://www.ecma-international.org/ecma-262/5.1/#sec-7.9.1
+                // if there is a newline between -- or ++ and anything else we should preserve it.
+                if (current_token.wanted_newline && (current_token.text === '--' || current_token.text === '++')) {
+                    print_newline(false, true);
+                }
+
+                if (flags.last_text === ';' && is_expression(flags.mode)) {
+                    // for (;; ++i)
+                    //        ^^^
+                    space_before = true;
+                }
+
+                if (last_type === 'TK_RESERVED') {
+                    space_before = true;
+                } else if (last_type === 'TK_END_EXPR') {
+                    space_before = !(flags.last_text === ']' && (current_token.text === '--' || current_token.text === '++'));
+                } else if (last_type === 'TK_OPERATOR') {
+                    // a++ + ++b;
+                    // a - -b
+                    space_before = in_array(current_token.text, ['--', '-', '++', '+']) && in_array(flags.last_text, ['--', '-', '++', '+']);
+                    // + and - are not unary when preceeded by -- or ++ operator
+                    // a-- + b
+                    // a * +b
+                    // a - -b
+                    if (in_array(current_token.text, ['+', '-']) && in_array(flags.last_text, ['--', '++'])) {
+                        space_after = true;
+                    }
+                }
+
+                if ((flags.mode === MODE.BlockStatement || flags.mode === MODE.Statement) && (flags.last_text === '{' || flags.last_text === ';')) {
+                    // { foo; --i }
+                    // foo(); --bar;
+                    print_newline();
+                }
+            } else if (current_token.text === ':') {
+                if (flags.ternary_depth === 0) {
+                    // Colon is invalid javascript outside of ternary and object, but do our best to guess what was meant.
+                    space_before = false;
+                } else {
+                    flags.ternary_depth -= 1;
+                }
+            } else if (current_token.text === '?') {
+                flags.ternary_depth += 1;
+            } else if (current_token.text === '*' && last_type === 'TK_RESERVED' && flags.last_text === 'function') {
+                space_before = false;
+                space_after = false;
+            }
+            output.space_before_token = output.space_before_token || space_before;
+            print_token();
+            output.space_before_token = space_after;
+        }
+
+        function handle_block_comment() {
+            var lines = split_newlines(current_token.text);
+            var j; // iterator for this case
+            var javadoc = false;
+            var starless = false;
+            var lastIndent = current_token.whitespace_before;
+            var lastIndentLength = lastIndent.length;
+
+            // block comment starts with a new line
+            print_newline(false, true);
+            if (lines.length > 1) {
+                if (all_lines_start_with(lines.slice(1), '*')) {
+                    javadoc = true;
+                }
+                else if (each_line_matches_indent(lines.slice(1), lastIndent)) {
+                    starless = true;
+                }
+            }
+
+            // first line always indented
+            print_token(lines[0]);
+            for (j = 1; j < lines.length; j++) {
+                print_newline(false, true);
+                if (javadoc) {
+                    // javadoc: reformat and re-indent
+                    print_token(' ' + ltrim(lines[j]));
+                } else if (starless && lines[j].length > lastIndentLength) {
+                    // starless: re-indent non-empty content, avoiding trim
+                    print_token(lines[j].substring(lastIndentLength));
+                } else {
+                    // normal comments output raw
+                    output.add_token(lines[j]);
+                }
+            }
+
+            // for comments of more than one line, make sure there's a new line after
+            print_newline(false, true);
+        }
+
+        function handle_inline_comment() {
+            output.space_before_token = true;
+            print_token();
+            output.space_before_token = true;
+        }
+
+        function handle_comment() {
+            if (current_token.wanted_newline) {
+                print_newline(false, true);
+            } else {
+                output.trim(true);
+            }
+
+            output.space_before_token = true;
+            print_token();
+            print_newline(false, true);
+        }
+
+        function handle_dot() {
+            if (start_of_statement()) {
+                // The conditional starts the statement if appropriate.
+            }
+
+            if (last_type === 'TK_RESERVED' && is_special_word(flags.last_text)) {
+                output.space_before_token = true;
+            } else {
+                // allow preserved newlines before dots in general
+                // force newlines on dots after close paren when break_chained - for bar().baz()
+                allow_wrap_or_preserved_newline(flags.last_text === ')' && opt.break_chained_methods);
+            }
+
+            print_token();
+        }
+
+        function handle_unknown() {
+            print_token();
+
+            if (current_token.text[current_token.text.length - 1] === '\n') {
+                print_newline();
+            }
+        }
+
+        function handle_eof() {
+            // Unwind any open statements
+            while (flags.mode === MODE.Statement) {
+                restore_mode();
+            }
+        }
+    }
+
+
+    function OutputLine(parent) {
+        var _character_count = 0;
+        // use indent_count as a marker for lines that have preserved indentation
+        var _indent_count = -1;
+
+        var _items = [];
+        var _empty = true;
+
+        this.set_indent = function(level) {
+            _character_count = parent.baseIndentLength + level * parent.indent_length
+            _indent_count = level;
+        }
+
+        this.get_character_count = function() {
+            return _character_count;
+        }
+
+        this.is_empty = function() {
+            return _empty;
+        }
+
+        this.last = function() {
+            if (!this._empty) {
+              return _items[_items.length - 1];
+            } else {
+              return null;
+            }
+        }
+
+        this.push = function(input) {
+            _items.push(input);
+            _character_count += input.length;
+            _empty = false;
+        }
+
+        this.pop = function() {
+            var item = null;
+            if (!_empty) {
+                item = _items.pop();
+                _character_count -= item.length;
+                _empty = _items.length === 0;
+            }
+            return item;
+        }
+
+        this.remove_indent = function() {
+            if (_indent_count > 0) {
+                _indent_count -= 1;
+                _character_count -= parent.indent_length
+            }
+        }
+
+        this.trim = function() {
+            while (this.last() === ' ') {
+                var item = _items.pop();
+                _character_count -= 1;
+            }
+            _empty = _items.length === 0;
+        }
+
+        this.toString = function() {
+            var result = '';
+            if (!this._empty) {
+                if (_indent_count >= 0) {
+                    result = parent.indent_cache[_indent_count];
+                }
+                result += _items.join('')
+            }
+            return result;
+        }
+    }
+
+    function Output(indent_string, baseIndentString) {
+        baseIndentString = baseIndentString || '';
+        this.indent_cache = [ baseIndentString ];
+        this.baseIndentLength = baseIndentString.length;
+        this.indent_length = indent_string.length;
+
+        var lines =[];
+        this.baseIndentString = baseIndentString;
+        this.indent_string = indent_string;
+        this.previous_line = null;
+        this.current_line = null;
+        this.space_before_token = false;
+
+        this.get_line_number = function() {
+            return lines.length;
+        }
+
+        // Using object instead of string to allow for later expansion of info about each line
+        this.add_new_line = function(force_newline) {
+            if (this.get_line_number() === 1 && this.just_added_newline()) {
+                return false; // no newline on start of file
+            }
+
+            if (force_newline || !this.just_added_newline()) {
+                this.previous_line = this.current_line;
+                this.current_line = new OutputLine(this);
+                lines.push(this.current_line);
+                return true;
+            }
+
+            return false;
+        }
+
+        // initialize
+        this.add_new_line(true);
+
+        this.get_code = function() {
+            var sweet_code = lines.join('\n').replace(/[\r\n\t ]+$/, '');
+            return sweet_code;
+        }
+
+        this.set_indent = function(level) {
+            // Never indent your first output indent at the start of the file
+            if (lines.length > 1) {
+                while(level >= this.indent_cache.length) {
+                    this.indent_cache.push(this.indent_cache[this.indent_cache.length - 1] + this.indent_string);
+                }
+
+                this.current_line.set_indent(level);
+                return true;
+            }
+            this.current_line.set_indent(0);
+            return false;
+        }
+
+        this.add_token = function(printable_token) {
+            this.add_space_before_token();
+            this.current_line.push(printable_token);
+        }
+
+        this.add_space_before_token = function() {
+            if (this.space_before_token && !this.just_added_newline()) {
+                this.current_line.push(' ');
+            }
+            this.space_before_token = false;
+        }
+
+        this.remove_redundant_indentation = function (frame) {
+            // This implementation is effective but has some issues:
+            //     - can cause line wrap to happen too soon due to indent removal
+            //           after wrap points are calculated
+            // These issues are minor compared to ugly indentation.
+
+            if (frame.multiline_frame ||
+                frame.mode === MODE.ForInitializer ||
+                frame.mode === MODE.Conditional) {
+                return;
+            }
+
+            // remove one indent from each line inside this section
+            var index = frame.start_line_index;
+            var line;
+
+            var output_length = lines.length;
+            while (index < output_length) {
+                lines[index].remove_indent();
+                index++;
+            }
+        }
+
+        this.trim = function(eat_newlines) {
+            eat_newlines = (eat_newlines === undefined) ? false : eat_newlines;
+
+            this.current_line.trim(indent_string, baseIndentString);
+
+            while (eat_newlines && lines.length > 1 &&
+                this.current_line.is_empty()) {
+                lines.pop();
+                this.current_line = lines[lines.length - 1]
+                this.current_line.trim();
+            }
+
+            this.previous_line = lines.length > 1 ? lines[lines.length - 2] : null;
+        }
+
+        this.just_added_newline = function() {
+            return this.current_line.is_empty();
+        }
+
+        this.just_added_blankline = function() {
+            if (this.just_added_newline()) {
+                if (lines.length === 1) {
+                    return true; // start of the file and newline = blank
+                }
+
+                var line = lines[lines.length - 2];
+                return line.is_empty();
             }
             return false;
         }
+    }
+
+
+    var Token = function(type, text, newlines, whitespace_before, mode, parent) {
+        this.type = type;
+        this.text = text;
+        this.comments_before = [];
+        this.newlines = newlines || 0;
+        this.wanted_newline = newlines > 0;
+        this.whitespace_before = whitespace_before || '';
+        this.parent = null;
+    }
+
+    function tokenizer(input, opts, indent_string) {
+
+        var whitespace = "\n\r\t ".split('');
+        var digit = /[0-9]/;
+
+        var punct = ('+ - * / % & ++ -- = += -= *= /= %= == === != !== > < >= <= >> << >>> >>>= >>= <<= && &= | || ! ~ , : ? ^ ^= |= :: =>'
+                +' <%= <% %> <?= <? ?>').split(' '); // try to be a good boy and try not to break the markup language identifiers
+
+        // words which should always start on new line.
+        this.line_starters = 'continue,try,throw,return,var,let,const,if,switch,case,default,for,while,break,function,import,export'.split(',');
+        var reserved_words = this.line_starters.concat(['do', 'in', 'else', 'get', 'set', 'new', 'catch', 'finally', 'typeof', 'yield']);
+
+        var n_newlines, whitespace_before_token, in_html_comment, tokens, parser_pos;
+        var input_length;
+
+        this.tokenize = function() {
+            // cache the source's length.
+            input_length = input.length
+            parser_pos = 0;
+            in_html_comment = false
+            tokens = [];
+
+            var next, last;
+            var token_values;
+            var open = null;
+            var open_stack = [];
+            var comments = [];
+
+            while (!(last && last.type === 'TK_EOF')) {
+                token_values = tokenize_next();
+                next = new Token(token_values[1], token_values[0], n_newlines, whitespace_before_token);
+                while(next.type === 'TK_INLINE_COMMENT' || next.type === 'TK_COMMENT' ||
+                    next.type === 'TK_BLOCK_COMMENT' || next.type === 'TK_UNKNOWN') {
+                    comments.push(next);
+                    token_values = tokenize_next();
+                    next = new Token(token_values[1], token_values[0], n_newlines, whitespace_before_token);
+                }
+
+                if (comments.length) {
+                    next.comments_before = comments;
+                    comments = [];
+                }
+
+                if (next.type === 'TK_START_BLOCK' || next.type === 'TK_START_EXPR') {
+                    next.parent = last;
+                    open = next;
+                    open_stack.push(next);
+                }  else if ((next.type === 'TK_END_BLOCK' || next.type === 'TK_END_EXPR') &&
+                    (open && (
+                        (next.text === ']' && open.text === '[') ||
+                        (next.text === ')' && open.text === '(') ||
+                        (next.text === '}' && open.text === '}')))) {
+                    next.parent = open.parent;
+                    open = open_stack.pop();
+                }
+
+                tokens.push(next);
+                last = next;
+            }
+
+            return tokens;
+        }
+
+        function tokenize_next() {
+            var i, resulting_string;
+            var whitespace_on_this_line = [];
+
+            n_newlines = 0;
+            whitespace_before_token = '';
+
+            if (parser_pos >= input_length) {
+                return ['', 'TK_EOF'];
+            }
+
+            var last_token;
+            if (tokens.length) {
+                last_token = tokens[tokens.length-1];
+            } else {
+                // For the sake of tokenizing we can pretend that there was on open brace to start
+                last_token = new Token('TK_START_BLOCK', '{');
+            }
+
+
+            var c = input.charAt(parser_pos);
+            parser_pos += 1;
+
+            while (in_array(c, whitespace)) {
+
+                if (c === '\n') {
+                    n_newlines += 1;
+                    whitespace_on_this_line = [];
+                } else if (n_newlines) {
+                    if (c === indent_string) {
+                        whitespace_on_this_line.push(indent_string);
+                    } else if (c !== '\r') {
+                        whitespace_on_this_line.push(' ');
+                    }
+                }
+
+                if (parser_pos >= input_length) {
+                    return ['', 'TK_EOF'];
+                }
+
+                c = input.charAt(parser_pos);
+                parser_pos += 1;
+            }
+
+            if(whitespace_on_this_line.length) {
+                whitespace_before_token = whitespace_on_this_line.join('');
+            }
+
+            if (digit.test(c)) {
+                var allow_decimal = true;
+                var allow_e = true;
+                var local_digit = digit;
+
+                if (c === '0' && parser_pos < input_length && /[Xx]/.test(input.charAt(parser_pos))) {
+                    // switch to hex number, no decimal or e, just hex digits
+                    allow_decimal = false;
+                    allow_e = false;
+                    c += input.charAt(parser_pos);
+                    parser_pos += 1;
+                    local_digit = /[0123456789abcdefABCDEF]/
+                } else {
+                    // we know this first loop will run.  It keeps the logic simpler.
+                    c = '';
+                    parser_pos -= 1
+                }
+
+                // Add the digits
+                while (parser_pos < input_length && local_digit.test(input.charAt(parser_pos))) {
+                    c += input.charAt(parser_pos);
+                    parser_pos += 1;
+
+                    if (allow_decimal && parser_pos < input_length && input.charAt(parser_pos) === '.') {
+                        c += input.charAt(parser_pos);
+                        parser_pos += 1;
+                        allow_decimal = false;
+                    }
+
+                    if (allow_e && parser_pos < input_length && /[Ee]/.test(input.charAt(parser_pos))) {
+                        c += input.charAt(parser_pos);
+                        parser_pos += 1;
+
+                        if (parser_pos < input_length && /[+-]/.test(input.charAt(parser_pos))) {
+                            c += input.charAt(parser_pos);
+                            parser_pos += 1;
+                        }
+
+                        allow_e = false;
+                        allow_decimal = false;
+                    }
+                }
+
+                return [c, 'TK_WORD'];
+            }
+
+            if (acorn.isIdentifierStart(input.charCodeAt(parser_pos-1))) {
+                if (parser_pos < input_length) {
+                    while (acorn.isIdentifierChar(input.charCodeAt(parser_pos))) {
+                        c += input.charAt(parser_pos);
+                        parser_pos += 1;
+                        if (parser_pos === input_length) {
+                            break;
+                        }
+                    }
+                }
+
+                if (!(last_token.type === 'TK_DOT' ||
+                        (last_token.type === 'TK_RESERVED' && in_array(last_token.text, ['set', 'get'])))
+                    && in_array(c, reserved_words)) {
+                    if (c === 'in') { // hack for 'in' operator
+                        return [c, 'TK_OPERATOR'];
+                    }
+                    return [c, 'TK_RESERVED'];
+                }
+
+                return [c, 'TK_WORD'];
+            }
+
+            if (c === '(' || c === '[') {
+                return [c, 'TK_START_EXPR'];
+            }
+
+            if (c === ')' || c === ']') {
+                return [c, 'TK_END_EXPR'];
+            }
+
+            if (c === '{') {
+                return [c, 'TK_START_BLOCK'];
+            }
+
+            if (c === '}') {
+                return [c, 'TK_END_BLOCK'];
+            }
+
+            if (c === ';') {
+                return [c, 'TK_SEMICOLON'];
+            }
+
+            if (c === '/') {
+                var comment = '';
+                // peek for comment /* ... */
+                var inline_comment = true;
+                if (input.charAt(parser_pos) === '*') {
+                    parser_pos += 1;
+                    if (parser_pos < input_length) {
+                        while (parser_pos < input_length && !(input.charAt(parser_pos) === '*' && input.charAt(parser_pos + 1) && input.charAt(parser_pos + 1) === '/')) {
+                            c = input.charAt(parser_pos);
+                            comment += c;
+                            if (c === "\n" || c === "\r") {
+                                inline_comment = false;
+                            }
+                            parser_pos += 1;
+                            if (parser_pos >= input_length) {
+                                break;
+                            }
+                        }
+                    }
+                    parser_pos += 2;
+                    if (inline_comment && n_newlines === 0) {
+                        return ['/*' + comment + '*/', 'TK_INLINE_COMMENT'];
+                    } else {
+                        return ['/*' + comment + '*/', 'TK_BLOCK_COMMENT'];
+                    }
+                }
+                // peek for comment // ...
+                if (input.charAt(parser_pos) === '/') {
+                    comment = c;
+                    while (input.charAt(parser_pos) !== '\r' && input.charAt(parser_pos) !== '\n') {
+                        comment += input.charAt(parser_pos);
+                        parser_pos += 1;
+                        if (parser_pos >= input_length) {
+                            break;
+                        }
+                    }
+                    return [comment, 'TK_COMMENT'];
+                }
+
+            }
+
+            if (c === '`' || c === "'" || c === '"' || // string
+                (
+                    (c === '/') || // regexp
+                    (opts.e4x && c === "<" && input.slice(parser_pos - 1).match(/^<([-a-zA-Z:0-9_.]+|{[^{}]*}|!\[CDATA\[[\s\S]*?\]\])\s*([-a-zA-Z:0-9_.]+=('[^']*'|"[^"]*"|{[^{}]*})\s*)*\/?\s*>/)) // xml
+                ) && ( // regex and xml can only appear in specific locations during parsing
+                    (last_token.type === 'TK_RESERVED' && in_array(last_token.text , ['return', 'case', 'throw', 'else', 'do', 'typeof', 'yield'])) ||
+                    (last_token.type === 'TK_END_EXPR' && last_token.text === ')' &&
+                        last_token.parent && last_token.parent.type === 'TK_RESERVED' && in_array(last_token.parent.text, ['if', 'while', 'for'])) ||
+                    (in_array(last_token.type, ['TK_COMMENT', 'TK_START_EXPR', 'TK_START_BLOCK',
+                        'TK_END_BLOCK', 'TK_OPERATOR', 'TK_EQUALS', 'TK_EOF', 'TK_SEMICOLON', 'TK_COMMA'
+                    ]))
+                )) {
+
+                var sep = c,
+                    esc = false,
+                    has_char_escapes = false;
+
+                resulting_string = c;
+
+                if (sep === '/') {
+                    //
+                    // handle regexp
+                    //
+                    var in_char_class = false;
+                    while (parser_pos < input_length &&
+                            ((esc || in_char_class || input.charAt(parser_pos) !== sep) &&
+                            !acorn.newline.test(input.charAt(parser_pos)))) {
+                        resulting_string += input.charAt(parser_pos);
+                        if (!esc) {
+                            esc = input.charAt(parser_pos) === '\\';
+                            if (input.charAt(parser_pos) === '[') {
+                                in_char_class = true;
+                            } else if (input.charAt(parser_pos) === ']') {
+                                in_char_class = false;
+                            }
+                        } else {
+                            esc = false;
+                        }
+                        parser_pos += 1;
+                    }
+                } else if (opts.e4x && sep === '<') {
+                    //
+                    // handle e4x xml literals
+                    //
+                    var xmlRegExp = /<(\/?)([-a-zA-Z:0-9_.]+|{[^{}]*}|!\[CDATA\[[\s\S]*?\]\])\s*([-a-zA-Z:0-9_.]+=('[^']*'|"[^"]*"|{[^{}]*})\s*)*(\/?)\s*>/g;
+                    var xmlStr = input.slice(parser_pos - 1);
+                    var match = xmlRegExp.exec(xmlStr);
+                    if (match && match.index === 0) {
+                        var rootTag = match[2];
+                        var depth = 0;
+                        while (match) {
+                            var isEndTag = !! match[1];
+                            var tagName = match[2];
+                            var isSingletonTag = ( !! match[match.length - 1]) || (tagName.slice(0, 8) === "![CDATA[");
+                            if (tagName === rootTag && !isSingletonTag) {
+                                if (isEndTag) {
+                                    --depth;
+                                } else {
+                                    ++depth;
+                                }
+                            }
+                            if (depth <= 0) {
+                                break;
+                            }
+                            match = xmlRegExp.exec(xmlStr);
+                        }
+                        var xmlLength = match ? match.index + match[0].length : xmlStr.length;
+                        parser_pos += xmlLength - 1;
+                        return [xmlStr.slice(0, xmlLength), "TK_STRING"];
+                    }
+                } else {
+                    //
+                    // handle string
+                    //
+                    // Template strings can travers lines without escape characters.
+                    // Other strings cannot
+                    while (parser_pos < input_length &&
+                            (esc || (input.charAt(parser_pos) !== sep &&
+                            (sep === '`' || !acorn.newline.test(input.charAt(parser_pos)))))) {
+                        resulting_string += input.charAt(parser_pos);
+                        if (esc) {
+                            if (input.charAt(parser_pos) === 'x' || input.charAt(parser_pos) === 'u') {
+                                has_char_escapes = true;
+                            }
+                            esc = false;
+                        } else {
+                            esc = input.charAt(parser_pos) === '\\';
+                        }
+                        parser_pos += 1;
+                    }
+
+                }
+
+                if (has_char_escapes && opts.unescape_strings) {
+                    resulting_string = unescape_string(resulting_string);
+                }
+
+                if (parser_pos < input_length && input.charAt(parser_pos) === sep) {
+                    resulting_string += sep;
+                    parser_pos += 1;
+
+                    if (sep === '/') {
+                        // regexps may have modifiers /regexp/MOD , so fetch those, too
+                        // Only [gim] are valid, but if the user puts in garbage, do what we can to take it.
+                        while (parser_pos < input_length && acorn.isIdentifierStart(input.charCodeAt(parser_pos))) {
+                            resulting_string += input.charAt(parser_pos);
+                            parser_pos += 1;
+                        }
+                    }
+                }
+                return [resulting_string, 'TK_STRING'];
+            }
+
+            if (c === '#') {
+
+                if (tokens.length === 0 && input.charAt(parser_pos) === '!') {
+                    // shebang
+                    resulting_string = c;
+                    while (parser_pos < input_length && c !== '\n') {
+                        c = input.charAt(parser_pos);
+                        resulting_string += c;
+                        parser_pos += 1;
+                    }
+                    return [trim(resulting_string) + '\n', 'TK_UNKNOWN'];
+                }
+
+
+
+                // Spidermonkey-specific sharp variables for circular references
+                // https://developer.mozilla.org/En/Sharp_variables_in_JavaScript
+                // http://mxr.mozilla.org/mozilla-central/source/js/src/jsscan.cpp around line 1935
+                var sharp = '#';
+                if (parser_pos < input_length && digit.test(input.charAt(parser_pos))) {
+                    do {
+                        c = input.charAt(parser_pos);
+                        sharp += c;
+                        parser_pos += 1;
+                    } while (parser_pos < input_length && c !== '#' && c !== '=');
+                    if (c === '#') {
+                        //
+                    } else if (input.charAt(parser_pos) === '[' && input.charAt(parser_pos + 1) === ']') {
+                        sharp += '[]';
+                        parser_pos += 2;
+                    } else if (input.charAt(parser_pos) === '{' && input.charAt(parser_pos + 1) === '}') {
+                        sharp += '{}';
+                        parser_pos += 2;
+                    }
+                    return [sharp, 'TK_WORD'];
+                }
+            }
+
+            if (c === '<' && input.substring(parser_pos - 1, parser_pos + 3) === '<!--') {
+                parser_pos += 3;
+                c = '<!--';
+                while (input.charAt(parser_pos) !== '\n' && parser_pos < input_length) {
+                    c += input.charAt(parser_pos);
+                    parser_pos++;
+                }
+                in_html_comment = true;
+                return [c, 'TK_COMMENT'];
+            }
+
+            if (c === '-' && in_html_comment && input.substring(parser_pos - 1, parser_pos + 2) === '-->') {
+                in_html_comment = false;
+                parser_pos += 2;
+                return ['-->', 'TK_COMMENT'];
+            }
+
+            if (c === '.') {
+                return [c, 'TK_DOT'];
+            }
+
+            if (in_array(c, punct)) {
+                while (parser_pos < input_length && in_array(c + input.charAt(parser_pos), punct)) {
+                    c += input.charAt(parser_pos);
+                    parser_pos += 1;
+                    if (parser_pos >= input_length) {
+                        break;
+                    }
+                }
+
+                if (c === ',') {
+                    return [c, 'TK_COMMA'];
+                } else if (c === '=') {
+                    return [c, 'TK_EQUALS'];
+                } else {
+                    return [c, 'TK_OPERATOR'];
+                }
+            }
+
+            return [c, 'TK_UNKNOWN'];
+        }
+
 
         function unescape_string(s) {
             var esc = false,
@@ -2942,947 +9393,6 @@ if (typeof define === "function" && define.amd) {
             return out;
         }
 
-        function is_next(find) {
-            var local_pos = parser_pos;
-            var c = input.charAt(local_pos);
-            while (in_array(c, whitespace) && c !== find) {
-                local_pos++;
-                if (local_pos >= input_length) {
-                    return false;
-                }
-                c = input.charAt(local_pos);
-            }
-            return c === find;
-        }
-
-        function get_next_token() {
-            var i, resulting_string;
-
-            n_newlines = 0;
-
-            if (parser_pos >= input_length) {
-                return ['', 'TK_EOF'];
-            }
-
-            input_wanted_newline = false;
-            whitespace_before_token = [];
-
-            var c = input.charAt(parser_pos);
-            parser_pos += 1;
-
-            while (in_array(c, whitespace)) {
-
-                if (c === '\n') {
-                    n_newlines += 1;
-                    whitespace_before_token = [];
-                } else if (n_newlines) {
-                    if (c === indent_string) {
-                        whitespace_before_token.push(indent_string);
-                    } else if (c !== '\r') {
-                        whitespace_before_token.push(' ');
-                    }
-                }
-
-                if (parser_pos >= input_length) {
-                    return ['', 'TK_EOF'];
-                }
-
-                c = input.charAt(parser_pos);
-                parser_pos += 1;
-            }
-
-            // NOTE: because beautifier doesn't fully parse, it doesn't use acorn.isIdentifierStart.
-            // It just treats all identifiers and numbers and such the same.
-            if (acorn.isIdentifierChar(input.charCodeAt(parser_pos-1))) {
-                if (parser_pos < input_length) {
-                    while (acorn.isIdentifierChar(input.charCodeAt(parser_pos))) {
-                        c += input.charAt(parser_pos);
-                        parser_pos += 1;
-                        if (parser_pos === input_length) {
-                            break;
-                        }
-                    }
-                }
-
-                // small and surprisingly unugly hack for 1E-10 representation
-                if (parser_pos !== input_length && c.match(/^[0-9]+[Ee]$/) && (input.charAt(parser_pos) === '-' || input.charAt(parser_pos) === '+')) {
-
-                    var sign = input.charAt(parser_pos);
-                    parser_pos += 1;
-
-                    var t = get_next_token();
-                    c += sign + t[0];
-                    return [c, 'TK_WORD'];
-                }
-
-                if (!(last_type === 'TK_DOT' ||
-                        (last_type === 'TK_RESERVED' && in_array(flags.last_text, ['set', 'get'])))
-                    && in_array(c, reserved_words)) {
-                    if (c === 'in') { // hack for 'in' operator
-                        return [c, 'TK_OPERATOR'];
-                    }
-                    return [c, 'TK_RESERVED'];
-                }
-                return [c, 'TK_WORD'];
-            }
-
-            if (c === '(' || c === '[') {
-                return [c, 'TK_START_EXPR'];
-            }
-
-            if (c === ')' || c === ']') {
-                return [c, 'TK_END_EXPR'];
-            }
-
-            if (c === '{') {
-                return [c, 'TK_START_BLOCK'];
-            }
-
-            if (c === '}') {
-                return [c, 'TK_END_BLOCK'];
-            }
-
-            if (c === ';') {
-                return [c, 'TK_SEMICOLON'];
-            }
-
-            if (c === '/') {
-                var comment = '';
-                // peek for comment /* ... */
-                var inline_comment = true;
-                if (input.charAt(parser_pos) === '*') {
-                    parser_pos += 1;
-                    if (parser_pos < input_length) {
-                        while (parser_pos < input_length && !(input.charAt(parser_pos) === '*' && input.charAt(parser_pos + 1) && input.charAt(parser_pos + 1) === '/')) {
-                            c = input.charAt(parser_pos);
-                            comment += c;
-                            if (c === "\n" || c === "\r") {
-                                inline_comment = false;
-                            }
-                            parser_pos += 1;
-                            if (parser_pos >= input_length) {
-                                break;
-                            }
-                        }
-                    }
-                    parser_pos += 2;
-                    if (inline_comment && n_newlines === 0) {
-                        return ['/*' + comment + '*/', 'TK_INLINE_COMMENT'];
-                    } else {
-                        return ['/*' + comment + '*/', 'TK_BLOCK_COMMENT'];
-                    }
-                }
-                // peek for comment // ...
-                if (input.charAt(parser_pos) === '/') {
-                    comment = c;
-                    while (input.charAt(parser_pos) !== '\r' && input.charAt(parser_pos) !== '\n') {
-                        comment += input.charAt(parser_pos);
-                        parser_pos += 1;
-                        if (parser_pos >= input_length) {
-                            break;
-                        }
-                    }
-                    return [comment, 'TK_COMMENT'];
-                }
-
-            }
-
-
-            if (c === '`' || c === "'" || c === '"' || // string
-                (
-                    (c === '/') || // regexp
-                    (opt.e4x && c === "<" && input.slice(parser_pos - 1).match(/^<([-a-zA-Z:0-9_.]+|{[^{}]*}|!\[CDATA\[[\s\S]*?\]\])\s*([-a-zA-Z:0-9_.]+=('[^']*'|"[^"]*"|{[^{}]*})\s*)*\/?\s*>/)) // xml
-                ) && ( // regex and xml can only appear in specific locations during parsing
-                    (last_type === 'TK_RESERVED' && is_special_word(flags.last_text)) ||
-                    (last_type === 'TK_END_EXPR' && in_array(previous_flags.mode, [MODE.Conditional, MODE.ForInitializer])) ||
-                    (in_array(last_type, ['TK_COMMENT', 'TK_START_EXPR', 'TK_START_BLOCK',
-                        'TK_END_BLOCK', 'TK_OPERATOR', 'TK_EQUALS', 'TK_EOF', 'TK_SEMICOLON', 'TK_COMMA'
-                    ]))
-                )) {
-
-                var sep = c,
-                    esc = false,
-                    has_char_escapes = false;
-
-                resulting_string = c;
-
-                if (parser_pos < input_length) {
-                    if (sep === '/') {
-                        //
-                        // handle regexp
-                        //
-                        var in_char_class = false;
-                        while (esc || in_char_class || input.charAt(parser_pos) !== sep) {
-                            resulting_string += input.charAt(parser_pos);
-                            if (!esc) {
-                                esc = input.charAt(parser_pos) === '\\';
-                                if (input.charAt(parser_pos) === '[') {
-                                    in_char_class = true;
-                                } else if (input.charAt(parser_pos) === ']') {
-                                    in_char_class = false;
-                                }
-                            } else {
-                                esc = false;
-                            }
-                            parser_pos += 1;
-                            if (parser_pos >= input_length) {
-                                // incomplete string/rexp when end-of-file reached.
-                                // bail out with what had been received so far.
-                                return [resulting_string, 'TK_STRING'];
-                            }
-                        }
-                    } else if (opt.e4x && sep === '<') {
-                        //
-                        // handle e4x xml literals
-                        //
-                        var xmlRegExp = /<(\/?)([-a-zA-Z:0-9_.]+|{[^{}]*}|!\[CDATA\[[\s\S]*?\]\])\s*([-a-zA-Z:0-9_.]+=('[^']*'|"[^"]*"|{[^{}]*})\s*)*(\/?)\s*>/g;
-                        var xmlStr = input.slice(parser_pos - 1);
-                        var match = xmlRegExp.exec(xmlStr);
-                        if (match && match.index === 0) {
-                            var rootTag = match[2];
-                            var depth = 0;
-                            while (match) {
-                                var isEndTag = !! match[1];
-                                var tagName = match[2];
-                                var isSingletonTag = ( !! match[match.length - 1]) || (tagName.slice(0, 8) === "![CDATA[");
-                                if (tagName === rootTag && !isSingletonTag) {
-                                    if (isEndTag) {
-                                        --depth;
-                                    } else {
-                                        ++depth;
-                                    }
-                                }
-                                if (depth <= 0) {
-                                    break;
-                                }
-                                match = xmlRegExp.exec(xmlStr);
-                            }
-                            var xmlLength = match ? match.index + match[0].length : xmlStr.length;
-                            parser_pos += xmlLength - 1;
-                            return [xmlStr.slice(0, xmlLength), "TK_STRING"];
-                        }
-                    } else {
-                        //
-                        // handle string
-                        //
-                        while (esc || input.charAt(parser_pos) !== sep) {
-                            resulting_string += input.charAt(parser_pos);
-                            if (esc) {
-                                if (input.charAt(parser_pos) === 'x' || input.charAt(parser_pos) === 'u') {
-                                    has_char_escapes = true;
-                                }
-                                esc = false;
-                            } else {
-                                esc = input.charAt(parser_pos) === '\\';
-                            }
-                            parser_pos += 1;
-                            if (parser_pos >= input_length) {
-                                // incomplete string/rexp when end-of-file reached.
-                                // bail out with what had been received so far.
-                                return [resulting_string, 'TK_STRING'];
-                            }
-                        }
-
-                    }
-                }
-
-                parser_pos += 1;
-                resulting_string += sep;
-
-                if (has_char_escapes && opt.unescape_strings) {
-                    resulting_string = unescape_string(resulting_string);
-                }
-
-                if (sep === '/') {
-                    // regexps may have modifiers /regexp/MOD , so fetch those, too
-                    while (parser_pos < input_length && in_array(input.charAt(parser_pos), wordchar)) {
-                        resulting_string += input.charAt(parser_pos);
-                        parser_pos += 1;
-                    }
-                }
-                return [resulting_string, 'TK_STRING'];
-            }
-
-            if (c === '#') {
-
-
-                if (output_lines.length === 1 && output_lines[0].text.length === 0 &&
-                    input.charAt(parser_pos) === '!') {
-                    // shebang
-                    resulting_string = c;
-                    while (parser_pos < input_length && c !== '\n') {
-                        c = input.charAt(parser_pos);
-                        resulting_string += c;
-                        parser_pos += 1;
-                    }
-                    return [trim(resulting_string) + '\n', 'TK_UNKNOWN'];
-                }
-
-
-
-                // Spidermonkey-specific sharp variables for circular references
-                // https://developer.mozilla.org/En/Sharp_variables_in_JavaScript
-                // http://mxr.mozilla.org/mozilla-central/source/js/src/jsscan.cpp around line 1935
-                var sharp = '#';
-                if (parser_pos < input_length && in_array(input.charAt(parser_pos), digits)) {
-                    do {
-                        c = input.charAt(parser_pos);
-                        sharp += c;
-                        parser_pos += 1;
-                    } while (parser_pos < input_length && c !== '#' && c !== '=');
-                    if (c === '#') {
-                        //
-                    } else if (input.charAt(parser_pos) === '[' && input.charAt(parser_pos + 1) === ']') {
-                        sharp += '[]';
-                        parser_pos += 2;
-                    } else if (input.charAt(parser_pos) === '{' && input.charAt(parser_pos + 1) === '}') {
-                        sharp += '{}';
-                        parser_pos += 2;
-                    }
-                    return [sharp, 'TK_WORD'];
-                }
-            }
-
-            if (c === '<' && input.substring(parser_pos - 1, parser_pos + 3) === '<!--') {
-                parser_pos += 3;
-                c = '<!--';
-                while (input.charAt(parser_pos) !== '\n' && parser_pos < input_length) {
-                    c += input.charAt(parser_pos);
-                    parser_pos++;
-                }
-                flags.in_html_comment = true;
-                return [c, 'TK_COMMENT'];
-            }
-
-            if (c === '-' && flags.in_html_comment && input.substring(parser_pos - 1, parser_pos + 2) === '-->') {
-                flags.in_html_comment = false;
-                parser_pos += 2;
-                return ['-->', 'TK_COMMENT'];
-            }
-
-            if (c === '.') {
-                return [c, 'TK_DOT'];
-            }
-
-            if (in_array(c, punct)) {
-                while (parser_pos < input_length && in_array(c + input.charAt(parser_pos), punct)) {
-                    c += input.charAt(parser_pos);
-                    parser_pos += 1;
-                    if (parser_pos >= input_length) {
-                        break;
-                    }
-                }
-
-                if (c === ',') {
-                    return [c, 'TK_COMMA'];
-                } else if (c === '=') {
-                    return [c, 'TK_EQUALS'];
-                } else {
-                    return [c, 'TK_OPERATOR'];
-                }
-            }
-
-            return [c, 'TK_UNKNOWN'];
-        }
-
-        function handle_start_expr() {
-            if (start_of_statement()) {
-                // The conditional starts the statement if appropriate.
-            }
-
-            var next_mode = MODE.Expression;
-            if (token_text === '[') {
-
-                if (last_type === 'TK_WORD' || flags.last_text === ')') {
-                    // this is array index specifier, break immediately
-                    // a[x], fn()[x]
-                    if (last_type === 'TK_RESERVED' && in_array(flags.last_text, line_starters)) {
-                        output_space_before_token = true;
-                    }
-                    set_mode(next_mode);
-                    print_token();
-                    indent();
-                    if (opt.space_in_paren) {
-                        output_space_before_token = true;
-                    }
-                    return;
-                }
-
-                next_mode = MODE.ArrayLiteral;
-                if (is_array(flags.mode)) {
-                    if (flags.last_text === '[' ||
-                        (flags.last_text === ',' && (last_last_text === ']' || last_last_text === '}'))) {
-                        // ], [ goes to new line
-                        // }, [ goes to new line
-                        if (!opt.keep_array_indentation) {
-                            print_newline();
-                        }
-                    }
-                }
-
-            } else {
-                if (last_type === 'TK_RESERVED' && flags.last_text === 'for') {
-                    next_mode = MODE.ForInitializer;
-                } else if (last_type === 'TK_RESERVED' && in_array(flags.last_text, ['if', 'while'])) {
-                    next_mode = MODE.Conditional;
-                } else {
-                    // next_mode = MODE.Expression;
-                }
-            }
-
-            if (flags.last_text === ';' || last_type === 'TK_START_BLOCK') {
-                print_newline();
-            } else if (last_type === 'TK_END_EXPR' || last_type === 'TK_START_EXPR' || last_type === 'TK_END_BLOCK' || flags.last_text === '.') {
-                // TODO: Consider whether forcing this is required.  Review failing tests when removed.
-                allow_wrap_or_preserved_newline(input_wanted_newline);
-                output_wrapped = false;
-                // do nothing on (( and )( and ][ and ]( and .(
-            } else if (!(last_type === 'TK_RESERVED' && token_text === '(') && last_type !== 'TK_WORD' && last_type !== 'TK_OPERATOR') {
-                output_space_before_token = true;
-            } else if (last_type === 'TK_RESERVED' && (flags.last_word === 'function' || flags.last_word === 'typeof')) {
-                // function() vs function ()
-                if (opt.jslint_happy) {
-                    output_space_before_token = true;
-                }
-            } else if (last_type === 'TK_RESERVED' && (in_array(flags.last_text, line_starters) || flags.last_text === 'catch')) {
-                if (opt.space_before_conditional) {
-                    output_space_before_token = true;
-                }
-            }
-
-            // Support of this kind of newline preservation.
-            // a = (b &&
-            //     (c || d));
-            if (token_text === '(') {
-                if (last_type === 'TK_EQUALS' || last_type === 'TK_OPERATOR') {
-                    if (!start_of_object_property()) {
-                        allow_wrap_or_preserved_newline();
-                    }
-                }
-            }
-
-            set_mode(next_mode);
-            print_token();
-            if (opt.space_in_paren) {
-                output_space_before_token = true;
-            }
-
-            // In all cases, if we newline while inside an expression it should be indented.
-            indent();
-        }
-
-        function handle_end_expr() {
-            // statements inside expressions are not valid syntax, but...
-            // statements must all be closed when their container closes
-            while (flags.mode === MODE.Statement) {
-                restore_mode();
-            }
-
-            if (flags.multiline_frame) {
-                allow_wrap_or_preserved_newline(token_text === ']' && is_array(flags.mode) && !opt.keep_array_indentation);
-                output_wrapped = false;
-            }
-
-            if (opt.space_in_paren) {
-                if (last_type === 'TK_START_EXPR' && ! opt.space_in_empty_paren) {
-                    // () [] no inner space in empty parens like these, ever, ref #320
-                    trim_output();
-                    output_space_before_token = false;
-                } else {
-                    output_space_before_token = true;
-                }
-            }
-            if (token_text === ']' && opt.keep_array_indentation) {
-                print_token();
-                restore_mode();
-            } else {
-                restore_mode();
-                print_token();
-            }
-            remove_redundant_indentation(previous_flags);
-
-            // do {} while () // no statement required after
-            if (flags.do_while && previous_flags.mode === MODE.Conditional) {
-                previous_flags.mode = MODE.Expression;
-                flags.do_block = false;
-                flags.do_while = false;
-
-            }
-        }
-
-        function handle_start_block() {
-            set_mode(MODE.BlockStatement);
-
-            var empty_braces = is_next('}');
-            var empty_anonymous_function = empty_braces && flags.last_word === 'function' &&
-                last_type === 'TK_END_EXPR';
-
-            if (opt.brace_style === "expand") {
-                if (last_type !== 'TK_OPERATOR' &&
-                    (empty_anonymous_function ||
-                        last_type === 'TK_EQUALS' ||
-                        (last_type === 'TK_RESERVED' && is_special_word(flags.last_text) && flags.last_text !== 'else'))) {
-                    output_space_before_token = true;
-                } else {
-                    print_newline(false, true);
-                }
-            } else { // collapse
-                if (last_type !== 'TK_OPERATOR' && last_type !== 'TK_START_EXPR') {
-                    if (last_type === 'TK_START_BLOCK') {
-                        print_newline();
-                    } else {
-                        output_space_before_token = true;
-                    }
-                } else {
-                    // if TK_OPERATOR or TK_START_EXPR
-                    if (is_array(previous_flags.mode) && flags.last_text === ',') {
-                        if (last_last_text === '}') {
-                            // }, { in array context
-                            output_space_before_token = true;
-                        } else {
-                            print_newline(); // [a, b, c, {
-                        }
-                    }
-                }
-            }
-            print_token();
-            indent();
-        }
-
-        function handle_end_block() {
-            // statements must all be closed when their container closes
-            while (flags.mode === MODE.Statement) {
-                restore_mode();
-            }
-            var empty_braces = last_type === 'TK_START_BLOCK';
-
-            if (opt.brace_style === "expand") {
-                if (!empty_braces) {
-                    print_newline();
-                }
-            } else {
-                // skip {}
-                if (!empty_braces) {
-                    if (is_array(flags.mode) && opt.keep_array_indentation) {
-                        // we REALLY need a newline here, but newliner would skip that
-                        opt.keep_array_indentation = false;
-                        print_newline();
-                        opt.keep_array_indentation = true;
-
-                    } else {
-                        print_newline();
-                    }
-                }
-            }
-            restore_mode();
-            print_token();
-        }
-
-        function handle_word() {
-            if (start_of_statement()) {
-                // The conditional starts the statement if appropriate.
-            } else if (input_wanted_newline && !is_expression(flags.mode) &&
-                (last_type !== 'TK_OPERATOR' || (flags.last_text === '--' || flags.last_text === '++')) &&
-                last_type !== 'TK_EQUALS' &&
-                (opt.preserve_newlines || !(last_type === 'TK_RESERVED' && in_array(flags.last_text, ['var', 'let', 'const', 'set', 'get'])))) {
-
-                print_newline();
-            }
-
-            if (flags.do_block && !flags.do_while) {
-                if (token_type === 'TK_RESERVED' && token_text === 'while') {
-                    // do {} ## while ()
-                    output_space_before_token = true;
-                    print_token();
-                    output_space_before_token = true;
-                    flags.do_while = true;
-                    return;
-                } else {
-                    // do {} should always have while as the next word.
-                    // if we don't see the expected while, recover
-                    print_newline();
-                    flags.do_block = false;
-                }
-            }
-
-            // if may be followed by else, or not
-            // Bare/inline ifs are tricky
-            // Need to unwind the modes correctly: if (a) if (b) c(); else d(); else e();
-            if (flags.if_block) {
-                if (!flags.else_block && (token_type === 'TK_RESERVED' && token_text === 'else')) {
-                    flags.else_block = true;
-                } else {
-                    while (flags.mode === MODE.Statement) {
-                        restore_mode();
-                    }
-                    flags.if_block = false;
-                    flags.else_block = false;
-                }
-            }
-
-            if (token_type === 'TK_RESERVED' && (token_text === 'case' || (token_text === 'default' && flags.in_case_statement))) {
-                print_newline();
-                if (flags.case_body || opt.jslint_happy) {
-                    // switch cases following one another
-                    deindent();
-                    flags.case_body = false;
-                }
-                print_token();
-                flags.in_case = true;
-                flags.in_case_statement = true;
-                return;
-            }
-
-            if (token_type === 'TK_RESERVED' && token_text === 'function') {
-                if (in_array(flags.last_text, ['}', ';']) || (just_added_newline() && ! in_array(flags.last_text, ['{', ':', '=', ',']))) {
-                    // make sure there is a nice clean space of at least one blank line
-                    // before a new function definition
-                    if ( ! just_added_blankline() && ! flags.had_comment) {
-                        print_newline();
-                        print_newline(true);
-                    }
-                }
-                if (last_type === 'TK_RESERVED' || last_type === 'TK_WORD') {
-                    if (last_type === 'TK_RESERVED' && in_array(flags.last_text, ['get', 'set', 'new', 'return'])) {
-                        output_space_before_token = true;
-                    } else {
-                        print_newline();
-                    }
-                } else if (last_type === 'TK_OPERATOR' || flags.last_text === '=') {
-                    // foo = function
-                    output_space_before_token = true;
-                } else if (is_expression(flags.mode)) {
-                    // (function
-                } else {
-                    print_newline();
-                }
-            }
-
-            if (last_type === 'TK_COMMA' || last_type === 'TK_START_EXPR' || last_type === 'TK_EQUALS' || last_type === 'TK_OPERATOR') {
-                if (!start_of_object_property()) {
-                    allow_wrap_or_preserved_newline();
-                }
-            }
-
-            if (token_type === 'TK_RESERVED' && token_text === 'function') {
-                print_token();
-                flags.last_word = token_text;
-                return;
-            }
-
-            prefix = 'NONE';
-
-            if (last_type === 'TK_END_BLOCK') {
-                if (!(token_type === 'TK_RESERVED' && in_array(token_text, ['else', 'catch', 'finally']))) {
-                    prefix = 'NEWLINE';
-                } else {
-                    if (opt.brace_style === "expand" || opt.brace_style === "end-expand") {
-                        prefix = 'NEWLINE';
-                    } else {
-                        prefix = 'SPACE';
-                        output_space_before_token = true;
-                    }
-                }
-            } else if (last_type === 'TK_SEMICOLON' && flags.mode === MODE.BlockStatement) {
-                // TODO: Should this be for STATEMENT as well?
-                prefix = 'NEWLINE';
-            } else if (last_type === 'TK_SEMICOLON' && is_expression(flags.mode)) {
-                prefix = 'SPACE';
-            } else if (last_type === 'TK_STRING') {
-                prefix = 'NEWLINE';
-            } else if (last_type === 'TK_RESERVED' || last_type === 'TK_WORD') {
-                prefix = 'SPACE';
-            } else if (last_type === 'TK_START_BLOCK') {
-                prefix = 'NEWLINE';
-            } else if (last_type === 'TK_END_EXPR') {
-                output_space_before_token = true;
-                prefix = 'NEWLINE';
-            }
-
-            if (token_type === 'TK_RESERVED' && in_array(token_text, line_starters) && flags.last_text !== ')') {
-                if (flags.last_text === 'else') {
-                    prefix = 'SPACE';
-                } else {
-                    prefix = 'NEWLINE';
-                }
-
-            }
-
-            if (token_type === 'TK_RESERVED' && in_array(token_text, ['else', 'catch', 'finally'])) {
-                if (last_type !== 'TK_END_BLOCK' || opt.brace_style === "expand" || opt.brace_style === "end-expand") {
-                    print_newline();
-                } else {
-                    trim_output(true);
-                    var line = output_lines[output_lines.length - 1];
-                    // If we trimmed and there's something other than a close block before us
-                    // put a newline back in.  Handles '} // comment' scenario.
-                    if (line.text[line.text.length - 1] !== '}') {
-                        print_newline();
-                    }
-                    output_space_before_token = true;
-                }
-            } else if (prefix === 'NEWLINE') {
-                if (last_type === 'TK_RESERVED' && is_special_word(flags.last_text)) {
-                    // no newline between 'return nnn'
-                    output_space_before_token = true;
-                } else if (last_type !== 'TK_END_EXPR') {
-                    if ((last_type !== 'TK_START_EXPR' || !(token_type === 'TK_RESERVED' && in_array(token_text, ['var', 'let', 'const']))) && flags.last_text !== ':') {
-                        // no need to force newline on 'var': for (var x = 0...)
-                        if (token_type === 'TK_RESERVED' && token_text === 'if' && flags.last_word === 'else' && flags.last_text !== '{') {
-                            // no newline for } else if {
-                            output_space_before_token = true;
-                        } else {
-                            print_newline();
-                        }
-                    }
-                } else if (token_type === 'TK_RESERVED' && in_array(token_text, line_starters) && flags.last_text !== ')') {
-                    print_newline();
-                }
-            } else if (is_array(flags.mode) && flags.last_text === ',' && last_last_text === '}') {
-                print_newline(); // }, in lists get a newline treatment
-            } else if (prefix === 'SPACE') {
-                output_space_before_token = true;
-            }
-            print_token();
-            flags.last_word = token_text;
-
-            if (token_type === 'TK_RESERVED' && token_text === 'do') {
-                flags.do_block = true;
-            }
-
-            if (token_type === 'TK_RESERVED' && token_text === 'if') {
-                flags.if_block = true;
-            }
-        }
-
-        function handle_semicolon() {
-            if (start_of_statement()) {
-                // The conditional starts the statement if appropriate.
-                // Semicolon can be the start (and end) of a statement
-                output_space_before_token = false;
-            }
-            while (flags.mode === MODE.Statement && !flags.if_block && !flags.do_block) {
-                restore_mode();
-            }
-            print_token();
-            if (flags.mode === MODE.ObjectLiteral) {
-                // if we're in OBJECT mode and see a semicolon, its invalid syntax
-                // recover back to treating this as a BLOCK
-                flags.mode = MODE.BlockStatement;
-            }
-        }
-
-        function handle_string() {
-            if (start_of_statement()) {
-                // The conditional starts the statement if appropriate.
-                // One difference - strings want at least a space before
-                output_space_before_token = true;
-            } else if (last_type === 'TK_RESERVED' || last_type === 'TK_WORD') {
-                output_space_before_token = true;
-            } else if (last_type === 'TK_COMMA' || last_type === 'TK_START_EXPR' || last_type === 'TK_EQUALS' || last_type === 'TK_OPERATOR') {
-                if (!start_of_object_property()) {
-                    allow_wrap_or_preserved_newline();
-                }
-            } else {
-                print_newline();
-            }
-            print_token();
-        }
-
-        function handle_equals() {
-            if (flags.declaration_statement) {
-                // just got an '=' in a var-line, different formatting/line-breaking, etc will now be done
-                flags.declaration_assignment = true;
-            }
-            output_space_before_token = true;
-            print_token();
-            output_space_before_token = true;
-        }
-
-        function handle_comma() {
-            if (flags.declaration_statement) {
-                if (is_expression(flags.parent.mode)) {
-                    // do not break on comma, for(var a = 1, b = 2)
-                    flags.declaration_assignment = false;
-                }
-
-                print_token();
-
-                if (flags.declaration_assignment) {
-                    flags.declaration_assignment = false;
-                    print_newline(false, true);
-                } else {
-                    output_space_before_token = true;
-                }
-                return;
-            }
-
-            if (last_type === 'TK_END_BLOCK' && flags.mode !== MODE.Expression) {
-                print_token();
-                if (flags.mode === MODE.ObjectLiteral && flags.last_text === '}') {
-                    print_newline();
-                } else {
-                    output_space_before_token = true;
-                }
-            } else {
-                if (flags.mode === MODE.ObjectLiteral) {
-                    print_token();
-                    print_newline();
-                } else {
-                    // EXPR or DO_BLOCK
-                    print_token();
-                    output_space_before_token = true;
-                }
-            }
-        }
-
-        function handle_operator() {
-            var space_before = true;
-            var space_after = true;
-            if (last_type === 'TK_RESERVED' && is_special_word(flags.last_text)) {
-                // "return" had a special handling in TK_WORD. Now we need to return the favor
-                output_space_before_token = true;
-                print_token();
-                return;
-            }
-
-            // hack for actionscript's import .*;
-            if (token_text === '*' && last_type === 'TK_DOT' && !last_last_text.match(/^\d+$/)) {
-                print_token();
-                return;
-            }
-
-            if (token_text === ':' && flags.in_case) {
-                flags.case_body = true;
-                indent();
-                print_token();
-                print_newline();
-                flags.in_case = false;
-                return;
-            }
-
-            if (token_text === '::') {
-                // no spaces around exotic namespacing syntax operator
-                print_token();
-                return;
-            }
-
-            // http://www.ecma-international.org/ecma-262/5.1/#sec-7.9.1
-            // if there is a newline between -- or ++ and anything else we should preserve it.
-            if (input_wanted_newline && (token_text === '--' || token_text === '++')) {
-                print_newline();
-            }
-
-            // Allow line wrapping between operators
-            if (last_type === 'TK_OPERATOR') {
-                allow_wrap_or_preserved_newline();
-            }
-
-            if (in_array(token_text, ['--', '++', '!']) || (in_array(token_text, ['-', '+']) && (in_array(last_type, ['TK_START_BLOCK', 'TK_START_EXPR', 'TK_EQUALS', 'TK_OPERATOR']) || in_array(flags.last_text, line_starters) || flags.last_text === ','))) {
-                // unary operators (and binary +/- pretending to be unary) special cases
-
-                space_before = false;
-                space_after = false;
-
-                if (flags.last_text === ';' && is_expression(flags.mode)) {
-                    // for (;; ++i)
-                    //        ^^^
-                    space_before = true;
-                }
-
-                if (last_type === 'TK_RESERVED') {
-                    space_before = true;
-                }
-
-                if ((flags.mode === MODE.BlockStatement || flags.mode === MODE.Statement) && (flags.last_text === '{' || flags.last_text === ';')) {
-                    // { foo; --i }
-                    // foo(); --bar;
-                    print_newline();
-                }
-            } else if (token_text === ':') {
-                if (flags.ternary_depth === 0) {
-                    if (flags.mode === MODE.BlockStatement) {
-                        flags.mode = MODE.ObjectLiteral;
-                    }
-                    space_before = false;
-                } else {
-                    flags.ternary_depth -= 1;
-                }
-            } else if (token_text === '?') {
-                flags.ternary_depth += 1;
-            }
-            output_space_before_token = output_space_before_token || space_before;
-            print_token();
-            output_space_before_token = space_after;
-        }
-
-        function handle_block_comment() {
-            var lines = split_newlines(token_text);
-            var j; // iterator for this case
-            var javadoc = false;
-
-            // block comment starts with a new line
-            print_newline(false, true);
-            if (lines.length > 1) {
-                if (all_lines_start_with(lines.slice(1), '*')) {
-                    javadoc = true;
-                }
-            }
-
-            // first line always indented
-            print_token(lines[0]);
-            for (j = 1; j < lines.length; j++) {
-                print_newline(false, true);
-                if (javadoc) {
-                    // javadoc: reformat and re-indent
-                    print_token(' ' + trim(lines[j]));
-                } else {
-                    // normal comments output raw
-                    output_lines[output_lines.length - 1].text.push(lines[j]);
-                }
-            }
-
-            // for comments of more than one line, make sure there's a new line after
-            print_newline(false, true);
-        }
-
-        function handle_inline_comment() {
-            output_space_before_token = true;
-            print_token();
-            output_space_before_token = true;
-        }
-
-        function handle_comment() {
-            if (input_wanted_newline) {
-                print_newline(false, true);
-            } else {
-                trim_output(true);
-            }
-
-            output_space_before_token = true;
-            print_token();
-            print_newline(false, true);
-        }
-
-        function handle_dot() {
-            if (last_type === 'TK_RESERVED' && is_special_word(flags.last_text)) {
-                output_space_before_token = true;
-            } else {
-                // allow preserved newlines before dots in general
-                // force newlines on dots after close paren when break_chained - for bar().baz()
-                allow_wrap_or_preserved_newline(flags.last_text === ')' && opt.break_chained_methods);
-            }
-
-            print_token();
-        }
-
-        function handle_unknown() {
-            print_token();
-
-            if (token_text[token_text.length - 1] === '\n') {
-                print_newline();
-            }
-        }
     }
 
 
@@ -3906,10 +9416,10 @@ if (typeof define === "function" && define.amd) {
 }());
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],11:[function(require,module,exports){
-
+},{}],12:[function(require,module,exports){
 var beautify = require('js-beautify').js_beautify;
 var parser = require('./parser');
+var utils = require('./utils');
 
 // Whenever we hit an indented block, make sure all preceding
 // empty lines are made to have this indentation level
@@ -3991,14 +9501,6 @@ function parse (input, options) {
 
 }
 
-function repeat (str, n) {
-    var out = "";
-    for (var i = 0; i < n; i++) {
-        out += str;
-    }
-    return out;
-}
-
 function ParserError (error, input, options) {
     this.message  = error.message;
     this.expected = error.expected;
@@ -4016,7 +9518,7 @@ function ParserError (error, input, options) {
                 error.name + ' at ' + options.filePath + ' line ' + error.line + ', character ' + error.column + ':',
                 error.line > 2 ? lines[error.line-2] : '',
                 lines[error.line-1],
-                repeat(" ", error.column-1) + '^',
+                utils.repeat(" ", error.column-1) + '^',
                 error.message,
             ].join('\n');
         }
@@ -4040,7 +9542,7 @@ ParserError.prototype = Object.create(Error);
 module.exports.parse = parse;
 module.exports.ParserError = ParserError;
 
-},{"./parser":12,"js-beautify":7}],12:[function(require,module,exports){
+},{"./parser":13,"./utils":14,"js-beautify":8}],13:[function(require,module,exports){
 module.exports = (function() {
   /*
    * Generated by PEG.js 0.8.0.
@@ -11722,5 +17224,44 @@ module.exports = (function() {
   };
 })();
 
-},{"fs":1,"path":3,"util":6}]},{},[11])(11)
+},{"fs":2,"path":4,"util":7}],14:[function(require,module,exports){
+var Bluebird = require('bluebird');
+var fs = Bluebird.promisifyAll(require('fs'));
+var path = require('path');
+
+module.exports.readDirAsync = function readDirAsync(dirName, filter) {
+    return fs.readdirAsync(dirName)
+        .map(function (fileName) {
+            var filePath = path.join(dirName, fileName);
+            return fs.statAsync(filePath)
+                .then(function(stat) {
+                    if (filter && filter(filePath)) return;
+                    return stat.isDirectory() ? readDirAsync(filePath) : filePath;
+                });
+        })
+        .reduce(function (a, b) {
+            return a.concat(b);
+        }, [])
+        .then(function (files) {
+          i = files.indexOf(undefined)
+          while(i !== -1) {
+            files.splice(i, 1)
+            i = files.indexOf(undefined)
+          }
+          return files
+        });
+}
+
+module.exports.checkDir = function checkDir(path, stat) {
+    if (stat.isDirectory() && path[path.length-1] !== '/') {
+        path += '/';
+    }
+    return path;
+}
+
+module.exports.repeat = function repeat(str, n) {
+    return new Array(n + 1).join(str)
+}
+
+},{"bluebird":1,"fs":2,"path":4}]},{},[12])(12)
 });
