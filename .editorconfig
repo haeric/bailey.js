@@ -1,0 +1,13 @@
+root = true
+
+[*.js]
+indent_style = space
+indent_size = 4
+
+[*.bs]
+indent_style = space
+indent_size = 2
+
+[{package.json,.travis.yml,.frigg.yml}]
+indent_style = space
+indent_size = 2
