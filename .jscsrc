@@ -1,0 +1,7 @@
+{
+    "preset": "airbnb",
+    "excludeFiles": ["node_modules/**", "coverage/**", ".git/**", "src/parser.js"],
+    "validateIndentation": 4,
+    "disallowMultipleVarDecl": true,
+    "requireMultipleVarDecl": null
+}

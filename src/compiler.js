@@ -1,15 +1,17 @@
+/* jscs: disable */
 var beautify = require('js-beautify').js_beautify;
+/* jscs: enable */
 var parser = require('./parser');
 var utils = require('./utils');
 
 // Whenever we hit an indented block, make sure all preceding
 // empty lines are made to have this indentation level
-function normalizeBlocks (input) {
+function normalizeBlocks(input) {
 
-    var numberOfLinesToIndent = 0,
-        thisLineContainsStuff = false,
-        thisLinesIndentation = '',
-        out = '';
+    var numberOfLinesToIndent = 0;
+    var thisLineContainsStuff = false;
+    var thisLinesIndentation = '';
+    var out = '';
 
     for (var i = 0; i < input.length; i++) {
 
@@ -22,10 +24,10 @@ function normalizeBlocks (input) {
         if (chr === '\n') {
             if (!thisLineContainsStuff) {
                 numberOfLinesToIndent++;
-            }
-            else {
+            } else {
                 out += '\n';
             }
+
             thisLineContainsStuff = false;
             thisLinesIndentation = '';
             continue;
@@ -42,11 +44,12 @@ function normalizeBlocks (input) {
                 for (var j = 0; j < numberOfLinesToIndent; j++) {
                     out += thisLinesIndentation + '\n';
                 }
+
                 out += thisLinesIndentation + chr;
-            }
-            else {
+            } else {
                 out += chr;
             }
+
             numberOfLinesToIndent = 0;
             thisLineContainsStuff = true;
 
@@ -58,7 +61,7 @@ function normalizeBlocks (input) {
 
 }
 
-function parse (input, options) {
+function parse(input, options) {
 
     input = normalizeBlocks(input);
 
@@ -82,7 +85,7 @@ function parse (input, options) {
 
 }
 
-function ParserError (error, input, options) {
+function ParserError(error, input, options) {
     this.message  = error.message;
     this.expected = error.expected;
     this.found    = error.found;
@@ -92,21 +95,21 @@ function ParserError (error, input, options) {
     this.inner    = error;
     this.name     = 'ParserError';
 
-    this.toString = function () {
+    this.toString = function() {
         var lines = input.split('\n');
         if (this.offset !== undefined) {
             return [
                 error.name + ' at ' + options.filePath + ' line ' + error.line + ', character ' + error.column + ':',
-                error.line > 2 ? lines[error.line-2] : '',
-                lines[error.line-1],
-                utils.repeat(" ", error.column-1) + '^',
-                error.message,
+                error.line > 2 ? lines[error.line - 2] : '',
+                lines[error.line - 1],
+                utils.repeat(' ', error.column - 1) + '^',
+                error.message
             ].join('\n');
         }
         else if (this.line) {
             return [
                 error.name + ' at ' + options.filePath + ' line ' + error.line + ':',
-                lines[error.line-1],
+                lines[error.line - 1],
                 '',
                 error.message
             ].join('\n');

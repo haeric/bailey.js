@@ -2,3 +2,5 @@ tasks:
   - npm install
   - make test
   - node ./bailey.js examples dist --bare && cat dist/*
+  - node_modules/.bin/jshint
+  - node_modules/.bin/jscs src

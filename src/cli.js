@@ -27,7 +27,7 @@ program
     .parse(process.argv);
 
 if (program.verbose) {
-  Bluebird.longStackTraces();
+    Bluebird.longStackTraces();
 }
 
 runTasks(program);
@@ -42,7 +42,7 @@ function runTasks(program) {
         config: 'default'
     };
 
-    if (!program.args.length){
+    if (!program.args.length) {
         loadBaileyrcFile()
             .then(function(baileyrc) {
                 if (program.config) {
@@ -84,10 +84,10 @@ function runTask(program, options, configFromFile) {
     if (!options.source || !options.target) return program.help();
 
     return compile(options.source, options.target, options)
-      .then(function () {
-        if (program.watch) startWatching(options);
+      .then(function() {
+          if (program.watch) startWatching(options);
       })
-      .catch(function (err) {
+      .catch(function(err) {
           process.exit(EXIT_CODES.PARSER_ERROR);
       });
 }
@@ -96,8 +96,8 @@ function compile(source, target, options) {
     if (program.verbose) options.onFile = onFileVerbose;
     return bailey.parseFiles(source, target, options)
       .catch(function(err) {
-        console.error(err.toString().red);
-        if (onError) onError(err);
+          console.error(err.toString().red);
+          if (onError) onError(err);
       });
 }
 
@@ -135,7 +135,7 @@ function loadBaileyrcFile(baileyrcPath) {
             if (stat.isFile()) return fs.readFileAsync(baileyrcPath);
         })
         .then(function(content) {
-            if(content) return JSON.parse(content);
+            if (content) return JSON.parse(content);
             return null;
         });
 }

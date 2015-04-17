@@ -8,5 +8,5 @@ module.exports.ParserError = compiler.ParserError;
 module.exports.version = pkg.version;
 
 if (!module.parent) {
-    require('./src/cli')
+    require('./src/cli');
 }
