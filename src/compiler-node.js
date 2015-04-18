@@ -6,12 +6,12 @@ var compiler = require('./compiler');
 var utils = require('./utils');
 require('colors');
 
-function parseFiles (source, target, options, callback) {
+function parseFiles(source, target, options, callback) {
     return mkdirp(target)
         .then(function() {
             return Bluebird.all([fs.lstatAsync(source), fs.lstatAsync(target)]);
         })
-        .spread(function (sourceStat, targetStat) {
+        .spread(function(sourceStat, targetStat) {
             source = utils.checkDir(source, sourceStat);
             target = utils.checkDir(target, targetStat);
 
@@ -21,6 +21,7 @@ function parseFiles (source, target, options, callback) {
                 if (targetStat.isDirectory()) {
                     target += path.basename(source);
                 }
+
                 return parseFile(source, target, options);
             }
 
@@ -33,10 +34,10 @@ function parseFiles (source, target, options, callback) {
                     var targetPath = sourcePath.replace(source, target).replace('.bs', '.js');
                     return parseFile(sourcePath, targetPath, options);
                 });
-            }).nodeify(callback);
+        }).nodeify(callback);
 }
 
-function parseFile (sourcePath, targetPath, options, callback) {
+function parseFile(sourcePath, targetPath, options, callback) {
     return fs.readFileAsync(sourcePath, 'utf8')
         .then(function(input) {
             var parsed = compiler.parse(input, options);
@@ -49,7 +50,6 @@ function parseFile (sourcePath, targetPath, options, callback) {
         .catch(options.onError)
         .nodeify(callback);
 }
-
 
 module.exports.parseFiles = parseFiles;
 module.exports.parseString = compiler.parse;

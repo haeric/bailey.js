@@ -32,6 +32,10 @@ test: src/parser.js
 	node bailey.js ./test ./test --node
 	$(BIN)/mocha
 
+lint:
+	$(BIN)/jshint src
+	$(BIN)/jscs src
+
 node_modules:
 	npm install
 
