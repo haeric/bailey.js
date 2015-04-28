@@ -533,6 +533,7 @@
 
             if (this.extendFrom) {
                 out += this.name + '.prototype = Object.create(' + this.extendFrom + '.prototype);'
+                out += this.name + '.prototype.constructor = ' + this.name + ';'
             }
 
             out += this.values.map(function(item) {
