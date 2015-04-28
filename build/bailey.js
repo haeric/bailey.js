@@ -9417,18 +9417,20 @@ if (typeof define === "function" && define.amd) {
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],12:[function(require,module,exports){
+/* jscs: disable */
 var beautify = require('js-beautify').js_beautify;
+/* jscs: enable */
 var parser = require('./parser');
 var utils = require('./utils');
 
 // Whenever we hit an indented block, make sure all preceding
 // empty lines are made to have this indentation level
-function normalizeBlocks (input) {
+function normalizeBlocks(input) {
 
-    var numberOfLinesToIndent = 0,
-        thisLineContainsStuff = false,
-        thisLinesIndentation = '',
-        out = '';
+    var numberOfLinesToIndent = 0;
+    var thisLineContainsStuff = false;
+    var thisLinesIndentation = '';
+    var out = '';
 
     for (var i = 0; i < input.length; i++) {
 
@@ -9441,10 +9443,10 @@ function normalizeBlocks (input) {
         if (chr === '\n') {
             if (!thisLineContainsStuff) {
                 numberOfLinesToIndent++;
-            }
-            else {
+            } else {
                 out += '\n';
             }
+
             thisLineContainsStuff = false;
             thisLinesIndentation = '';
             continue;
@@ -9461,11 +9463,12 @@ function normalizeBlocks (input) {
                 for (var j = 0; j < numberOfLinesToIndent; j++) {
                     out += thisLinesIndentation + '\n';
                 }
+
                 out += thisLinesIndentation + chr;
-            }
-            else {
+            } else {
                 out += chr;
             }
+
             numberOfLinesToIndent = 0;
             thisLineContainsStuff = true;
 
@@ -9477,7 +9480,7 @@ function normalizeBlocks (input) {
 
 }
 
-function parse (input, options) {
+function parse(input, options) {
 
     input = normalizeBlocks(input);
 
@@ -9501,7 +9504,7 @@ function parse (input, options) {
 
 }
 
-function ParserError (error, input, options) {
+function ParserError(error, input, options) {
     this.message  = error.message;
     this.expected = error.expected;
     this.found    = error.found;
@@ -9511,21 +9514,21 @@ function ParserError (error, input, options) {
     this.inner    = error;
     this.name     = 'ParserError';
 
-    this.toString = function () {
+    this.toString = function() {
         var lines = input.split('\n');
         if (this.offset !== undefined) {
             return [
                 error.name + ' at ' + options.filePath + ' line ' + error.line + ', character ' + error.column + ':',
-                error.line > 2 ? lines[error.line-2] : '',
-                lines[error.line-1],
-                utils.repeat(" ", error.column-1) + '^',
-                error.message,
+                error.line > 2 ? lines[error.line - 2] : '',
+                lines[error.line - 1],
+                utils.repeat(' ', error.column - 1) + '^',
+                error.message
             ].join('\n');
         }
         else if (this.line) {
             return [
                 error.name + ' at ' + options.filePath + ' line ' + error.line + ':',
-                lines[error.line-1],
+                lines[error.line - 1],
                 '',
                 error.message
             ].join('\n');
@@ -16317,6 +16320,7 @@ module.exports = (function() {
 
                 if (options.node) {
                     // Handle imports with node
+                    out = '"use strict";\n' + out;
                     out += imports.map(function(item) {
                         return 'var ' + item.name + ' = require("' + item.path + '");';
                     }).join('\n');
@@ -16688,7 +16692,7 @@ module.exports = (function() {
             toJS: function () {
                 var name = this.name;
                 var out = 'function ' + this.name + ' ';
-                var errorIfNotNewed = 'if ((typeof window !== "undefined" && this === window) || (typeof self !== "undefined" && this === self)) { throw new TypeError("Tried to call class ' + name + ' as a regular function. Classes can only be called with the \'new\' keyword."); }';
+                var errorIfNotNewed = '\n/* istanbul ignore next */\nif ((typeof window !== "undefined" && this === window) || (typeof self !== "undefined" && this === self)) { throw new TypeError("Tried to call class ' + name + ' as a regular function. Classes can only be called with the \'new\' keyword."); }';
                 if (this.init !== null) {
                     var params = this.init.params.map(function(p) {
                         return p.toJS();
@@ -16702,6 +16706,7 @@ module.exports = (function() {
 
                 if (this.extendFrom) {
                     out += this.name + '.prototype = Object.create(' + this.extendFrom + '.prototype);'
+                    out += this.name + '.prototype.constructor = ' + this.name + ';'
                 }
 
                 out += this.values.map(function(item) {
@@ -17231,7 +17236,7 @@ var path = require('path');
 
 module.exports.readDirAsync = function readDirAsync(dirName, filter) {
     return fs.readdirAsync(dirName)
-        .map(function (fileName) {
+        .map(function(fileName) {
             var filePath = path.join(dirName, fileName);
             return fs.statAsync(filePath)
                 .then(function(stat) {
@@ -17239,29 +17244,37 @@ module.exports.readDirAsync = function readDirAsync(dirName, filter) {
                     return stat.isDirectory() ? readDirAsync(filePath) : filePath;
                 });
         })
-        .reduce(function (a, b) {
-            return a.concat(b);
-        }, [])
-        .then(function (files) {
-          i = files.indexOf(undefined)
-          while(i !== -1) {
-            files.splice(i, 1)
-            i = files.indexOf(undefined)
-          }
-          return files
-        });
-}
+        .reduce(function(files, filePath) {
+            if (filePath) files = files.concat(filePath);
+            return files;
+        }, []);
+};
 
 module.exports.checkDir = function checkDir(path, stat) {
-    if (stat.isDirectory() && path[path.length-1] !== '/') {
+    if (stat.isDirectory() && path[path.length - 1] !== '/') {
         path += '/';
     }
+
     return path;
-}
+};
 
 module.exports.repeat = function repeat(str, n) {
-    return new Array(n + 1).join(str)
-}
+    return new Array(n + 1).join(str);
+};
+
+module.exports.fileFilter = function fileFilter(filePath) {
+    return filePath.match(/node_modules/) ||
+           !filePath.match(/\.bs$/) ||
+           path.basename(filePath)[0] == '.';
+};
+
+module.exports.watchFilter = function watchFilter(fn) {
+    return function(filePath) {
+        if (filePath.match(/\.bs$/)) {
+            fn(filePath);
+        }
+    };
+};
 
 },{"bluebird":1,"fs":2,"path":4}]},{},[12])(12)
 });
