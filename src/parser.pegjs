@@ -147,6 +147,7 @@
 
             if (options.node) {
                 // Handle imports with node
+                out = '"use strict";\n' + out;
                 out += imports.map(function(item) {
                     return 'var ' + item.name + ' = require("' + item.path + '");';
                 }).join('\n');
